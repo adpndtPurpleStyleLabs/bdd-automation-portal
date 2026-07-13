@@ -1,0 +1,44 @@
+server:
+  port: 8080
+
+spring:
+  datasource:
+    url: jdbc:h2:mem:bdd_portal
+    username: sa
+    password: 
+    driver-class-name: org.h2.Driver
+    hikari:
+      maximum-pool-size: 10
+  h2:
+    console:
+      enabled: true
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.H2Dialect
+        format_sql: true
+
+  mvc:
+    hiddenmethod:
+      filter:
+        enabled: true
+
+  thymeleaf:
+    cache: false
+    mode: HTML
+
+bdd:
+  portal:
+    features-path: src/test/resources/features
+    reports-path: target/allure-reports
+    screenshots-path: target/screenshots
+
+logging:
+  level:
+    com.bdd.portal: DEBUG
+    org.springframework.web: INFO
+    org.springframework.security: INFO

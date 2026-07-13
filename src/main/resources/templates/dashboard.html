@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout" layout:decorate="~{layout/base}">
+<head>
+    <title>Dashboard</title>
+</head>
+<body>
+    <div layout:fragment="content">
+        <h2 class="mb-4">Dashboard</h2>
+        
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="card text-white bg-primary mb-3 shadow-sm">
+                    <div class="card-body">
+                        <h5 class="card-title">Total Features</h5>
+                        <h2 class="display-6" th:text="${totalFeatures}">0</h2>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card text-white bg-success mb-3 shadow-sm">
+                    <div class="card-body">
+                        <h5 class="card-title">Total Executions</h5>
+                        <h2 class="display-6" th:text="${totalExecutions}">0</h2>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card shadow-sm">
+            <div class="card-header bg-white">
+                <h5 class="mb-0">Recent Executions</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Date</th>
+                                <th>Target</th>
+                                <th>Browser</th>
+                                <th>Status</th>
+                                <th>Duration (s)</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr th:each="exec : ${recentExecutions}">
+                                <td th:text="${exec.id}">1</td>
+                                <td th:text="${#temporals.format(exec.startTime, 'yyyy-MM-dd HH:mm:ss')}">2023-01-01</td>
+                                <td th:text="${exec.featureFile != null ? exec.featureFile.name : exec.targetFolder}">Feature</td>
+                                <td th:text="${exec.browser}">Chrome</td>
+                                <td>
+                                    <span class="badge" 
+                                          th:classappend="${exec.status.name() == 'PASSED' ? 'bg-success' : (exec.status.name() == 'FAILED' ? 'bg-danger' : 'bg-warning')}"
+                                          th:text="${exec.status}">PASSED</span>
+                                </td>
+                                <td th:text="${exec.durationMs != null ? exec.durationMs / 1000 : '-'}">10</td>
+                                <td>
+                                    <a th:href="@{/executions/{id}(id=${exec.id})}" class="btn btn-sm btn-outline-primary">View</a>
+                                </td>
+                            </tr>
+                            <tr th:if="${#lists.isEmpty(recentExecutions)}">
+                                <td colspan="7" class="text-center">No recent executions found</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

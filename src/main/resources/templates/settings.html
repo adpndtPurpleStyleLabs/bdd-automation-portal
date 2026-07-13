@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout" layout:decorate="~{layout/base}">
+<head>
+    <title>Settings</title>
+</head>
+<body>
+    <div layout:fragment="content">
+        <h2 class="mb-4">Global Settings</h2>
+        
+        <div th:if="${param.success}" class="alert alert-success">
+            Settings saved successfully.
+        </div>
+
+        <div class="card shadow-sm col-md-8">
+            <div class="card-body p-4">
+                <form th:action="@{/settings}" method="post" th:object="${settings}">
+                    <div class="mb-3 row">
+                        <label class="col-sm-3 col-form-label">Default Browser</label>
+                        <div class="col-sm-9">
+                            <select class="form-select" th:field="*{defaultBrowser}">
+                                <option value="Chrome">Chrome</option>
+                                <option value="Firefox">Firefox</option>
+                                <option value="Edge">Edge</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3 row">
+                        <label class="col-sm-3 col-form-label">Headless Mode</label>
+                        <div class="col-sm-9 d-flex align-items-center">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" th:field="*{headlessMode}">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3 row">
+                        <label class="col-sm-3 col-form-label">Default Environment</label>
+                        <div class="col-sm-9">
+                            <select class="form-select" th:field="*{defaultEnvironment}">
+                                <option value="DEV">DEV</option>
+                                <option value="QA">QA</option>
+                                <option value="STAGING">STAGING</option>
+                                <option value="PROD">PROD</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3 row">
+                        <label class="col-sm-3 col-form-label">Parallel Threads</label>
+                        <div class="col-sm-9">
+                            <input type="number" class="form-control" th:field="*{parallelThreads}" min="1" max="10">
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3 row">
+                        <label class="col-sm-3 col-form-label">Execution Timeout (mins)</label>
+                        <div class="col-sm-9">
+                            <input type="number" class="form-control" th:field="*{executionTimeoutMinutes}">
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3 row">
+                        <label class="col-sm-3 col-form-label">Retry Count</label>
+                        <div class="col-sm-9">
+                            <input type="number" class="form-control" th:field="*{retryCount}" min="0">
+                        </div>
+                    </div>
+
+                    <hr>
+                    
+                    <div class="mb-3 row">
+                        <label class="col-sm-3 col-form-label">Feature Folder Path</label>
+                        <div class="col-sm-9">
+                            <input type="text" class="form-control" th:field="*{featureFolderPath}">
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3 row">
+                        <label class="col-sm-3 col-form-label">Report Path</label>
+                        <div class="col-sm-9">
+                            <input type="text" class="form-control" th:field="*{reportPath}">
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3 row">
+                        <label class="col-sm-3 col-form-label">Screenshot Path</label>
+                        <div class="col-sm-9">
+                            <input type="text" class="form-control" th:field="*{screenshotPath}">
+                        </div>
+                    </div>
+
+                    <div class="mt-4 text-end">
+                        <button type="submit" class="btn btn-primary">Save Settings</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

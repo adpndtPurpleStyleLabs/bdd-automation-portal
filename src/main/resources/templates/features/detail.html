@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout" layout:decorate="~{layout/base}">
+<head>
+    <title>Feature Details</title>
+</head>
+<body>
+    <div layout:fragment="content">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a th:href="@{/features}">Features</a></li>
+                <li class="breadcrumb-item" th:text="${feature.folder}">Folder</li>
+                <li class="breadcrumb-item active" aria-current="page" th:text="${feature.name}">Name</li>
+            </ol>
+        </nav>
+
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                <h4 class="mb-0 text-primary" th:text="${feature.name}">Feature Name</h4>
+                <form th:action="@{/executions/run/feature/{id}(id=${feature.id})}" method="post">
+                    <button type="submit" class="btn btn-success">
+                        <i class="bi bi-play-fill me-1"></i> Run Feature
+                    </button>
+                </form>
+            </div>
+            <div class="card-body">
+                <div class="mb-4">
+                    <h5>Description</h5>
+                    <p class="text-muted" style="white-space: pre-wrap;" th:text="${feature.description} ?: 'No description provided.'"></p>
+                </div>
+                <div class="row mb-4">
+                    <div class="col-md-4">
+                        <strong>Path:</strong> <span th:text="${feature.relativePath}">path</span>
+                    </div>
+                    <div class="col-md-4">
+                        <strong>Scenarios:</strong> <span th:text="${feature.scenarioCount}">0</span>
+                    </div>
+                    <div class="col-md-4">
+                        <strong>Tags:</strong>
+                        <span th:if="${feature.tags != null}" th:each="tag : ${#strings.arraySplit(feature.tags, ' ')}" class="badge bg-light text-dark border me-1" th:text="${tag}">@Tag</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
