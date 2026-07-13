@@ -19,9 +19,12 @@
                 <h5 class="mb-0">
                     <i class="bi bi-folder-fill text-warning me-2"></i> <span th:text="${entry.key}">Folder</span>
                 </h5>
-                <form th:action="@{/executions/run/folder}" method="post" class="d-inline">
+                <form th:action="@{/executions/run/folder}" method="post" class="d-inline d-flex align-items-center">
                     <input type="hidden" name="folderPath" th:value="${entry.key}">
-                    <button type="submit" class="btn btn-sm btn-success">
+                    <select name="environment" class="form-select form-select-sm me-2" style="width: auto;">
+                        <option th:each="env : ${environments}" th:value="${env}" th:text="${env}"></option>
+                    </select>
+                    <button type="submit" class="btn btn-sm btn-success text-nowrap">
                         <i class="bi bi-play-fill"></i> Run Folder
                     </button>
                 </form>
@@ -40,7 +43,10 @@
                             </div>
                             <div class="card-footer bg-white border-top-0 d-flex justify-content-between">
                                 <a th:href="@{/features/{id}(id=${feature.id})}" class="btn btn-sm btn-outline-primary">Details</a>
-                                <form th:action="@{/executions/run/feature/{id}(id=${feature.id})}" method="post">
+                                <form th:action="@{/executions/run/feature/{id}(id=${feature.id})}" method="post" class="d-flex align-items-center">
+                                    <select name="environment" class="form-select form-select-sm me-1" style="width: auto;">
+                                        <option th:each="env : ${environments}" th:value="${env}" th:text="${env}"></option>
+                                    </select>
                                     <button type="submit" class="btn btn-sm btn-success">
                                         <i class="bi bi-play-fill"></i> Run
                                     </button>

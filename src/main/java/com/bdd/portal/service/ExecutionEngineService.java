@@ -4,6 +4,7 @@ import com.bdd.portal.entity.*;
 import com.bdd.portal.repository.ExecutionLogRepository;
 import com.bdd.portal.repository.ExecutionRepository;
 import com.bdd.portal.repository.ExecutionResultRepository;
+import com.bdd.portal.engine.DriverManager;
 import io.cucumber.core.cli.Main;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -34,6 +35,9 @@ public class ExecutionEngineService {
 
     @Value("${bdd.portal.reports-path}")
     private String reportsPath;
+
+    @Value("${bdd.portal.selenium-grid-url}")
+    private String gridUrl;
 
     @Async
     public void runExecution(Execution execution) {
@@ -83,6 +87,9 @@ public class ExecutionEngineService {
             System.setOut(printStream);
 
             // Run Cucumber
+            DriverManager.setBrowserType(execution.getBrowser());
+            DriverManager.setGridUrl(gridUrl);
+            DriverManager.setEnvironment(execution.getEnvironment());
             byte exitStatus = Main.run(cucumberArgs.toArray(new String[0]), Thread.currentThread().getContextClassLoader());
 
             System.out.flush();
@@ -109,6 +116,7 @@ public class ExecutionEngineService {
             execution.setStatus(ExecutionStatus.FAILED);
             logMessage(execution, "ERROR", "Exception during execution: " + e.getMessage());
         } finally {
+            DriverManager.removeBrowserType();
             execution.setEndTime(LocalDateTime.now());
             execution.setDurationMs(java.time.Duration.between(execution.getStartTime(), execution.getEndTime()).toMillis());
             executionRepository.save(execution);

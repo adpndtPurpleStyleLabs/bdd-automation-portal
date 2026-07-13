@@ -1,5 +1,6 @@
 package com.bdd.portal.controller;
 
+import com.bdd.portal.engine.magento.constants.Environments;
 import com.bdd.portal.entity.FeatureFile;
 import com.bdd.portal.repository.FeatureFileRepository;
 import com.bdd.portal.service.FeatureScannerService;
@@ -28,19 +29,22 @@ public class FeatureController {
         List<FeatureFile> features = featureFileRepository.findAll();
         
         // Group by folder for tree view
-        Map<String, List<FeatureFile>> featuresByFolder = features.stream()
-                .filter(FeatureFile::isEnabled)
+        Map<String, List<FeatureFile>> grouped = features.stream()
                 .collect(Collectors.groupingBy(f -> f.getFolder() != null ? f.getFolder() : "Root"));
-                
-        model.addAttribute("featuresByFolder", featuresByFolder);
+        
+        model.addAttribute("featuresByFolder", grouped);
+        model.addAttribute("environments", Environments.MAGENTO_ENVIRONMENTS.keySet());
         return "features/list";
     }
 
     @GetMapping("/{id}")
-    public String featureDetail(@PathVariable Long id, Model model) {
-        FeatureFile feature = featureFileRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Invalid feature Id:" + id));
+    public String viewFeatureDetails(@PathVariable Long id, Model model) {
+        FeatureFile feature = featureFileRepository.findById(id).orElse(null);
+        if (feature == null) {
+            return "redirect:/features";
+        }
         model.addAttribute("feature", feature);
+        model.addAttribute("environments", Environments.MAGENTO_ENVIRONMENTS.keySet());
         return "features/detail";
     }
     

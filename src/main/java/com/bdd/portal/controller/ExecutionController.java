@@ -40,39 +40,40 @@ public class ExecutionController {
         return "executions/detail";
     }
 
-    @PostMapping("/run/feature/{featureId}")
-    public String runFeature(@PathVariable Long featureId, 
-                             @RequestParam(defaultValue = "Chrome") String browser,
-                             @RequestParam(defaultValue = "QA") String environment) {
-        FeatureFile feature = featureFileRepository.findById(featureId)
-                .orElseThrow(() -> new IllegalArgumentException("Invalid feature Id:" + featureId));
-                
+    @PostMapping("/run/feature/{id}")
+    public String runFeature(@PathVariable Long id, 
+                           @RequestParam(required = false, defaultValue = "Chrome") String browser,
+                           @RequestParam(required = false, defaultValue = "STAGE") String environment) {
+        
+        FeatureFile feature = featureFileRepository.findById(id).orElse(null);
+        if (feature == null) {
+            return "redirect:/features";
+        }
+        
         Execution execution = new Execution();
         execution.setFeatureFile(feature);
+        execution.setStatus(ExecutionStatus.QUEUED);
         execution.setBrowser(browser);
         execution.setEnvironment(environment);
-        // Normally set user here
-        
         executionRepository.save(execution);
         
-        // Start async
         executionEngineService.runExecution(execution);
         
         return "redirect:/executions/" + execution.getId();
     }
     
     @PostMapping("/run/folder")
-    public String runFolder(@RequestParam String folderPath,
-                            @RequestParam(defaultValue = "Chrome") String browser,
-                            @RequestParam(defaultValue = "QA") String environment) {
+    public String runFolder(@RequestParam String folderPath, 
+                          @RequestParam(required = false, defaultValue = "Chrome") String browser,
+                          @RequestParam(required = false, defaultValue = "STAGE") String environment) {
+        
         Execution execution = new Execution();
         execution.setTargetFolder(folderPath);
+        execution.setStatus(ExecutionStatus.QUEUED);
         execution.setBrowser(browser);
         execution.setEnvironment(environment);
-        
         executionRepository.save(execution);
         
-        // Start async
         executionEngineService.runExecution(execution);
         
         return "redirect:/executions/" + execution.getId();

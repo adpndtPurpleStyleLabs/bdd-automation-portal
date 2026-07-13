@@ -16,8 +16,11 @@
         <div class="card shadow-sm mb-4">
             <div class="card-header bg-white d-flex justify-content-between align-items-center">
                 <h4 class="mb-0 text-primary" th:text="${feature.name}">Feature Name</h4>
-                <form th:action="@{/executions/run/feature/{id}(id=${feature.id})}" method="post">
-                    <button type="submit" class="btn btn-success">
+                <form th:action="@{/executions/run/feature/{id}(id=${feature.id})}" method="post" class="d-flex align-items-center">
+                    <select name="environment" class="form-select me-2" style="width: auto;">
+                        <option th:each="env : ${environments}" th:value="${env}" th:text="${env}"></option>
+                    </select>
+                    <button type="submit" class="btn btn-success text-nowrap">
                         <i class="bi bi-play-fill me-1"></i> Run Feature
                     </button>
                 </form>

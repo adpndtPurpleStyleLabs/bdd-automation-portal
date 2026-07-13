@@ -34,7 +34,8 @@ spring:
 bdd:
   portal:
     features-path: src/test/resources/features
-    reports-path: target/allure-reports
+    reports-path: target/allure-results
+    selenium-grid-url: http://141.94.137.133:5503/wd/hub
     screenshots-path: target/screenshots
 
 logging:
