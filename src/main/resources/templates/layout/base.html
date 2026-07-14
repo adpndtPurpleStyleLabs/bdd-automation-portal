@@ -14,25 +14,25 @@
 <body>
     <div class="d-flex" id="wrapper">
         <!-- Sidebar -->
-        <div class="bg-dark text-white" id="sidebar-wrapper">
-            <div class="sidebar-heading border-bottom border-secondary text-center py-4">
-                <h4><i class="bi bi-robot"></i> Automation Portal</h4>
+        <div id="sidebar-wrapper">
+            <div class="sidebar-heading text-center">
+                <i class="bi bi-robot text-primary me-2"></i> BDD Portal
             </div>
-            <div class="list-group list-group-flush mt-3">
-                <a th:href="@{/}" class="list-group-item list-group-item-action bg-dark text-white">
-                    <i class="bi bi-house-door me-2"></i>Dashboard
+            <div class="list-group list-group-flush mt-3" id="sidebar-nav">
+                <a th:href="@{/}" class="list-group-item list-group-item-action" data-path="/">
+                    <i class="bi bi-house-door"></i> Dashboard
                 </a>
-                <a th:href="@{/executions}" class="list-group-item list-group-item-action bg-dark text-white">
-                    <i class="bi bi-play-circle me-2"></i>Running Tests
+                <a th:href="@{/executions}" class="list-group-item list-group-item-action" data-path="/executions">
+                    <i class="bi bi-play-circle"></i> Running Tests
                 </a>
-                <a th:href="@{/reports}" class="list-group-item list-group-item-action bg-dark text-white">
-                    <i class="bi bi-bar-chart me-2"></i>Reports
+                <a th:href="@{/reports}" class="list-group-item list-group-item-action" data-path="/reports">
+                    <i class="bi bi-bar-chart"></i> Reports
                 </a>
-                <a th:href="@{/features}" class="list-group-item list-group-item-action bg-dark text-white">
-                    <i class="bi bi-folder2-open me-2"></i>Feature Explorer
+                <a th:href="@{/features}" class="list-group-item list-group-item-action" data-path="/features">
+                    <i class="bi bi-folder2-open"></i> Feature Explorer
                 </a>
-                <a th:href="@{/settings}" class="list-group-item list-group-item-action bg-dark text-white">
-                    <i class="bi bi-gear me-2"></i>Settings
+                <a th:href="@{/settings}" class="list-group-item list-group-item-action" data-path="/settings">
+                    <i class="bi bi-gear"></i> Settings
                 </a>
             </div>
         </div>
@@ -40,7 +40,7 @@
         <!-- Page Content -->
         <div id="page-content-wrapper" class="w-100">
             <!-- Top Header -->
-            <nav class="navbar navbar-expand-lg navbar-light bg-light border-bottom px-4">
+            <nav class="navbar navbar-expand-lg border-bottom px-4">
                 <div class="container-fluid">
                     <button class="btn btn-primary" id="menu-toggle"><i class="bi bi-list"></i></button>
                     <ul class="navbar-nav ms-auto mt-2 mt-lg-0">
@@ -61,7 +61,7 @@
             </nav>
 
             <!-- Main Content Area -->
-            <div class="container-fluid p-4">
+            <div class="container-fluid p-2">
                 <div layout:fragment="content"></div>
             </div>
         </div>
