@@ -102,8 +102,22 @@
                             <td>
                                 <div class="fw-medium text-dark">[[${execution.featureFile != null ? execution.featureFile.name : execution.targetFolder}]]</div>
                             </td>
-                            <td><span class="badge bg-light text-dark border">[[${execution.environment}]]</span></td>
-                            <td><span class="badge bg-light text-dark border">[[${execution.browser}]]</span></td>
+                            <td>
+                                <span class="badge bg-light text-dark border d-inline-flex align-items-center">
+                                    <img th:if="${execution.environment != null and envUrls[execution.environment] != null}" 
+                                         th:src="@{'https://www.google.com/s2/favicons?domain=' + ${envUrls[execution.environment]} + '&sz=32'}" 
+                                         style="width: 16px; height: 16px; margin-right: 6px;" alt="" />
+                                    [[${execution.environment}]]
+                                </span>
+                            </td>
+                            <td>
+                                <span class="badge bg-light text-dark border d-inline-flex align-items-center">
+                                    <img th:if="${#strings.equalsIgnoreCase(execution.browser, 'chrome')}" src="/browser-logos/chrome.png" style="width: 16px; height: 16px; margin-right: 6px;" alt="Chrome">
+                                    <img th:if="${#strings.equalsIgnoreCase(execution.browser, 'firefox')}" src="/browser-logos/firefox.png" style="width: 16px; height: 16px; margin-right: 6px;" alt="Firefox">
+                                    <img th:if="${#strings.equalsIgnoreCase(execution.browser, 'edge')}" src="/browser-logos/edge.jpeg" style="width: 16px; height: 16px; margin-right: 6px;" alt="Edge">
+                                    [[${execution.browser}]]
+                                </span>
+                            </td>
                             <td>
                                 <span class="badge rounded-pill" th:classappend="${execution.executionType.name() == 'MANUAL' ? 'bg-info text-dark' : 'bg-warning text-dark'}">
                                     <i class="bi" th:classappend="${execution.executionType.name() == 'MANUAL' ? 'bi-person' : 'bi-calendar'}"></i>
@@ -166,6 +180,7 @@
         <script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
         <script th:inline="javascript">
             /*<![CDATA[*/
+            var envUrls = /*[[${envUrls}]]*/ {};
             var currentTypeFilter = /*[[${type != null ? type.name() : ''}]]*/ '';
             var currentDateFilter = /*[[${date != null ? date : ''}]]*/ '';
             
@@ -230,8 +245,21 @@
                         
                         var html = '<td class="ps-4 fw-bold text-primary">#' + execution.id + '</td>';
                         html += '<td><div class="fw-medium text-dark">' + execution.target + '</div></td>';
-                        html += '<td><span class="badge bg-light text-dark border">' + execution.environment + '</span></td>';
-                        html += '<td><span class="badge bg-light text-dark border">' + execution.browser + '</span></td>';
+                        
+                        var envUrl = envUrls[execution.environment];
+                        var envImg = '';
+                        if (envUrl) {
+                            envImg = '<img src="https://www.google.com/s2/favicons?domain=' + envUrl + '&sz=32" style="width: 16px; height: 16px; margin-right: 6px;" alt="" />';
+                        }
+                        html += '<td><span class="badge bg-light text-dark border d-inline-flex align-items-center">' + envImg + execution.environment + '</span></td>';
+                        
+                        var browserLower = execution.browser ? execution.browser.toLowerCase() : '';
+                        var browserImg = '';
+                        if (browserLower === 'chrome') browserImg = '<img src="/browser-logos/chrome.png" style="width: 16px; height: 16px; margin-right: 6px;" alt="Chrome">';
+                        else if (browserLower === 'firefox') browserImg = '<img src="/browser-logos/firefox.png" style="width: 16px; height: 16px; margin-right: 6px;" alt="Firefox">';
+                        else if (browserLower === 'edge') browserImg = '<img src="/browser-logos/edge.jpeg" style="width: 16px; height: 16px; margin-right: 6px;" alt="Edge">';
+                        
+                        html += '<td><span class="badge bg-light text-dark border d-inline-flex align-items-center">' + browserImg + execution.browser + '</span></td>';
                         
                         var typeClass = execution.type === 'MANUAL' ? 'bg-info text-dark' : 'bg-warning text-dark';
                         var iconClass = execution.type === 'MANUAL' ? 'bi-person' : 'bi-calendar';

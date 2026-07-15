@@ -6,6 +6,8 @@ import com.bdd.portal.entity.ExecutionType;
 import com.bdd.portal.entity.FeatureFile;
 import com.bdd.portal.repository.ExecutionRepository;
 import com.bdd.portal.repository.FeatureFileRepository;
+import com.bdd.portal.repository.TestEnvironmentRepository;
+import com.bdd.portal.entity.TestEnvironment;
 import com.bdd.portal.service.ExecutionEngineService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -23,6 +25,8 @@ import jakarta.persistence.criteria.Predicate;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Controller
 @RequestMapping("/executions")
@@ -31,6 +35,7 @@ public class ExecutionController {
 
     private final ExecutionRepository executionRepository;
     private final FeatureFileRepository featureFileRepository;
+    private final TestEnvironmentRepository testEnvironmentRepository;
     private final ExecutionEngineService executionEngineService;
 
     @GetMapping
@@ -59,6 +64,10 @@ public class ExecutionController {
         model.addAttribute("executionPage", executionPage);
         model.addAttribute("type", type);
         model.addAttribute("date", date);
+        
+        Map<String, String> envUrls = testEnvironmentRepository.findAll().stream()
+                .collect(Collectors.toMap(TestEnvironment::getName, TestEnvironment::getUrl, (a, b) -> a));
+        model.addAttribute("envUrls", envUrls);
         
         if (ExecutionType.SCHEDULED.equals(type)) {
             model.addAttribute("upcomingJobs", com.bdd.portal.config.SpringContext.getBean(com.bdd.portal.repository.ScheduledJobRepository.class).findByActiveTrueOrderByNextRunTimeAsc());
