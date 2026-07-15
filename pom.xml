@@ -11,7 +11,7 @@
 	<groupId>com.bdd.portal</groupId>
 	<artifactId>bdd-automation-portal</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
-	<name>bdd-automation-portal</name>
+	<name>open-source-test-automation</name>
 	<description/>
 	<url/>
 	<licenses>
@@ -208,6 +208,7 @@
 				</configuration>
 			</plugin>
 		</plugins>
+		<finalName>open-source-test-automation</finalName>
 	</build>
 
 </project>
