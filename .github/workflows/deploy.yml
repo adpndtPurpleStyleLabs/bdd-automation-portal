@@ -21,33 +21,40 @@ jobs:
         with:
           distribution: temurin
           java-version: '25'
+          cache: maven
 
       - name: Build, Package and Push
         shell: bash
         run: |
-          set -e
+          set -euxo pipefail
 
           REV=$(git rev-parse --short HEAD)
           echo "Revision: ${REV}"
 
-          mvn clean package -DskipTests
+          # Build project
+          chmod +x mvnw
+          ./mvnw clean package -DskipTests
 
+          # Build Docker image
           docker build \
             --build-arg GIT_COMMIT=${REV} \
             -t open-source-test-automation/t:latest \
             -f Dockerfile .
 
+          # Tag images
           docker tag open-source-test-automation/t:latest \
             nexus.ppustage.dev/open-source-test-automation-service:${REV}
 
           docker tag open-source-test-automation/t:latest \
             nexus.ppustage.dev/open-source-test-automation-service:latest
 
+          # Login to Nexus
           echo "${{ secrets.NEXUS_PASSWORD }}" | docker login \
             nexus.ppustage.dev \
             --username "${{ secrets.NEXUS_USER_NAME }}" \
             --password-stdin
 
+          # Push images
           docker push nexus.ppustage.dev/open-source-test-automation-service:${REV}
           docker push nexus.ppustage.dev/open-source-test-automation-service:latest
 
