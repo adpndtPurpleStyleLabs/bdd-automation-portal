@@ -7,12 +7,14 @@ import com.bdd.portal.engine.DriverManager;
 import io.cucumber.core.cli.Main;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.openqa.selenium.WebDriver;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.LocalDateTime;
@@ -53,7 +55,11 @@ public class ExecutionEngineService {
             List<String> cucumberArgs = new ArrayList<>();
             
             // Where to look for features
-            if (execution.getFeatureFile() != null) {
+            if (execution.getTargetScenarios() != null && !execution.getTargetScenarios().isEmpty()) {
+                for (String scenarioPath : execution.getTargetScenarios()) {
+                    cucumberArgs.add(scenarioPath); // e.g. src/test/resources/features/MyFeature.feature:15
+                }
+            } else if (execution.getFeatureFile() != null) {
                 Path featurePath = Paths.get(featuresPath, execution.getFeatureFile().getRelativePath());
                 cucumberArgs.add(featurePath.toString());
             } else if (execution.getTargetFolder() != null) {
@@ -85,24 +91,67 @@ public class ExecutionEngineService {
             // Set execution ID for plugin
             System.setProperty("current.execution.id", execution.getId().toString());
 
-            // Set Allure results directory specifically for this execution
-            String allureResultsDir = "target/allure-results/" + execution.getId();
+            // We must use a shared allure results directory because Allure caches the system property statically.
+            // All executions in the same JVM will write their results here.
+            String allureResultsDir = "target/allure-results";
             System.setProperty("allure.results.directory", allureResultsDir);
 
-            // Redirect System.out to capture Cucumber logs
+            // Redirect System.out to capture Cucumber logs (Note: not thread-safe for concurrent runs, but we capture what we can)
             ByteArrayOutputStream baos = new ByteArrayOutputStream();
             PrintStream printStream = new PrintStream(baos);
             PrintStream oldOut = System.out;
             System.setOut(printStream);
 
-            // Run Cucumber
-            DriverManager.setBrowserType(execution.getBrowser());
-            DriverManager.setGridUrl(gridUrl);
-            DriverManager.setEnvironment(execution.getEnvironment());
-            byte exitStatus = Main.run(cucumberArgs.toArray(new String[0]), Thread.currentThread().getContextClassLoader());
+            byte exitStatus;
+            try {
+                // Initialize WebDriver once for the entire execution
+                String browser = execution.getBrowser();
+                logMessage(execution, "INFO", "Initializing WebDriver for browser: " + browser);
+                WebDriver driver;
+                
+                // If Grid URL is explicitly provided, use Grid, otherwise fallback to local DEV execution
+                if (gridUrl != null && !gridUrl.isEmpty()) {
+                    java.net.URL gridHubUrl = new java.net.URL(gridUrl);
+                    if ("Firefox".equalsIgnoreCase(browser)) {
+                        driver = new org.openqa.selenium.remote.RemoteWebDriver(gridHubUrl, new org.openqa.selenium.firefox.FirefoxOptions());
+                    } else if ("Edge".equalsIgnoreCase(browser)) {
+                        driver = new org.openqa.selenium.remote.RemoteWebDriver(gridHubUrl, new org.openqa.selenium.edge.EdgeOptions());
+                    } else {
+                        org.openqa.selenium.chrome.ChromeOptions options = new org.openqa.selenium.chrome.ChromeOptions();
+                        driver = new org.openqa.selenium.remote.RemoteWebDriver(gridHubUrl, options);
+                    }
+                    logMessage(execution, "INFO", "WebDriver initialized successfully from Grid.");
+                } else {
+                    logMessage(execution, "INFO", "Grid URL not found. Initializing local DEV ChromeDriver.");
+                    org.openqa.selenium.chrome.ChromeOptions options = new org.openqa.selenium.chrome.ChromeOptions();
+                    options.addArguments("--remote-allow-origins=*");
+                    options.addArguments("disable-notifications");
+                    options.addArguments("start-maximized");
+                    options.addArguments("--disable-notifications");
+                    driver = io.github.bonigarcia.wdm.WebDriverManager.chromedriver().capabilities(options).create();
+                }
 
-            System.out.flush();
-            System.setOut(oldOut);
+                driver.manage().timeouts().pageLoadTimeout(java.time.Duration.ofSeconds(60));
+                driver.manage().timeouts().implicitlyWait(java.time.Duration.ofSeconds(10));
+                
+                DriverManager.setBrowserType(browser);
+                DriverManager.setGridUrl(gridUrl);
+                DriverManager.setEnvironment(execution.getEnvironment());
+                DriverManager.setDriver(driver);
+
+                // Run Cucumber
+                exitStatus = Main.run(cucumberArgs.toArray(new String[0]), Thread.currentThread().getContextClassLoader());
+            } catch (Exception e) {
+                logMessage(execution, "ERROR", "Failed to initialize WebDriver: " + e.getMessage());
+                throw new RuntimeException("Execution failed due to WebDriver initialization error", e);
+            } finally {
+                System.out.flush();
+                System.setOut(oldOut);
+                
+                logMessage(execution, "INFO", "Quitting WebDriver...");
+                DriverManager.quitDriver();
+                DriverManager.removeBrowserType();
+            }
             
             // Capture the logs
             String cucumberLogs = baos.toString();
@@ -123,8 +172,13 @@ public class ExecutionEngineService {
             processBuilder.directory(Paths.get(System.getProperty("user.dir")).toFile());
             Process process = processBuilder.start();
             process.waitFor();
-
-            execution.setAllureReportPath("/reports/allure/" + execution.getId() + "/index.html");
+            
+            // If the report was generated, there should be an index.html
+            if (Files.exists(reportPath.resolve("index.html"))) {
+                execution.setAllureReportPath("/reports/allure/" + execution.getId() + "/index.html");
+            } else {
+                logMessage(execution, "WARN", "Allure report index.html not found after generation. Check Maven logs.");
+            }
 
             ExecutionStatus finalStatus;
             if (exitStatus == 0) {

@@ -1,9 +1,10 @@
 package com.bdd.portal.controller;
 
-import com.bdd.portal.engine.magento.constants.Environments;
+
 import com.bdd.portal.entity.FeatureFile;
 import com.bdd.portal.repository.FeatureFileRepository;
 import com.bdd.portal.service.FeatureScannerService;
+import com.bdd.portal.service.TestEnvironmentService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -32,6 +33,7 @@ public class FeatureController {
     private final FeatureFileRepository featureFileRepository;
     private final FeatureScannerService featureScannerService;
     private final FeatureExecutionRepository featureExecutionRepository;
+    private final TestEnvironmentService testEnvironmentService;
 
     @Value("${bdd.portal.features-path}")
     private String featuresPath;
@@ -45,7 +47,7 @@ public class FeatureController {
                 .collect(Collectors.groupingBy(f -> f.getFolder() != null ? f.getFolder() : "Root"));
         
         model.addAttribute("featuresByFolder", grouped);
-        model.addAttribute("environments", Environments.MAGENTO_ENVIRONMENTS.keySet());
+        model.addAttribute("environments", testEnvironmentService.getAllEnvironmentNames());
         return "features/list";
     }
 
@@ -74,7 +76,7 @@ public class FeatureController {
         
         model.addAttribute("feature", feature);
         model.addAttribute("scenarios", scenarios);
-        model.addAttribute("environments", Environments.MAGENTO_ENVIRONMENTS.keySet());
+        model.addAttribute("environments", testEnvironmentService.getAllEnvironmentNames());
         return "features/detail";
     }
     

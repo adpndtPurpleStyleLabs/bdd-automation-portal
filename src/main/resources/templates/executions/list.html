@@ -6,19 +6,81 @@
 <body>
     <div layout:fragment="content">
         <div class="d-flex justify-content-between align-items-center mb-4">
-            <h2>Executions Dashboard</h2>
-            <form th:action="@{/executions}" method="get" class="d-flex align-items-center gap-2">
-                <select name="type" class="form-select form-select-sm" onchange="this.form.submit()">
-                    <option value="" th:selected="${type == null}">All Types</option>
-                    <option value="MANUAL" th:selected="${type != null and type.name() == 'MANUAL'}">Manual Triggers</option>
-                    <option value="SCHEDULED" th:selected="${type != null and type.name() == 'SCHEDULED'}">Scheduled Runs</option>
-                </select>
-                <input type="date" name="date" class="form-control form-control-sm" th:value="${date}" onchange="this.form.submit()">
-                <a th:href="@{/executions}" class="btn btn-sm btn-outline-secondary">Clear</a>
-            </form>
+            <div>
+                <h2 class="h3 mb-1 text-gray-800">
+                    <i class="bi bi-play-btn text-primary me-2"></i>
+                    <span th:text="${type != null ? (type.name() == 'MANUAL' ? 'Manual Triggers' : 'Scheduled Runs') : 'All Executions'}">All Executions</span>
+                </h2>
+                <p class="text-muted mb-0">Monitor and manage your BDD test automation runs</p>
+            </div>
+            
+            <div class="d-flex align-items-center gap-2">
+                <a th:if="${type != null and type.name() == 'SCHEDULED'}" th:href="@{/jobs/create}" class="btn btn-primary shadow-sm">
+                    <i class="bi bi-plus-circle me-1"></i> Create Scheduled Test Job
+                </a>
+                <form th:action="@{/executions}" method="get" class="d-flex align-items-center gap-2 m-0 p-0">
+                    <select name="type" class="form-select form-select-sm" onchange="this.form.submit()">
+                        <option value="" th:selected="${type == null}">All Types</option>
+                        <option value="MANUAL" th:selected="${type != null and type.name() == 'MANUAL'}">Manual Triggers</option>
+                        <option value="SCHEDULED" th:selected="${type != null and type.name() == 'SCHEDULED'}">Scheduled Runs</option>
+                    </select>
+                    <input type="date" name="date" class="form-control form-control-sm" th:value="${date}" onchange="this.form.submit()">
+                    <a th:href="@{/executions}" class="btn btn-sm btn-outline-secondary text-nowrap">Clear</a>
+                </form>
+            </div>
+        </div>
+
+        <!-- Upcoming Jobs Section -->
+        <div th:if="${type != null and type.name() == 'SCHEDULED'}" class="card shadow-sm border-0 mb-4">
+            <div class="card-header bg-white py-3">
+                <h6 class="m-0 font-weight-bold text-primary"><i class="bi bi-calendar-event me-2"></i>Upcoming Scheduled Jobs</h6>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light text-muted small">
+                            <tr>
+                                <th class="ps-4 border-0">Job Name</th>
+                                <th class="border-0">Environment</th>
+                                <th class="border-0">Browser</th>
+                                <th class="border-0">Schedule</th>
+                                <th class="border-0">Next Run</th>
+                                <th class="border-0">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr th:each="job : ${upcomingJobs}">
+                                <td class="ps-4 fw-medium text-dark">[[${job.jobName}]]</td>
+                                <td><span class="badge bg-light text-dark border">[[${job.environment}]]</span></td>
+                                <td><span class="badge bg-light text-dark border">[[${job.browser}]]</span></td>
+                                <td>
+                                    <span class="badge bg-info text-dark rounded-pill">
+                                        <i class="bi bi-arrow-repeat me-1" th:if="${job.cronExpression != null}"></i>
+                                        <i class="bi bi-clock me-1" th:if="${job.cronExpression == null}"></i>
+                                        [[${job.cronExpression != null ? job.cronExpression : 'Once'}]]
+                                    </span>
+                                </td>
+                                <td>
+                                    <span class="text-primary fw-medium"><i class="bi bi-calendar-check me-1"></i>[[${#temporals.format(job.nextRunTime, 'MMM dd, HH:mm:ss')}]]</span>
+                                </td>
+                                <td>
+                                    <span th:if="${job.active}" class="badge bg-success">Active</span>
+                                    <span th:unless="${job.active}" class="badge bg-secondary">Inactive</span>
+                                </td>
+                            </tr>
+                            <tr th:if="${#lists.isEmpty(upcomingJobs)}">
+                                <td colspan="6" class="text-center py-4 text-muted fst-italic">No upcoming scheduled jobs.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
         </div>
 
         <div class="card shadow-sm border-0">
+            <div class="card-header bg-white py-3">
+                <h6 class="m-0 font-weight-bold text-primary" th:text="${type != null and type.name() == 'SCHEDULED' ? 'Past Executions' : 'Execution History'}">Execution History</h6>
+            </div>
             <div class="card-body p-0">
                 <table class="table table-hover align-middle mb-0">
                     <thead class="table-light">
@@ -67,7 +129,7 @@
                                 </a>
                             </td>
                         </tr>
-                        <tr th:if="${executionPage.empty}">
+                        <tr th:if="${executionPage.isEmpty()}">
                             <td colspan="9" class="text-center py-5 text-muted">
                                 <i class="bi bi-inbox fs-1 d-block mb-3"></i>
                                 No executions found for the selected filters.

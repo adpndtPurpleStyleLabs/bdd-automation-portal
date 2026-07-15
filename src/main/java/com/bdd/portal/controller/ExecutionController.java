@@ -60,6 +60,10 @@ public class ExecutionController {
         model.addAttribute("type", type);
         model.addAttribute("date", date);
         
+        if (ExecutionType.SCHEDULED.equals(type)) {
+            model.addAttribute("upcomingJobs", com.bdd.portal.config.SpringContext.getBean(com.bdd.portal.repository.ScheduledJobRepository.class).findByActiveTrueOrderByNextRunTimeAsc());
+        }
+        
         return "executions/list";
     }
 

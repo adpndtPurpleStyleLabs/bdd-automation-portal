@@ -100,13 +100,16 @@ public class FeatureScannerService {
         List<String> lines = Files.readAllLines(filePath);
         String name = filePath.getFileName().toString();
         List<String> tags = new ArrayList<>();
-        int scenarioCount = 0;
+        List<FeatureFile.FeatureScenario> parsedScenarios = new ArrayList<>();
         int stepCount = 0;
         StringBuilder description = new StringBuilder();
         boolean inFeature = false;
         boolean pastDescription = false;
+        
+        int lineNumber = 0;
 
         for (String line : lines) {
+            lineNumber++;
             String trimmed = line.trim();
             if (trimmed.startsWith("@")) {
                 String[] lineTags = trimmed.split("\\s+");
@@ -119,7 +122,11 @@ public class FeatureScannerService {
                 name = trimmed.substring("Feature:".length()).trim();
                 inFeature = true;
             } else if (trimmed.startsWith("Scenario:") || trimmed.startsWith("Scenario Outline:")) {
-                scenarioCount++;
+                String scenarioName = trimmed.replace("Scenario Outline:", "").replace("Scenario:", "").trim();
+                if (scenarioName.isEmpty()) {
+                    scenarioName = "Unnamed Scenario";
+                }
+                parsedScenarios.add(new FeatureFile.FeatureScenario(scenarioName, lineNumber));
                 pastDescription = true;
             } else if (trimmed.startsWith("Given ") || trimmed.startsWith("When ") || 
                        trimmed.startsWith("Then ") || trimmed.startsWith("And ") || 
@@ -133,7 +140,8 @@ public class FeatureScannerService {
 
         featureFile.setName(name.isEmpty() ? filePath.getFileName().toString() : name);
         featureFile.setTags(String.join(" ", tags));
-        featureFile.setScenarioCount(scenarioCount);
+        featureFile.setScenarioCount(parsedScenarios.size());
+        featureFile.setScenarios(parsedScenarios);
         featureFile.setStepCount(stepCount);
         
         String descStr = description.toString().trim();

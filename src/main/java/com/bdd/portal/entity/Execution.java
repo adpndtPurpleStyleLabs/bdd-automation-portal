@@ -24,6 +24,15 @@ public class Execution {
     // Could be a folder path instead of a specific feature file
     private String targetFolder;
 
+    @ElementCollection(fetch = FetchType.EAGER)
+    @CollectionTable(name = "execution_target_scenarios", joinColumns = @JoinColumn(name = "execution_id"))
+    @Column(name = "scenario_path")
+    private List<String> targetScenarios = new ArrayList<>();
+
+    @ManyToOne
+    @JoinColumn(name = "scheduled_job_id")
+    private ScheduledJob scheduledJob;
+
     @ManyToOne
     @JoinColumn(name = "user_id")
     private User startedBy;

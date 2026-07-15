@@ -5,6 +5,8 @@ import lombok.Getter;
 import lombok.Setter;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "feature_file")
@@ -35,4 +37,23 @@ public class FeatureFile {
     private LocalDateTime lastModified;
 
     private boolean enabled = true;
+
+    @ElementCollection(fetch = FetchType.EAGER)
+    @CollectionTable(name = "feature_scenarios", joinColumns = @JoinColumn(name = "feature_file_id"))
+    private List<FeatureScenario> scenarios = new ArrayList<>();
+
+    @Embeddable
+    @Getter
+    @Setter
+    public static class FeatureScenario {
+        private String name;
+        private int lineNumber;
+
+        public FeatureScenario() {}
+
+        public FeatureScenario(String name, int lineNumber) {
+            this.name = name;
+            this.lineNumber = lineNumber;
+        }
+    }
 }
