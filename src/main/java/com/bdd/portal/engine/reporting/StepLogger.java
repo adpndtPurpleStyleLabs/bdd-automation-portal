@@ -19,8 +19,16 @@ import java.util.Optional;
 public class StepLogger {
 
     private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("HH:mm:ss.SSS");
-    private static final String SCREENSHOT_DIR = "src/main/resources/static/screenshots/";
     private static final String SCREENSHOT_URL_PREFIX = "/screenshots/";
+
+    private static String getScreenshotDir() {
+        try {
+            org.springframework.core.env.Environment env = SpringContext.getBean(org.springframework.core.env.Environment.class);
+            return env.getProperty("bdd.portal.screenshots-path", "target/screenshots");
+        } catch (Exception e) {
+            return "target/screenshots";
+        }
+    }
 
     public static void log(String message) {
         log("INFO", message);
@@ -62,7 +70,7 @@ public class StepLogger {
         if (driver instanceof TakesScreenshot) {
             try {
                 // Ensure directory exists
-                File dir = new File(SCREENSHOT_DIR);
+                File dir = new File(getScreenshotDir());
                 if (!dir.exists()) {
                     dir.mkdirs();
                 }
