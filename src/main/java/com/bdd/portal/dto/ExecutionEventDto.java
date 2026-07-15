@@ -17,6 +17,15 @@ public class ExecutionEventDto {
     private String status;
     private String allureReportPath;
 
+    // Live Feed Fields
+    private boolean liveFeedAvailable;
+    private String vncUrl;
+    private String noVncUrl;
+    private String gridNode;
+    private String browserVersion;
+    private String platform;
+    private String endedAt;
+
     public static ExecutionEventDto fromExecution(Execution execution) {
         ExecutionEventDto dto = new ExecutionEventDto();
         dto.setId(execution.getId());
@@ -45,6 +54,18 @@ public class ExecutionEventDto {
         
         dto.setStatus(execution.getStatus().name());
         dto.setAllureReportPath(execution.getAllureReportPath());
+        
+        // Live Feed fields
+        dto.setLiveFeedAvailable(execution.getStatus() == com.bdd.portal.entity.ExecutionStatus.RUNNING);
+        dto.setVncUrl(execution.getVncUrl());
+        dto.setNoVncUrl(execution.getNoVncUrl());
+        dto.setGridNode(execution.getGridNodeUri() != null ? execution.getGridNodeUri() : execution.getGridNodeId());
+        dto.setBrowserVersion(execution.getBrowserVersion());
+        dto.setPlatform(execution.getPlatform());
+        
+        if (execution.getEndTime() != null) {
+            dto.setEndedAt(execution.getEndTime().format(DateTimeFormatter.ofPattern("MMM dd, HH:mm:ss")));
+        }
         
         return dto;
     }

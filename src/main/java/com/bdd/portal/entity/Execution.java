@@ -37,6 +37,18 @@ public class Execution {
     @JoinColumn(name = "user_id")
     private User startedBy;
 
+    private String gridUrl;
+    private String seleniumSessionId;
+    private String vncUrl;
+
+    // New Grid metadata
+    private String gridNodeId;
+    private String gridNodeUri;
+    private String containerId;
+    private String noVncUrl;
+    private String browserVersion;
+    private String platform;
+
     private String browser;
     private String environment;
 

@@ -1,30 +1,39 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout" layout:decorate="~{layout/base}">
+<html xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+    layout:decorate="~{layout/base}">
+
 <head>
     <title>Executions Dashboard</title>
 </head>
+
 <body>
     <div layout:fragment="content">
         <div class="d-flex justify-content-between align-items-center mb-4">
             <div>
                 <h2 class="h3 mb-1 text-gray-800">
                     <i class="bi bi-play-btn text-primary me-2"></i>
-                    <span th:text="${type != null ? (type.name() == 'MANUAL' ? 'Manual Triggers' : 'Scheduled Runs') : 'All Executions'}">All Executions</span>
+                    <span
+                        th:text="${type != null ? (type.name() == 'MANUAL' ? 'Manual Triggers' : 'Scheduled Runs') : 'All Executions'}">All
+                        Executions</span>
                 </h2>
                 <p class="text-muted mb-0">Monitor and manage your BDD test automation runs</p>
             </div>
-            
+
             <div class="d-flex align-items-center gap-2">
-                <a th:if="${type != null and type.name() == 'SCHEDULED'}" th:href="@{/jobs/create}" class="btn btn-primary shadow-sm">
+                <a th:if="${type != null and type.name() == 'SCHEDULED'}" th:href="@{/jobs/create}"
+                    class="btn btn-primary shadow-sm">
                     <i class="bi bi-plus-circle me-1"></i> Create Scheduled Test Job
                 </a>
                 <form th:action="@{/executions}" method="get" class="d-flex align-items-center gap-2 m-0 p-0">
                     <select name="type" class="form-select form-select-sm" onchange="this.form.submit()">
                         <option value="" th:selected="${type == null}">All Types</option>
-                        <option value="MANUAL" th:selected="${type != null and type.name() == 'MANUAL'}">Manual Triggers</option>
-                        <option value="SCHEDULED" th:selected="${type != null and type.name() == 'SCHEDULED'}">Scheduled Runs</option>
+                        <option value="MANUAL" th:selected="${type != null and type.name() == 'MANUAL'}">Manual Triggers
+                        </option>
+                        <option value="SCHEDULED" th:selected="${type != null and type.name() == 'SCHEDULED'}">Scheduled
+                            Runs</option>
                     </select>
-                    <input type="date" name="date" class="form-control form-control-sm" th:value="${date}" onchange="this.form.submit()">
+                    <input type="date" name="date" class="form-control form-control-sm" th:value="${date}"
+                        onchange="this.form.submit()">
                     <a th:href="@{/executions}" class="btn btn-sm btn-outline-secondary text-nowrap">Clear</a>
                 </form>
             </div>
@@ -33,7 +42,8 @@
         <!-- Upcoming Jobs Section -->
         <div th:if="${type != null and type.name() == 'SCHEDULED'}" class="card shadow-sm border-0 mb-4">
             <div class="card-header bg-white py-3">
-                <h6 class="m-0 font-weight-bold text-primary"><i class="bi bi-calendar-event me-2"></i>Upcoming Scheduled Jobs</h6>
+                <h6 class="m-0 font-weight-bold text-primary"><i class="bi bi-calendar-event me-2"></i>Upcoming
+                    Scheduled Jobs</h6>
             </div>
             <div class="card-body p-0">
                 <div class="table-responsive">
@@ -61,7 +71,9 @@
                                     </span>
                                 </td>
                                 <td>
-                                    <span class="text-primary fw-medium"><i class="bi bi-calendar-check me-1"></i>[[${#temporals.format(job.nextRunTime, 'MMM dd, HH:mm:ss')}]]</span>
+                                    <span class="text-primary fw-medium"><i
+                                            class="bi bi-calendar-check me-1"></i>[[${#temporals.format(job.nextRunTime,
+                                        'MMM dd, HH:mm:ss')}]]</span>
                                 </td>
                                 <td>
                                     <span th:if="${job.active}" class="badge bg-success">Active</span>
@@ -69,7 +81,8 @@
                                 </td>
                             </tr>
                             <tr th:if="${#lists.isEmpty(upcomingJobs)}">
-                                <td colspan="6" class="text-center py-4 text-muted fst-italic">No upcoming scheduled jobs.</td>
+                                <td colspan="6" class="text-center py-4 text-muted fst-italic">No upcoming scheduled
+                                    jobs.</td>
                             </tr>
                         </tbody>
                     </table>
@@ -79,7 +92,9 @@
 
         <div class="card shadow-sm border-0">
             <div class="card-header bg-white py-3">
-                <h6 class="m-0 font-weight-bold text-primary" th:text="${type != null and type.name() == 'SCHEDULED' ? 'Past Executions' : 'Execution History'}">Execution History</h6>
+                <h6 class="m-0 font-weight-bold text-primary"
+                    th:text="${type != null and type.name() == 'SCHEDULED' ? 'Past Executions' : 'Execution History'}">
+                    Execution History</h6>
             </div>
             <div class="card-body p-0">
                 <table class="table table-hover align-middle mb-0">
@@ -97,30 +112,41 @@
                         </tr>
                     </thead>
                     <tbody id="executionsTableBody">
-                        <tr th:each="execution : ${executionPage.content}" th:id="'row-' + ${execution.id}" style="cursor: pointer;" th:onclick="|window.location.href='/executions/' + ${execution.id}|">
+                        <tr th:each="execution : ${executionPage.content}" th:id="'row-' + ${execution.id}"
+                            style="cursor: pointer;"
+                            th:onclick="|window.location.href='/executions/' + ${execution.id}|">
                             <td class="ps-4 fw-bold text-primary">#[[${execution.id}]]</td>
                             <td>
-                                <div class="fw-medium text-dark">[[${execution.featureFile != null ? execution.featureFile.name : execution.targetFolder}]]</div>
+                                <div class="fw-medium text-dark">[[${execution.featureFile != null ?
+                                    execution.featureFile.name : execution.targetFolder}]]</div>
                             </td>
                             <td>
                                 <span class="badge bg-light text-dark border d-inline-flex align-items-center">
-                                    <img th:if="${execution.environment != null and envUrls[execution.environment] != null}" 
-                                         th:src="@{'https://www.google.com/s2/favicons?domain=' + ${envUrls[execution.environment]} + '&sz=32'}" 
-                                         style="width: 16px; height: 16px; margin-right: 6px;" alt="" />
+                                    <img th:if="${execution.environment != null and envUrls[execution.environment] != null}"
+                                        th:src="@{'https://www.google.com/s2/favicons?domain=' + ${envUrls[execution.environment]} + '&sz=32'}"
+                                        style="width: 16px; height: 16px; margin-right: 6px;" alt="" />
                                     [[${execution.environment}]]
                                 </span>
                             </td>
                             <td>
                                 <span class="badge bg-light text-dark border d-inline-flex align-items-center">
-                                    <img th:if="${#strings.equalsIgnoreCase(execution.browser, 'chrome')}" src="/browser-logos/chrome.png" style="width: 16px; height: 16px; margin-right: 6px;" alt="Chrome">
-                                    <img th:if="${#strings.equalsIgnoreCase(execution.browser, 'firefox')}" src="/browser-logos/firefox.png" style="width: 16px; height: 16px; margin-right: 6px;" alt="Firefox">
-                                    <img th:if="${#strings.equalsIgnoreCase(execution.browser, 'edge')}" src="/browser-logos/edge.jpeg" style="width: 16px; height: 16px; margin-right: 6px;" alt="Edge">
+                                    <img th:if="${#strings.equalsIgnoreCase(execution.browser, 'chrome')}"
+                                        src="/browser-logos/chrome.png"
+                                        style="width: 16px; height: 16px; margin-right: 6px;" alt="Chrome">
+                                    <img th:if="${#strings.equalsIgnoreCase(execution.browser, 'firefox')}"
+                                        src="/browser-logos/firefox.png"
+                                        style="width: 16px; height: 16px; margin-right: 6px;" alt="Firefox">
+                                    <img th:if="${#strings.equalsIgnoreCase(execution.browser, 'edge')}"
+                                        src="/browser-logos/edge.jpeg"
+                                        style="width: 16px; height: 16px; margin-right: 6px;" alt="Edge">
                                     [[${execution.browser}]]
                                 </span>
                             </td>
                             <td>
-                                <span class="badge rounded-pill" th:classappend="${execution.executionType.name() == 'MANUAL' ? 'bg-info text-dark' : 'bg-warning text-dark'}">
-                                    <i class="bi" th:classappend="${execution.executionType.name() == 'MANUAL' ? 'bi-person' : 'bi-calendar'}"></i>
+                                <span class="badge rounded-pill"
+                                    th:classappend="${execution.executionType.name() == 'MANUAL' ? 'bg-info text-dark' : 'bg-warning text-dark'}">
+                                    <i class="bi"
+                                        th:classappend="${execution.executionType.name() == 'MANUAL' ? 'bi-person' : 'bi-calendar'}"></i>
                                     [[${execution.executionType}]]
                                 </span>
                             </td>
@@ -131,14 +157,30 @@
                                 [[${execution.durationMs != null ? execution.durationMs / 1000.0 + 's' : '-'}]]
                             </td>
                             <td>
-                                <span class="badge" th:classappend="${execution.status.name() == 'PASSED' ? 'bg-success' : (execution.status.name() == 'FAILED' ? 'bg-danger' : (execution.status.name() == 'RUNNING' ? 'bg-primary' : 'bg-secondary'))}">
-                                    <span th:if="${execution.status.name() == 'RUNNING'}" class="spinner-border spinner-border-sm me-1" style="width: 0.7rem; height: 0.7rem;"></span>
+                                <span class="badge"
+                                    th:classappend="${execution.status.name() == 'PASSED' ? 'bg-success' : (execution.status.name() == 'FAILED' ? 'bg-danger' : (execution.status.name() == 'RUNNING' ? 'bg-primary' : 'bg-secondary'))}">
+                                    <span th:if="${execution.status.name() == 'RUNNING'}"
+                                        class="spinner-border spinner-border-sm me-1"
+                                        style="width: 0.7rem; height: 0.7rem;"></span>
                                     [[${execution.status}]]
                                 </span>
                             </td>
+                            <td th:if="${execution.status.name() == 'RUNNING' && execution.noVncUrl != null}"
+                                onclick="event.stopPropagation();">
+                                <button class="btn btn-sm btn-success position-relative"
+                                    th:onclick="'openLiveFeed(this, \'' + ${execution.noVncUrl} + '\', \'' + ${execution.featureFile != null ? execution.featureFile.name : execution.targetFolder} + '\', \'' + ${execution.browser} + ' ' + ${execution.browserVersion != null ? execution.browserVersion : ''} + '\', \'' + ${execution.status} + '\')'"
+                                    title="Watch the test executing live.">
+                                    <span
+                                        class="position-absolute top-0 start-100 translate-middle p-1 bg-white border border-light rounded-circle"
+                                        style="animation: pulse-ring 2s infinite;"></span>
+                                    🟢 Live Feed
+                                </button>
+                            </td>
                             <td onclick="event.stopPropagation();">
-                                <a th:if="${execution.allureReportPath != null}" th:href="${execution.allureReportPath}" target="_blank" class="btn btn-sm btn-outline-primary" title="Open Allure Report">
-                                    <img src="https://allurereport.org/public/img/allure-report.svg" style="height: 16px; width: 16px; margin-right: 4px;" alt="Allure">
+                                <a th:if="${execution.allureReportPath != null}" th:href="${execution.allureReportPath}"
+                                    target="_blank" class="btn btn-sm btn-outline-primary" title="Open Allure Report">
+                                    <img src="https://allurereport.org/public/img/allure-report.svg"
+                                        style="height: 16px; width: 16px; margin-right: 4px;" alt="Allure">
                                     Report
                                 </a>
                             </td>
@@ -152,29 +194,110 @@
                     </tbody>
                 </table>
             </div>
-            
-            <div class="card-footer bg-white py-3 d-flex justify-content-between align-items-center" th:if="${executionPage.totalPages > 1}">
+
+            <div class="card-footer bg-white py-3 d-flex justify-content-between align-items-center"
+                th:if="${executionPage.totalPages > 1}">
                 <span class="text-muted small">
-                    Showing [[${executionPage.number * executionPage.size + 1}]] to [[${(executionPage.number * executionPage.size) + executionPage.numberOfElements}]] of [[${executionPage.totalElements}]] executions
+                    Showing [[${executionPage.number * executionPage.size + 1}]] to [[${(executionPage.number *
+                    executionPage.size) + executionPage.numberOfElements}]] of [[${executionPage.totalElements}]]
+                    executions
                 </span>
                 <nav aria-label="Page navigation">
                     <ul class="pagination pagination-sm mb-0">
                         <li class="page-item" th:classappend="${executionPage.first ? 'disabled' : ''}">
-                            <a class="page-link" th:href="@{/executions(page=${executionPage.number - 1}, type=${type}, date=${date})}">Previous</a>
+                            <a class="page-link"
+                                th:href="@{/executions(page=${executionPage.number - 1}, type=${type}, date=${date})}">Previous</a>
                         </li>
-                        <li class="page-item" th:each="i : ${#numbers.sequence(0, executionPage.totalPages - 1)}" 
+                        <li class="page-item" th:each="i : ${#numbers.sequence(0, executionPage.totalPages - 1)}"
                             th:classappend="${executionPage.number == i ? 'active' : ''}">
-                            <a class="page-link" th:href="@{/executions(page=${i}, type=${type}, date=${date})}">[[${i + 1}]]</a>
+                            <a class="page-link" th:href="@{/executions(page=${i}, type=${type}, date=${date})}">[[${i +
+                                1}]]</a>
                         </li>
                         <li class="page-item" th:classappend="${executionPage.last ? 'disabled' : ''}">
-                            <a class="page-link" th:href="@{/executions(page=${executionPage.number + 1}, type=${type}, date=${date})}">Next</a>
+                            <a class="page-link"
+                                th:href="@{/executions(page=${executionPage.number + 1}, type=${type}, date=${date})}">Next</a>
                         </li>
                     </ul>
                 </nav>
             </div>
         </div>
+    <!-- Live Feed Modal -->
+    <div class="modal fade" id="liveFeedModal" tabindex="-1" aria-labelledby="liveFeedModalLabel" aria-hidden="true"
+        data-bs-backdrop="static">
+        <div class="modal-dialog modal-xl modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg" style="background-color: #f8f9fa;">
+                <div class="modal-header border-bottom-0 pb-0">
+                    <h5 class="modal-title fw-bold text-dark" id="liveFeedModalLabel">Running Test</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4 pt-2">
+                    <div class="row mb-3 g-3">
+                        <div class="col-md-3">
+                            <label class="text-muted small fw-bold text-uppercase">Feature / Target</label>
+                            <div class="fw-medium text-dark" id="liveFeedFeature">Login Feature</div>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="text-muted small fw-bold text-uppercase">Scenario</label>
+                            <div class="fw-medium text-dark" id="liveFeedScenario">-</div>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="text-muted small fw-bold text-uppercase">Browser</label>
+                            <div class="fw-medium text-dark" id="liveFeedBrowser">Chrome</div>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="text-muted small fw-bold text-uppercase">Status</label>
+                            <div><span class="badge bg-primary px-3 py-2" id="liveFeedStatus"><span
+                                        class="spinner-border spinner-border-sm me-2"
+                                        style="width: 1rem; height: 1rem;"></span>Running</span></div>
+                        </div>
+                    </div>
+
+                    <div id="liveFeedContainer"
+                        class="bg-dark rounded-3 shadow-sm d-flex justify-content-center align-items-center position-relative overflow-hidden"
+                        style="height: 600px;">
+                        <div id="liveFeedLoader" class="text-center text-white position-absolute z-3">
+                            <div class="spinner-border text-light mb-3" style="width: 3rem; height: 3rem;"
+                                role="status"></div>
+                            <h5>Connecting to Live Stream...</h5>
+                            <p class="text-muted small">Establishing secure VNC connection to grid node.</p>
+                        </div>
+                        <div id="liveFeedTerminated" class="text-center text-white position-absolute z-3 d-none">
+                            <i class="bi bi-camera-video-off fs-1 text-secondary mb-3 d-block"></i>
+                            <h5>Test execution has completed.</h5>
+                            <p class="text-muted small">Live stream has ended.</p>
+                        </div>
+                        <iframe id="liveFeedIframe" src="" class="w-100 h-100 border-0 rounded-3 opacity-0"
+                            style="transition: opacity 0.5s ease; position: relative; z-index: 2;"></iframe>
+                    </div>
+                </div>
+                <div class="modal-footer border-top-0 pt-0">
+                    <a href="#" id="liveFeedNewTabBtn" target="_blank" class="btn btn-outline-primary fw-medium"><i
+                            class="bi bi-box-arrow-up-right me-2"></i>Open in New Tab</a>
+                    <button type="button" class="btn btn-secondary fw-medium" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
     </div>
-    
+    <style>
+        @keyframes pulse-ring {
+            0% {
+                transform: scale(0.8);
+                opacity: 0.5;
+            }
+
+            80% {
+                transform: scale(1.5);
+                opacity: 0;
+            }
+
+            100% {
+                transform: scale(1.5);
+                opacity: 0;
+            }
+        }
+    </style>
+    </div>
+
     <th:block layout:fragment="scripts">
         <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
         <script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
@@ -183,111 +306,187 @@
             var envUrls = /*[[${envUrls}]]*/ {};
             var currentTypeFilter = /*[[${type != null ? type.name() : ''}]]*/ '';
             var currentDateFilter = /*[[${date != null ? date : ''}]]*/ '';
-            
-            var socket = new SockJS('/ws-stomp');
-            var stompClient = Stomp.over(socket);
-            stompClient.debug = null;
-            
-            stompClient.connect({}, function (frame) {
-                stompClient.subscribe('/topic/executions', function (message) {
-                    var execution = JSON.parse(message.body);
-                    
-                    // Filter Logic
-                    if (currentTypeFilter && currentTypeFilter !== execution.type) {
-                        return; // Doesn't match type filter
-                    }
-                    if (currentDateFilter) {
-                        // Assuming startTime is "MMM dd, HH:mm:ss", this isn't easy to check strictly vs YYYY-MM-DD
-                        // For a robust filter, we could add rawStartTime to DTO. 
-                        // But for now, any event that triggers today will match today's filter.
-                        // We'll skip strict date validation in JS for simplicity, 
-                        // mostly type filter is what users change frequently.
-                    }
-                    
-                    var existingRow = document.getElementById('row-' + execution.id);
-                    if (existingRow) {
-                        // Update existing row
-                        
-                        // Update Status Cell (6th index based on 0-indexing? 0=ID, 1=Target, 2=Env, 3=Browser, 4=Type, 5=Start, 6=Duration, 7=Status, 8=Actions)
-                        var statusCell = existingRow.cells[7];
-                        var statusHtml = '<span class="badge ' + getBadgeClass(execution.status) + '">';
-                        if (execution.status === 'RUNNING') {
-                            statusHtml += '<span class="spinner-border spinner-border-sm me-1" style="width: 0.7rem; height: 0.7rem;"></span>';
+
+            window.currentLiveFeedTarget = null;
+            window.liveFeedModalInstance = null;
+
+            function openLiveFeed(btn, vncUrl, target, browser, status) {
+                if (event) event.stopPropagation();
+
+                if (!window.liveFeedModalInstance) {
+                    window.liveFeedModalInstance = new bootstrap.Modal(document.getElementById('liveFeedModal'));
+                }
+
+                window.currentLiveFeedTarget = target;
+
+                document.getElementById('liveFeedFeature').innerText = target;
+                document.getElementById('liveFeedBrowser').innerText = browser;
+
+                document.getElementById('liveFeedLoader').classList.remove('d-none');
+                document.getElementById('liveFeedTerminated').classList.add('d-none');
+
+                var iframe = document.getElementById('liveFeedIframe');
+                iframe.classList.add('opacity-0');
+
+                document.getElementById('liveFeedNewTabBtn').href = vncUrl;
+                iframe.src = vncUrl;
+
+                iframe.onload = function () {
+                    document.getElementById('liveFeedLoader').classList.add('d-none');
+                    iframe.classList.remove('opacity-0');
+                };
+
+                window.liveFeedModalInstance.show();
+            }
+
+            function terminateLiveFeed() {
+                document.getElementById('liveFeedTerminated').classList.remove('d-none');
+                document.getElementById('liveFeedLoader').classList.add('d-none');
+                var iframe = document.getElementById('liveFeedIframe');
+                iframe.src = '';
+                iframe.classList.add('opacity-0');
+            }
+
+            document.addEventListener("DOMContentLoaded", function () {
+                document.getElementById('liveFeedModal').addEventListener('hidden.bs.modal', function () {
+                    var iframe = document.getElementById('liveFeedIframe');
+                    iframe.src = '';
+                    window.currentLiveFeedTarget = null;
+                });
+
+                var socket = new SockJS('/ws-stomp');
+                var stompClient = Stomp.over(socket);
+                stompClient.debug = null;
+
+                stompClient.connect({}, function (frame) {
+                    stompClient.subscribe('/topic/executions', function (message) {
+                        var execution = JSON.parse(message.body);
+
+                        // Filter Logic
+                        if (currentTypeFilter && currentTypeFilter !== execution.type) {
+                            return; // Doesn't match type filter
                         }
-                        statusHtml += execution.status + '</span>';
-                        statusCell.innerHTML = statusHtml;
-                        
-                        // Update Duration
-                        var durationCell = existingRow.cells[6];
-                        durationCell.innerHTML = execution.duration;
-                        
-                        // Update Actions
-                        var actionsCell = existingRow.cells[8];
-                        if (execution.allureReportPath) {
-                            actionsCell.innerHTML = '<a href="' + execution.allureReportPath + '" target="_blank" class="btn btn-sm btn-outline-primary" title="Open Allure Report" onclick="event.stopPropagation();">' +
-                                '<img src="https://allurereport.org/public/img/allure-report.svg" style="height: 16px; width: 16px; margin-right: 4px;" alt="Allure">Report</a>';
+                        if (currentDateFilter) {
+                            // Assuming startTime is "MMM dd, HH:mm:ss", this isn't easy to check strictly vs YYYY-MM-DD
+                            // For a robust filter, we could add rawStartTime to DTO. 
+                            // But for now, any event that triggers today will match today's filter.
+                            // We'll skip strict date validation in JS for simplicity, 
+                            // mostly type filter is what users change frequently.
                         }
-                        
-                    } else {
-                        // Create new row
-                        var tbody = document.getElementById('executionsTableBody');
-                        
-                        // Remove "No executions found" row if present
-                        var emptyRow = tbody.querySelector('.text-muted.text-center');
-                        if (emptyRow) {
-                            emptyRow.remove();
+
+                        var existingRow = document.getElementById('row-' + execution.id);
+                        if (existingRow) {
+                            // Update existing row
+
+                            // Update Status Cell (index 7)
+                            var statusCell = existingRow.cells[7];
+                            var statusHtml = '<span class="badge ' + getBadgeClass(execution.status) + '">';
+                            if (execution.status === 'RUNNING') {
+                                statusHtml += '<span class="spinner-border spinner-border-sm me-1" style="width: 0.7rem; height: 0.7rem;"></span>';
+                            }
+                            statusHtml += execution.status + '</span>';
+                            statusCell.innerHTML = statusHtml;
+
+                            // Update Duration (index 6)
+                            var durationCell = existingRow.cells[6];
+                            durationCell.innerHTML = execution.duration;
+
+                            // Update Live Feed (index 8)
+                            var liveFeedCell = existingRow.cells[8];
+                            if (execution.liveFeedAvailable && execution.noVncUrl) {
+                                var targetName = (execution.target || '').replace(/'/g, "\\'");
+                                var browserInfo = ((execution.browser || '') + ' ' + (execution.browserVersion || '')).replace(/'/g, "\\'");
+                                liveFeedCell.innerHTML = '<button onclick="event.stopPropagation(); openLiveFeed(this, \'' + execution.noVncUrl + '\', \'' + targetName + '\', \'' + browserInfo + '\', \'' + execution.status + '\')" class="btn btn-sm btn-success position-relative" title="Watch the test executing live.">' +
+                                    '<span class="position-absolute top-0 start-100 translate-middle p-1 bg-white border border-light rounded-circle" style="animation: pulse-ring 2s infinite;"></span>' +
+                                    '🟢 Live Feed</button>';
+                            } else {
+                                liveFeedCell.innerHTML = '<button class="btn btn-sm btn-secondary text-white" disabled title="Live feed is available only while the execution is running." onclick="event.stopPropagation();">Live Feed</button>';
+                            }
+
+                            // Update Actions (index 9)
+                            var actionsCell = existingRow.cells[9];
+                            if (execution.allureReportPath) {
+                                actionsCell.innerHTML = '<a href="' + execution.allureReportPath + '" target="_blank" class="btn btn-sm btn-outline-primary" title="Open Allure Report" onclick="event.stopPropagation();">' +
+                                    '<img src="https://allurereport.org/public/img/allure-report.svg" style="height: 16px; width: 16px; margin-right: 4px;" alt="Allure">Report</a>';
+                            }
+
+                            // Terminate modal if it's currently showing this execution and status is no longer RUNNING
+                            if (execution.status !== 'RUNNING' && window.currentLiveFeedTarget === execution.target) {
+                                terminateLiveFeed();
+                            }
+
+
+                        } else {
+                            // Create new row
+                            var tbody = document.getElementById('executionsTableBody');
+
+                            // Remove "No executions found" row if present
+                            var emptyRow = tbody.querySelector('.text-muted.text-center');
+                            if (emptyRow) {
+                                emptyRow.remove();
+                            }
+
+                            var tr = document.createElement('tr');
+                            tr.id = 'row-' + execution.id;
+                            tr.style.cursor = 'pointer';
+                            tr.onclick = function () { window.location.href = '/executions/' + execution.id; };
+
+                            var html = '<td class="ps-4 fw-bold text-primary">#' + execution.id + '</td>';
+                            html += '<td><div class="fw-medium text-dark">' + execution.target + '</div></td>';
+
+                            var envUrl = envUrls[execution.environment];
+                            var envImg = '';
+                            if (envUrl) {
+                                envImg = '<img src="https://www.google.com/s2/favicons?domain=' + envUrl + '&sz=32" style="width: 16px; height: 16px; margin-right: 6px;" alt="" />';
+                            }
+                            html += '<td><span class="badge bg-light text-dark border d-inline-flex align-items-center">' + envImg + execution.environment + '</span></td>';
+
+                            var browserLower = execution.browser ? execution.browser.toLowerCase() : '';
+                            var browserImg = '';
+                            if (browserLower === 'chrome') browserImg = '<img src="/browser-logos/chrome.png" style="width: 16px; height: 16px; margin-right: 6px;" alt="Chrome">';
+                            else if (browserLower === 'firefox') browserImg = '<img src="/browser-logos/firefox.png" style="width: 16px; height: 16px; margin-right: 6px;" alt="Firefox">';
+                            else if (browserLower === 'edge') browserImg = '<img src="/browser-logos/edge.jpeg" style="width: 16px; height: 16px; margin-right: 6px;" alt="Edge">';
+
+                            html += '<td><span class="badge bg-light text-dark border d-inline-flex align-items-center">' + browserImg + execution.browser + '</span></td>';
+
+                            var typeClass = execution.type === 'MANUAL' ? 'bg-info text-dark' : 'bg-warning text-dark';
+                            var iconClass = execution.type === 'MANUAL' ? 'bi-person' : 'bi-calendar';
+                            html += '<td><span class="badge rounded-pill ' + typeClass + '"><i class="bi ' + iconClass + '"></i> ' + execution.type + '</span></td>';
+
+                            html += '<td class="text-muted small">' + execution.startTime + '</td>';
+                            html += '<td class="text-muted small">' + execution.duration + '</td>';
+
+                            var statusHtml = '<span class="badge ' + getBadgeClass(execution.status) + '">';
+                            if (execution.status === 'RUNNING') {
+                                statusHtml += '<span class="spinner-border spinner-border-sm me-1" style="width: 0.7rem; height: 0.7rem;"></span>';
+                            }
+                            statusHtml += execution.status + '</span>';
+                            html += '<td>' + statusHtml + '</td>';
+
+                            if (execution.liveFeedAvailable && execution.noVncUrl) {
+                                var targetName = (execution.target || '').replace(/'/g, "\\'");
+                                var browserInfo = ((execution.browser || '') + ' ' + (execution.browserVersion || '')).replace(/'/g, "\\'");
+                                html += '<td onclick="event.stopPropagation();"><button onclick="openLiveFeed(this, \'' + execution.noVncUrl + '\', \'' + targetName + '\', \'' + browserInfo + '\', \'' + execution.status + '\')" class="btn btn-sm btn-success position-relative" title="Watch the test executing live.">' +
+                                    '<span class="position-absolute top-0 start-100 translate-middle p-1 bg-white border border-light rounded-circle" style="animation: pulse-ring 2s infinite;"></span>' +
+                                    '🟢 Live Feed</button></td>';
+                            } else {
+                                html += '<td onclick="event.stopPropagation();"><button class="btn btn-sm btn-secondary text-white" disabled title="Live feed is available only while the execution is running.">Live Feed</button></td>';
+                            }
+
+                            html += '<td onclick="event.stopPropagation();"></td>'; // Actions column initially empty for new queued tasks
+
+                            tr.innerHTML = html;
+                            tbody.insertBefore(tr, tbody.firstChild);
+
+                            // Optional: remove last row to maintain pagination size visually?
+                            // if (tbody.children.length > 15) { tbody.removeChild(tbody.lastChild); }
                         }
-                        
-                        var tr = document.createElement('tr');
-                        tr.id = 'row-' + execution.id;
-                        tr.style.cursor = 'pointer';
-                        tr.onclick = function() { window.location.href = '/executions/' + execution.id; };
-                        
-                        var html = '<td class="ps-4 fw-bold text-primary">#' + execution.id + '</td>';
-                        html += '<td><div class="fw-medium text-dark">' + execution.target + '</div></td>';
-                        
-                        var envUrl = envUrls[execution.environment];
-                        var envImg = '';
-                        if (envUrl) {
-                            envImg = '<img src="https://www.google.com/s2/favicons?domain=' + envUrl + '&sz=32" style="width: 16px; height: 16px; margin-right: 6px;" alt="" />';
-                        }
-                        html += '<td><span class="badge bg-light text-dark border d-inline-flex align-items-center">' + envImg + execution.environment + '</span></td>';
-                        
-                        var browserLower = execution.browser ? execution.browser.toLowerCase() : '';
-                        var browserImg = '';
-                        if (browserLower === 'chrome') browserImg = '<img src="/browser-logos/chrome.png" style="width: 16px; height: 16px; margin-right: 6px;" alt="Chrome">';
-                        else if (browserLower === 'firefox') browserImg = '<img src="/browser-logos/firefox.png" style="width: 16px; height: 16px; margin-right: 6px;" alt="Firefox">';
-                        else if (browserLower === 'edge') browserImg = '<img src="/browser-logos/edge.jpeg" style="width: 16px; height: 16px; margin-right: 6px;" alt="Edge">';
-                        
-                        html += '<td><span class="badge bg-light text-dark border d-inline-flex align-items-center">' + browserImg + execution.browser + '</span></td>';
-                        
-                        var typeClass = execution.type === 'MANUAL' ? 'bg-info text-dark' : 'bg-warning text-dark';
-                        var iconClass = execution.type === 'MANUAL' ? 'bi-person' : 'bi-calendar';
-                        html += '<td><span class="badge rounded-pill ' + typeClass + '"><i class="bi ' + iconClass + '"></i> ' + execution.type + '</span></td>';
-                        
-                        html += '<td class="text-muted small">' + execution.startTime + '</td>';
-                        html += '<td class="text-muted small">' + execution.duration + '</td>';
-                        
-                        var statusHtml = '<span class="badge ' + getBadgeClass(execution.status) + '">';
-                        if (execution.status === 'RUNNING') {
-                            statusHtml += '<span class="spinner-border spinner-border-sm me-1" style="width: 0.7rem; height: 0.7rem;"></span>';
-                        }
-                        statusHtml += execution.status + '</span>';
-                        html += '<td>' + statusHtml + '</td>';
-                        
-                        html += '<td onclick="event.stopPropagation();"></td>'; // Actions column initially empty for new queued tasks
-                        
-                        tr.innerHTML = html;
-                        tbody.insertBefore(tr, tbody.firstChild);
-                        
-                        // Optional: remove last row to maintain pagination size visually?
-                        // if (tbody.children.length > 15) { tbody.removeChild(tbody.lastChild); }
-                    }
+                    });
                 });
             });
-            
+
             function getBadgeClass(status) {
-                switch(status) {
+                switch (status) {
                     case 'PASSED': return 'bg-success';
                     case 'FAILED': return 'bg-danger';
                     case 'RUNNING': return 'bg-primary';
@@ -298,4 +497,5 @@
         </script>
     </th:block>
 </body>
+
 </html>

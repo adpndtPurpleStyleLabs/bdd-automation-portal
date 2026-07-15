@@ -120,6 +120,39 @@ public class ExecutionEngineService {
                         org.openqa.selenium.chrome.ChromeOptions options = new org.openqa.selenium.chrome.ChromeOptions();
                         driver = new org.openqa.selenium.remote.RemoteWebDriver(gridHubUrl, options);
                     }
+                    
+                    org.openqa.selenium.Capabilities caps = ((org.openqa.selenium.remote.RemoteWebDriver) driver).getCapabilities();
+                    execution.setSeleniumSessionId(((org.openqa.selenium.remote.RemoteWebDriver) driver).getSessionId().toString());
+                    execution.setBrowserVersion(caps.getBrowserVersion());
+                    if (caps.getPlatformName() != null) {
+                        execution.setPlatform(caps.getPlatformName().name());
+                    }
+                    
+                    Object vncObj = caps.getCapability("se:vnc");
+                    Object vncLocalObj = caps.getCapability("se:vncLocalAddress");
+                    
+                    String vncStr = vncLocalObj != null ? vncLocalObj.toString() : (vncObj != null ? vncObj.toString() : null);
+                    
+                    if (vncStr != null && !vncStr.isEmpty()) {
+                        try {
+                            java.net.URI uri = new java.net.URI(vncStr);
+                            execution.setGridNodeUri(uri.getHost());
+                        } catch (Exception e) {}
+
+                        if (vncStr.startsWith("ws://") || vncStr.startsWith("wss://")) {
+                            vncStr = vncStr.replace("ws://", "http://").replace("wss://", "https://");
+                        }
+                        
+                        execution.setVncUrl(vncStr);
+                        
+                        if (!vncStr.contains("?")) {
+                            vncStr += "/?autoconnect=1&password=secret&resize=scale";
+                        } else if (!vncStr.contains("password=")) {
+                            vncStr += "&autoconnect=1&password=secret&resize=scale";
+                        }
+                        execution.setNoVncUrl(vncStr);
+                    }
+                    
                     logMessage(execution, "INFO", "WebDriver initialized successfully from Grid.");
                 } else {
                     logMessage(execution, "INFO", "Grid URL not found. Initializing local DEV ChromeDriver.");
@@ -163,12 +196,21 @@ public class ExecutionEngineService {
             Path reportPath = Paths.get(reportPathStr).toAbsolutePath();
             Path resultsPath = Paths.get(allureResultsDir).toAbsolutePath();
             
-            ProcessBuilder processBuilder = new ProcessBuilder(
-                    "./mvnw", "allure:report",
-                    "-Dallure.results.directory=" + resultsPath.toString(),
-                    "-Dallure.report.directory=" + reportPath.toString()
-            );
-            // On Windows, use mvnw.cmd if necessary, but assuming Linux/Mac based on ./mvnw
+            ProcessBuilder processBuilder;
+            if (Files.exists(Paths.get("./mvnw"))) {
+                processBuilder = new ProcessBuilder(
+                        "./mvnw", "allure:report",
+                        "-Dallure.results.directory=" + resultsPath.toString(),
+                        "-Dallure.report.directory=" + reportPath.toString()
+                );
+            } else {
+                processBuilder = new ProcessBuilder(
+                        "allure", "generate",
+                        resultsPath.toString(),
+                        "-o", reportPath.toString(),
+                        "--clean"
+                );
+            }
             processBuilder.directory(Paths.get(System.getProperty("user.dir")).toFile());
             Process process = processBuilder.start();
             process.waitFor();
