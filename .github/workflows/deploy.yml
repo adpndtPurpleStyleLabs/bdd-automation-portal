@@ -20,7 +20,7 @@ jobs:
           rev=$(git rev-parse --short HEAD)
           echo "rev  ${rev}"
           ls
-          echo "hello"
+          echo "hello 2"
           echo ${{secrets.NEXUS_USER_NAME}}
           mvn clean package -DskipTests
           sudo docker build --build-arg GIT_COMMIT=${rev} -t open-source-test-automation/t:latest -f Dockerfile .
