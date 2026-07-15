@@ -6,6 +6,8 @@ on:
       - '**'
 
 jobs:
+  build:
+    runs-on: [ self-hosted, label-1 ]
   release:
     runs-on: ubuntu-latest
     name: Build, package and
