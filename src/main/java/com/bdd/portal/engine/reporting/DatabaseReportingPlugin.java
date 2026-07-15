@@ -130,24 +130,32 @@ public class DatabaseReportingPlugin implements ConcurrentEventListener {
         initBeans();
         if (currentExecutionId == null) return;
         
-        if (event.getTestStep() instanceof PickleStepTestStep) {
-            PickleStepTestStep pickleStep = (PickleStepTestStep) event.getTestStep();
+        String scenarioId = event.getTestCase().getId().toString();
+        ScenarioExecution scenario = scenarioMap.get(scenarioId);
+        
+        if (scenario != null) {
+            StepExecution step = new StepExecution();
+            step.setScenarioExecution(scenario);
             
-            String scenarioId = event.getTestCase().getId().toString();
-            ScenarioExecution scenario = scenarioMap.get(scenarioId);
-            
-            if (scenario != null) {
-                StepExecution step = new StepExecution();
-                step.setScenarioExecution(scenario);
+            if (event.getTestStep() instanceof PickleStepTestStep) {
+                PickleStepTestStep pickleStep = (PickleStepTestStep) event.getTestStep();
                 step.setStepName(pickleStep.getStep().getText());
                 step.setKeyword(pickleStep.getStep().getKeyword());
                 step.setLineNumber(pickleStep.getStep().getLine());
-                step.setStatus(ExecutionStatus.RUNNING);
-                
-                step = stepExecutionRepository.save(step);
-                stepMap.put(event.getTestStep().getId().toString(), step);
-                currentStepId.set(step.getId());
+            } else if (event.getTestStep() instanceof HookTestStep) {
+                HookTestStep hookStep = (HookTestStep) event.getTestStep();
+                step.setStepName(hookStep.getHookType().toString() + " Hook");
+                step.setKeyword("Hook");
+                step.setLineNumber(0);
+            } else {
+                return; // Unsupported step type
             }
+            
+            step.setStatus(ExecutionStatus.RUNNING);
+            
+            step = stepExecutionRepository.save(step);
+            stepMap.put(event.getTestStep().getId().toString(), step);
+            currentStepId.set(step.getId());
         }
     }
 
@@ -155,38 +163,34 @@ public class DatabaseReportingPlugin implements ConcurrentEventListener {
         initBeans();
         if (currentExecutionId == null) return;
         
-        if (event.getTestStep() instanceof PickleStepTestStep) {
-            String stepId = event.getTestStep().getId().toString();
-            StepExecution step = stepMap.get(stepId);
+        String stepId = event.getTestStep().getId().toString();
+        StepExecution step = stepMap.get(stepId);
+        
+        if (step != null) {
+            StepExecution latestStep = stepExecutionRepository.findById(step.getId()).orElse(step);
+            latestStep.setDurationMs(event.getResult().getDuration().toMillis());
             
-            if (step != null) {
-                StepExecution latestStep = stepExecutionRepository.findById(step.getId()).orElse(step);
-                latestStep.setDurationMs(event.getResult().getDuration().toMillis());
-                
-                switch (event.getResult().getStatus()) {
-                    case PASSED:
-                        latestStep.setStatus(ExecutionStatus.PASSED);
-                        break;
-                    case FAILED:
-                        latestStep.setStatus(ExecutionStatus.FAILED);
-                        if (event.getResult().getError() != null) {
-                            latestStep.setErrorMessage(event.getResult().getError().getMessage());
-                            // Add stack trace logic here if needed
-                        }
-                        break;
-                    case SKIPPED:
-                        latestStep.setStatus(ExecutionStatus.SKIPPED);
-                        break;
-                    default:
-                        latestStep.setStatus(ExecutionStatus.FAILED);
-                }
-                
-                
-                stepExecutionRepository.save(latestStep);
-                notificationService.sendExecutionStatusUpdate(currentExecutionId, "STEP_FINISHED");
+            switch (event.getResult().getStatus()) {
+                case PASSED:
+                    latestStep.setStatus(ExecutionStatus.PASSED);
+                    break;
+                case FAILED:
+                    latestStep.setStatus(ExecutionStatus.FAILED);
+                    if (event.getResult().getError() != null) {
+                        latestStep.setErrorMessage(event.getResult().getError().getMessage());
+                    }
+                    break;
+                case SKIPPED:
+                    latestStep.setStatus(ExecutionStatus.SKIPPED);
+                    break;
+                default:
+                    latestStep.setStatus(ExecutionStatus.FAILED);
             }
-            currentStepId.remove();
+            
+            stepExecutionRepository.save(latestStep);
+            notificationService.sendExecutionStatusUpdate(currentExecutionId, "STEP_FINISHED");
         }
+        currentStepId.remove();
     }
 
     private void handleTestCaseFinished(TestCaseFinished event) {

@@ -67,9 +67,10 @@ public class StepLogger {
                     dir.mkdirs();
                 }
 
-                // Generate filename
+                // Generate filename with UUID for absolute thread safety in concurrent tests
                 String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmssSSS"));
-                String filename = "step_screenshot_" + timestamp + ".png";
+                String uniqueId = java.util.UUID.randomUUID().toString().substring(0, 8);
+                String filename = "step_screenshot_" + timestamp + "_" + uniqueId + ".png";
                 File destFile = new File(dir, filename);
 
                 // Capture
