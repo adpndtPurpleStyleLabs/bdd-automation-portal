@@ -161,6 +161,7 @@ public class ExecutionEngineService {
                 }
                 executionRepository.save(exec);
                 notificationService.sendExecutionStatusUpdate(executionId, finalStatus.name());
+                notificationService.broadcastExecutionUpdate(exec);
             }
         } catch (Exception e) {
             log.error("Failed to update final execution state", e);

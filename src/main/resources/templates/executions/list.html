@@ -34,8 +34,8 @@
                             <th>Actions</th>
                         </tr>
                     </thead>
-                    <tbody>
-                        <tr th:each="execution : ${executionPage.content}" style="cursor: pointer;" th:onclick="|window.location.href='/executions/' + ${execution.id}|">
+                    <tbody id="executionsTableBody">
+                        <tr th:each="execution : ${executionPage.content}" th:id="'row-' + ${execution.id}" style="cursor: pointer;" th:onclick="|window.location.href='/executions/' + ${execution.id}|">
                             <td class="ps-4 fw-bold text-primary">#[[${execution.id}]]</td>
                             <td>
                                 <div class="fw-medium text-dark">[[${execution.featureFile != null ? execution.featureFile.name : execution.targetFolder}]]</div>
@@ -98,5 +98,114 @@
             </div>
         </div>
     </div>
+    
+    <th:block layout:fragment="scripts">
+        <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
+        <script th:inline="javascript">
+            /*<![CDATA[*/
+            var currentTypeFilter = /*[[${type != null ? type.name() : ''}]]*/ '';
+            var currentDateFilter = /*[[${date != null ? date : ''}]]*/ '';
+            
+            var socket = new SockJS('/ws-stomp');
+            var stompClient = Stomp.over(socket);
+            stompClient.debug = null;
+            
+            stompClient.connect({}, function (frame) {
+                stompClient.subscribe('/topic/executions', function (message) {
+                    var execution = JSON.parse(message.body);
+                    
+                    // Filter Logic
+                    if (currentTypeFilter && currentTypeFilter !== execution.type) {
+                        return; // Doesn't match type filter
+                    }
+                    if (currentDateFilter) {
+                        // Assuming startTime is "MMM dd, HH:mm:ss", this isn't easy to check strictly vs YYYY-MM-DD
+                        // For a robust filter, we could add rawStartTime to DTO. 
+                        // But for now, any event that triggers today will match today's filter.
+                        // We'll skip strict date validation in JS for simplicity, 
+                        // mostly type filter is what users change frequently.
+                    }
+                    
+                    var existingRow = document.getElementById('row-' + execution.id);
+                    if (existingRow) {
+                        // Update existing row
+                        
+                        // Update Status Cell (6th index based on 0-indexing? 0=ID, 1=Target, 2=Env, 3=Browser, 4=Type, 5=Start, 6=Duration, 7=Status, 8=Actions)
+                        var statusCell = existingRow.cells[7];
+                        var statusHtml = '<span class="badge ' + getBadgeClass(execution.status) + '">';
+                        if (execution.status === 'RUNNING') {
+                            statusHtml += '<span class="spinner-border spinner-border-sm me-1" style="width: 0.7rem; height: 0.7rem;"></span>';
+                        }
+                        statusHtml += execution.status + '</span>';
+                        statusCell.innerHTML = statusHtml;
+                        
+                        // Update Duration
+                        var durationCell = existingRow.cells[6];
+                        durationCell.innerHTML = execution.duration;
+                        
+                        // Update Actions
+                        var actionsCell = existingRow.cells[8];
+                        if (execution.allureReportPath) {
+                            actionsCell.innerHTML = '<a href="' + execution.allureReportPath + '" target="_blank" class="btn btn-sm btn-outline-primary" title="Open Allure Report" onclick="event.stopPropagation();">' +
+                                '<img src="https://allurereport.org/public/img/allure-report.svg" style="height: 16px; width: 16px; margin-right: 4px;" alt="Allure">Report</a>';
+                        }
+                        
+                    } else {
+                        // Create new row
+                        var tbody = document.getElementById('executionsTableBody');
+                        
+                        // Remove "No executions found" row if present
+                        var emptyRow = tbody.querySelector('.text-muted.text-center');
+                        if (emptyRow) {
+                            emptyRow.remove();
+                        }
+                        
+                        var tr = document.createElement('tr');
+                        tr.id = 'row-' + execution.id;
+                        tr.style.cursor = 'pointer';
+                        tr.onclick = function() { window.location.href = '/executions/' + execution.id; };
+                        
+                        var html = '<td class="ps-4 fw-bold text-primary">#' + execution.id + '</td>';
+                        html += '<td><div class="fw-medium text-dark">' + execution.target + '</div></td>';
+                        html += '<td><span class="badge bg-light text-dark border">' + execution.environment + '</span></td>';
+                        html += '<td><span class="badge bg-light text-dark border">' + execution.browser + '</span></td>';
+                        
+                        var typeClass = execution.type === 'MANUAL' ? 'bg-info text-dark' : 'bg-warning text-dark';
+                        var iconClass = execution.type === 'MANUAL' ? 'bi-person' : 'bi-calendar';
+                        html += '<td><span class="badge rounded-pill ' + typeClass + '"><i class="bi ' + iconClass + '"></i> ' + execution.type + '</span></td>';
+                        
+                        html += '<td class="text-muted small">' + execution.startTime + '</td>';
+                        html += '<td class="text-muted small">' + execution.duration + '</td>';
+                        
+                        var statusHtml = '<span class="badge ' + getBadgeClass(execution.status) + '">';
+                        if (execution.status === 'RUNNING') {
+                            statusHtml += '<span class="spinner-border spinner-border-sm me-1" style="width: 0.7rem; height: 0.7rem;"></span>';
+                        }
+                        statusHtml += execution.status + '</span>';
+                        html += '<td>' + statusHtml + '</td>';
+                        
+                        html += '<td onclick="event.stopPropagation();"></td>'; // Actions column initially empty for new queued tasks
+                        
+                        tr.innerHTML = html;
+                        tbody.insertBefore(tr, tbody.firstChild);
+                        
+                        // Optional: remove last row to maintain pagination size visually?
+                        // if (tbody.children.length > 15) { tbody.removeChild(tbody.lastChild); }
+                    }
+                });
+            });
+            
+            function getBadgeClass(status) {
+                switch(status) {
+                    case 'PASSED': return 'bg-success';
+                    case 'FAILED': return 'bg-danger';
+                    case 'RUNNING': return 'bg-primary';
+                    default: return 'bg-secondary';
+                }
+            }
+            /*]]>*/
+        </script>
+    </th:block>
 </body>
 </html>

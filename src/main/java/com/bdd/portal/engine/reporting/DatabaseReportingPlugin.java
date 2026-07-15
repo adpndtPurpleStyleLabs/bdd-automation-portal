@@ -160,28 +160,29 @@ public class DatabaseReportingPlugin implements ConcurrentEventListener {
             StepExecution step = stepMap.get(stepId);
             
             if (step != null) {
-                step.setDurationMs(event.getResult().getDuration().toMillis());
+                StepExecution latestStep = stepExecutionRepository.findById(step.getId()).orElse(step);
+                latestStep.setDurationMs(event.getResult().getDuration().toMillis());
                 
                 switch (event.getResult().getStatus()) {
                     case PASSED:
-                        step.setStatus(ExecutionStatus.PASSED);
+                        latestStep.setStatus(ExecutionStatus.PASSED);
                         break;
                     case FAILED:
-                        step.setStatus(ExecutionStatus.FAILED);
+                        latestStep.setStatus(ExecutionStatus.FAILED);
                         if (event.getResult().getError() != null) {
-                            step.setErrorMessage(event.getResult().getError().getMessage());
+                            latestStep.setErrorMessage(event.getResult().getError().getMessage());
                             // Add stack trace logic here if needed
                         }
                         break;
                     case SKIPPED:
-                        step.setStatus(ExecutionStatus.SKIPPED);
+                        latestStep.setStatus(ExecutionStatus.SKIPPED);
                         break;
                     default:
-                        step.setStatus(ExecutionStatus.FAILED);
+                        latestStep.setStatus(ExecutionStatus.FAILED);
                 }
                 
                 
-                stepExecutionRepository.save(step);
+                stepExecutionRepository.save(latestStep);
                 notificationService.sendExecutionStatusUpdate(currentExecutionId, "STEP_FINISHED");
             }
             currentStepId.remove();

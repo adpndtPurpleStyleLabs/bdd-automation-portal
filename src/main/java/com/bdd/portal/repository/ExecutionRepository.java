@@ -13,7 +13,8 @@ import org.springframework.data.domain.Pageable;
 
 @Repository
 public interface ExecutionRepository extends JpaRepository<Execution, Long>, JpaSpecificationExecutor<Execution> {
-    List<Execution> findByStatusOrderByStartTimeDesc(ExecutionStatus status);
+    List<Execution> findByStatusOrderByIdAsc(ExecutionStatus status);
+    long countByStatusAndBrowserIgnoreCase(ExecutionStatus status, String browser);
     List<Execution> findTop10ByOrderByStartTimeDesc();
     Page<Execution> findAll(Pageable pageable);
 }

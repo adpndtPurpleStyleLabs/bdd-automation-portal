@@ -90,10 +90,12 @@ public class ExecutionController {
         execution.setExecutionType(ExecutionType.MANUAL);
         executionRepository.save(execution);
         
-        executionEngineService.runExecution(execution);
+        // executionEngineService.runExecution(execution); // Removed: handled by ExecutionQueueManager
+        
+        com.bdd.portal.config.SpringContext.getBean(com.bdd.portal.service.WebSocketNotificationService.class).broadcastExecutionUpdate(execution);
         
         redirectAttributes.addFlashAttribute("successMessage", "Test Execution has been queued");
-        return "redirect:/executions/" + execution.getId();
+        return "redirect:/executions";
     }
     
     @PostMapping("/run/folder")
@@ -110,9 +112,11 @@ public class ExecutionController {
         execution.setExecutionType(ExecutionType.MANUAL);
         executionRepository.save(execution);
         
-        executionEngineService.runExecution(execution);
+        // executionEngineService.runExecution(execution); // Removed: handled by ExecutionQueueManager
+        
+        com.bdd.portal.config.SpringContext.getBean(com.bdd.portal.service.WebSocketNotificationService.class).broadcastExecutionUpdate(execution);
         
         redirectAttributes.addFlashAttribute("successMessage", "Test Execution has been queued");
-        return "redirect:/executions/" + execution.getId();
+        return "redirect:/executions";
     }
 }
