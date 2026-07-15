@@ -21,8 +21,8 @@
                 <button class="btn btn-outline-secondary d-flex align-items-center gap-2 px-3 fw-medium">
                     <i class="bi bi-code-slash"></i> View Source
                 </button>
-                <form th:action="@{/executions/run/feature/{id}(id=${feature.id})}" method="post" class="m-0 p-0">
-                    <select name="environment" class="d-none">
+                <form th:action="@{/executions/run/feature/{id}(id=${feature.id})}" method="post" class="m-0 p-0 d-flex gap-2">
+                    <select name="environment" class="form-select text-muted fw-medium border-0 bg-light">
                         <option th:each="env : ${environments}" th:value="${env}" th:text="${env}"></option>
                     </select>
                     <button type="submit" class="btn btn-primary d-flex align-items-center gap-2 px-4 fw-bold shadow-sm" style="background-color: #4f46e5; border-color: #4f46e5;">

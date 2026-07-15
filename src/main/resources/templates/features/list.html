@@ -79,7 +79,7 @@
                         <div class="col-3 d-flex justify-content-end align-items-center gap-3 pe-2 module-actions">
                             <form th:action="@{/executions/run/folder}" method="post" class="m-0 p-0 d-inline-flex align-items-center">
                                 <input type="hidden" name="folderPath" th:value="${entry.key}">
-                                <select name="environment" class="form-select form-select-sm d-none">
+                                <select name="environment" class="form-select form-select-sm me-2" style="width: 100px; font-size: 0.8rem;">
                                     <option th:each="env : ${environments}" th:value="${env}" th:text="${env}"></option>
                                 </select>
                                 <button type="submit" class="btn btn-outline-primary btn-sm px-3 rounded-pill fw-medium" style="font-size: 0.85rem;">
@@ -132,7 +132,7 @@
                                     <i class="bi bi-eye"></i>
                                 </a>
                                 <form th:action="@{/executions/run/feature/{id}(id=${feature.id})}" method="post" class="m-0 p-0 d-inline-flex align-items-center">
-                                    <select name="environment" class="form-select form-select-sm d-none">
+                                    <select name="environment" class="form-select form-select-sm me-2" style="width: 100px; font-size: 0.8rem;">
                                         <option th:each="env : ${environments}" th:value="${env}" th:text="${env}"></option>
                                     </select>
                                     <button type="submit" class="btn btn-sm btn-outline-primary px-3 rounded-pill fw-medium" style="font-size: 0.8rem;">
