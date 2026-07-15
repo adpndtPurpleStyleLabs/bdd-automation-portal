@@ -3,7 +3,6 @@ package com.bdd.portal.service;
 import com.bdd.portal.entity.*;
 import com.bdd.portal.repository.ExecutionLogRepository;
 import com.bdd.portal.repository.ExecutionRepository;
-import com.bdd.portal.repository.ExecutionResultRepository;
 import com.bdd.portal.engine.DriverManager;
 import io.cucumber.core.cli.Main;
 import lombok.RequiredArgsConstructor;
@@ -27,7 +26,6 @@ public class ExecutionEngineService {
 
     private final ExecutionRepository executionRepository;
     private final ExecutionLogRepository executionLogRepository;
-    private final ExecutionResultRepository executionResultRepository;
     private final WebSocketNotificationService notificationService;
 
     @Value("${bdd.portal.features-path}")
@@ -77,8 +75,15 @@ public class ExecutionEngineService {
             // Add standard output plugin
             cucumberArgs.add("--plugin");
             cucumberArgs.add("pretty");
+            
+            // Add custom database reporting plugin
+            cucumberArgs.add("--plugin");
+            cucumberArgs.add("com.bdd.portal.engine.reporting.DatabaseReportingPlugin");
 
             logMessage(execution, "INFO", "Executing Cucumber with args: " + String.join(" ", cucumberArgs));
+
+            // Set execution ID for plugin
+            System.setProperty("current.execution.id", execution.getId().toString());
 
             // Redirect System.out to capture Cucumber logs
             ByteArrayOutputStream baos = new ByteArrayOutputStream();
@@ -107,15 +112,11 @@ public class ExecutionEngineService {
                 logMessage(execution, "ERROR", "Execution FAILED with exit code " + exitStatus);
             }
 
-            // In a real scenario, we would parse the cucumber result JSON or Allure results 
-            // to populate ExecutionResult table. For this example, we mock a result.
-            createMockResult(execution);
-
         } catch (Exception e) {
             log.error("Execution failed", e);
             execution.setStatus(ExecutionStatus.FAILED);
             logMessage(execution, "ERROR", "Exception during execution: " + e.getMessage());
-        } finally {
+            System.clearProperty("current.execution.id");
             DriverManager.removeBrowserType();
             execution.setEndTime(LocalDateTime.now());
             execution.setDurationMs(java.time.Duration.between(execution.getStartTime(), execution.getEndTime()).toMillis());
@@ -133,20 +134,5 @@ public class ExecutionEngineService {
         executionLogRepository.save(logEntry);
         
         notificationService.sendExecutionLog(execution.getId(), message);
-    }
-    
-    private void createMockResult(Execution execution) {
-        ExecutionResult result = new ExecutionResult();
-        result.setExecution(execution);
-        result.setScenarioName("Sample Scenario for " + (execution.getFeatureFile() != null ? execution.getFeatureFile().getName() : "Folder"));
-        result.setStatus(execution.getStatus() == ExecutionStatus.PASSED ? "PASSED" : "FAILED");
-        result.setDurationMs(1500L);
-        executionResultRepository.save(result);
-        
-        if ("PASSED".equals(result.getStatus())) {
-            execution.setPassedScenarios(1);
-        } else {
-            execution.setFailedScenarios(1);
-        }
     }
 }

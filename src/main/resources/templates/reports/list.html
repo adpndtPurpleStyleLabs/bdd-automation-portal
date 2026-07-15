@@ -37,8 +37,8 @@
                                 <td class="text-danger" th:text="${exec.failedScenarios}">0</td>
                                 <td class="text-secondary" th:text="${exec.skippedScenarios}">0</td>
                                 <td>
-                                    <a href="#" class="btn btn-sm btn-outline-info">View Allure</a>
-                                    <a href="#" class="btn btn-sm btn-outline-secondary">Download</a>
+                                    <a th:href="@{/reports/detail/{id}(id=${exec.id})}" class="btn btn-sm btn-primary">Details</a>
+                                    <a href="#" class="btn btn-sm btn-outline-info ms-1">Allure</a>
                                 </td>
                             </tr>
                             <tr th:if="${#lists.isEmpty(executions)}">

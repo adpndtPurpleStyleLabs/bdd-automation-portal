@@ -1,49 +1,145 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout" layout:decorate="~{layout/base}">
 <head>
-    <title>Feature Details</title>
+    <title th:text="${feature.name}">Feature Details</title>
 </head>
 <body>
     <div layout:fragment="content">
-        <nav aria-label="breadcrumb">
-            <ol class="breadcrumb">
-                <li class="breadcrumb-item"><a th:href="@{/features}">Features</a></li>
-                <li class="breadcrumb-item" th:text="${feature.folder}">Folder</li>
-                <li class="breadcrumb-item active" aria-current="page" th:text="${feature.name}">Name</li>
-            </ol>
-        </nav>
-
-        <div class="card shadow-sm mb-4">
-            <div class="card-header bg-white d-flex justify-content-between align-items-center">
-                <h4 class="mb-0 text-primary" th:text="${feature.name}">Feature Name</h4>
-                <form th:action="@{/executions/run/feature/{id}(id=${feature.id})}" method="post" class="d-flex align-items-center">
-                    <select name="environment" class="form-select me-2" style="width: auto;">
+        
+        <!-- Header -->
+        <div class="d-flex justify-content-between align-items-center mb-3 bg-white p-3 rounded border shadow-sm">
+            <div class="d-flex align-items-start gap-3">
+                <div class="bg-primary-soft text-primary p-3 rounded">
+                    <i class="bi bi-file-earmark-text fs-3"></i>
+                </div>
+                <div>
+                    <h3 class="fw-bold mb-1 text-dark" th:text="${feature.name}">feature.name</h3>
+                    <p class="text-muted mb-0" th:text="${feature.description} ?: 'No description available.'">Description...</p>
+                </div>
+            </div>
+            <div class="d-flex gap-2">
+                <button class="btn btn-outline-secondary d-flex align-items-center gap-2 px-3 fw-medium">
+                    <i class="bi bi-code-slash"></i> View Source
+                </button>
+                <form th:action="@{/executions/run/feature/{id}(id=${feature.id})}" method="post" class="m-0 p-0">
+                    <select name="environment" class="d-none">
                         <option th:each="env : ${environments}" th:value="${env}" th:text="${env}"></option>
                     </select>
-                    <button type="submit" class="btn btn-success text-nowrap">
-                        <i class="bi bi-play-fill me-1"></i> Run Feature
+                    <button type="submit" class="btn btn-primary d-flex align-items-center gap-2 px-4 fw-bold shadow-sm" style="background-color: #4f46e5; border-color: #4f46e5;">
+                        <i class="bi bi-play-fill fs-5"></i> Run Feature
                     </button>
                 </form>
             </div>
-            <div class="card-body">
-                <div class="mb-4">
-                    <h5>Description</h5>
-                    <p class="text-muted" style="white-space: pre-wrap;" th:text="${feature.description} ?: 'No description provided.'"></p>
+        </div>
+
+        <!-- Tabs -->
+        <ul class="nav nav-tabs custom-tabs mb-3 border-bottom-0" style="font-size: 0.9rem;">
+            <li class="nav-item">
+                <a class="nav-link active fw-bold px-3 py-2" href="#" th:text="'Scenarios (' + ${scenarios.size()} + ')'">Scenarios (0)</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link text-muted fw-medium px-3 py-2" href="#">Feature Summary</a>
+            </li>
+        </ul>
+
+        <div class="bg-white rounded border shadow-sm overflow-hidden mb-3">
+            <!-- Toolbar -->
+            <div class="p-2 border-bottom d-flex justify-content-between align-items-center bg-light">
+                <div class="d-flex gap-2">
+                    <div class="input-group input-group-sm" style="width: 200px;">
+                        <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
+                        <input type="text" class="form-control border-start-0 ps-0" placeholder="Search scenarios...">
+                    </div>
+                    <button class="btn btn-sm btn-outline-secondary bg-white"><i class="bi bi-funnel"></i></button>
                 </div>
-                <div class="row mb-4">
-                    <div class="col-md-4">
-                        <strong>Path:</strong> <span th:text="${feature.relativePath}">path</span>
+                <button class="btn btn-sm btn-light border fw-medium d-flex align-items-center gap-2">
+                    <i class="bi bi-play-fill text-dark"></i> Run Selected
+                </button>
+            </div>
+
+            <!-- Table Header -->
+            <div class="row m-0 p-2 border-bottom fw-bold text-muted text-uppercase align-items-center" style="font-size: 0.7rem; letter-spacing: 0.05em; background-color: #fafafa;">
+                <div class="col-auto ps-2 pe-3">
+                    <input class="form-check-input" type="checkbox">
+                </div>
+                <div class="col-3">Scenario Name</div>
+                <div class="col-2">Tags</div>
+                <div class="col-1 text-center">Steps</div>
+                <div class="col-1 text-center">Status</div>
+                <div class="col-1 text-center">Duration</div>
+                <div class="col-2">Last Run</div>
+                <div class="col text-end pe-3">Actions</div>
+            </div>
+
+            <!-- Table Body -->
+            <div th:each="scenario : ${scenarios}" class="row m-0 p-2 border-bottom align-items-center scenario-row transition-hover bg-white" style="font-size: 0.85rem;">
+                <div class="col-auto ps-2 pe-3">
+                    <input class="form-check-input" type="checkbox" style="transform: scale(0.9);">
+                </div>
+                <div class="col-3">
+                    <div class="fw-medium text-dark text-truncate" th:title="${scenario.name}" th:text="${scenario.name}">Scenario Name</div>
+                    <small class="text-muted" th:if="${scenario.type == 'Scenario Outline'}"><i class="bi bi-table me-1"></i>Scenario Outline</small>
+                </div>
+                <div class="col-2">
+                    <div class="d-flex flex-wrap gap-1">
+                        <span th:each="tag : ${scenario.tags}" class="badge bg-light text-muted border fw-normal" th:text="${tag}">@tag</span>
+                        <span th:if="${#lists.isEmpty(scenario.tags)}" class="text-muted small">-</span>
                     </div>
-                    <div class="col-md-4">
-                        <strong>Scenarios:</strong> <span th:text="${feature.scenarioCount}">0</span>
+                </div>
+                <div class="col-1 text-center fw-medium text-dark" th:text="${scenario.stepCount}">
+                    0
+                </div>
+                <div class="col-1 text-center">
+                    <span th:if="${scenario.status != null}" th:class="'badge rounded-pill fw-medium status-badge status-' + ${#strings.toLowerCase(scenario.status)}" th:text="${scenario.status}">PASSED</span>
+                    <span th:if="${scenario.status == null}" class="badge rounded-pill fw-medium status-badge status-not_run">Not Run</span>
+                </div>
+                <div class="col-1 text-center text-muted small font-monospace">
+                    <span th:if="${scenario.durationMs != null}" th:text="${T(java.time.Duration).ofMillis(scenario.durationMs).toSeconds()} + 's'">0s</span>
+                    <span th:if="${scenario.durationMs == null}">-</span>
+                </div>
+                <div class="col-2 text-muted small">
+                    <div th:if="${scenario.lastRun != null}">
+                        <div th:text="${#temporals.format(scenario.lastRun, 'dd MMM yyyy')}">Date</div>
+                        <div th:text="${#temporals.format(scenario.lastRun, 'hh:mm:ss a')}">Time</div>
                     </div>
-                    <div class="col-md-4">
-                        <strong>Tags:</strong>
-                        <span th:if="${feature.tags != null}" th:each="tag : ${#strings.arraySplit(feature.tags, ' ')}" class="badge bg-light text-dark border me-1" th:text="${tag}">@Tag</span>
-                    </div>
+                    <div th:if="${scenario.lastRun == null}">-</div>
+                </div>
+                <div class="col text-end pe-3 d-flex justify-content-end align-items-center gap-2">
+                    <button class="btn btn-sm btn-outline-primary rounded-pill px-3 py-1 fw-medium" style="font-size: 0.75rem;">
+                        <i class="bi bi-play-fill"></i> Run
+                    </button>
+                    <button class="btn btn-sm btn-light text-muted border-0"><i class="bi bi-eye"></i></button>
+                    <button class="btn btn-sm btn-light text-muted border-0"><i class="bi bi-three-dots-vertical"></i></button>
+                </div>
+            </div>
+            
+            <div th:if="${#lists.isEmpty(scenarios)}" class="p-5 text-center text-muted">
+                No scenarios found in this feature file.
+            </div>
+
+            <!-- Footer / Legend -->
+            <div class="p-2 d-flex justify-content-between align-items-center bg-light mt-auto border-top">
+                <div class="d-flex gap-3 small fw-medium" style="font-size: 0.75rem;">
+                    <span class="d-flex align-items-center gap-1"><i class="bi bi-check-circle-fill text-success"></i> Passed</span>
+                    <span class="d-flex align-items-center gap-1"><i class="bi bi-x-circle-fill text-danger"></i> Failed</span>
+                    <span class="d-flex align-items-center gap-1"><i class="bi bi-dash-circle-fill text-warning"></i> Skipped</span>
+                    <span class="d-flex align-items-center gap-1"><i class="bi bi-play-circle text-primary"></i> Running</span>
+                    <span class="d-flex align-items-center gap-1"><i class="bi bi-circle text-muted"></i> Not Run</span>
+                </div>
+                <div class="d-flex align-items-center gap-3">
+                    <ul class="pagination pagination-sm m-0">
+                        <li class="page-item disabled"><a class="page-link border-0 text-muted" href="#"><i class="bi bi-chevron-left"></i></a></li>
+                        <li class="page-item active"><a class="page-link rounded bg-primary border-0" href="#">1</a></li>
+                        <li class="page-item disabled"><a class="page-link border-0 text-muted" href="#"><i class="bi bi-chevron-right"></i></a></li>
+                    </ul>
+                    <select class="form-select form-select-sm w-auto border-0 bg-transparent text-muted fw-medium">
+                        <option>10 / page</option>
+                        <option>20 / page</option>
+                    </select>
                 </div>
             </div>
         </div>
+
     </div>
 </body>
 </html>

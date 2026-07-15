@@ -18,8 +18,11 @@ import java.time.Duration;
 @Slf4j
 public class Hooks {
 
-//    @Value("${service.environemnt}")
-//    public String env;
+    private final String environment;
+
+    public Hooks(@Value("${test.environment}") String environment) {
+        this.environment = environment;
+    }
 
     @Before
     public void setup() {
@@ -29,8 +32,8 @@ public class Hooks {
         
         try {
             WebDriver driver = null;
-            if(true){
-                ChromeOptions options = new ChromeOptions();
+            if(environment.equalsIgnoreCase("dev")){
+                ChromeOptions options =  new ChromeOptions();
                 options.addArguments("--remote-allow-origins=*");
                 options.addArguments("disable-notifications");
                 options.addArguments("start-maximized");
@@ -38,12 +41,8 @@ public class Hooks {
                 driver = WebDriverManager.chromedriver().capabilities(options).create();
                 driver.manage().timeouts().pageLoadTimeout(Duration.ofSeconds(60));
                 driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(10));
-                DriverManager.setDriver(driver);
                 return;
             }
-
-
-
 
             String gridUrlString = DriverManager.getGridUrl();
             if (gridUrlString == null || gridUrlString.isEmpty()) {
