@@ -9,6 +9,8 @@ services:
       - "5536:8080"
     environment:
       GRID_URL: http://selenium-hub:4444/wd/hub
+    volumes:
+      - ./bdd-reports:/app/bdd-reports
 
   selenium-hub:
     image: selenium/hub:4.33.0

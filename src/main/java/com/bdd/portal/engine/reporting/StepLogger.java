@@ -24,9 +24,9 @@ public class StepLogger {
     private static String getScreenshotDir() {
         try {
             org.springframework.core.env.Environment env = SpringContext.getBean(org.springframework.core.env.Environment.class);
-            return env.getProperty("bdd.portal.screenshots-path", "target/screenshots");
+            return env.getProperty("bdd.portal.screenshots-path", "bdd-reports/screenshots");
         } catch (Exception e) {
-            return "target/screenshots";
+            return "bdd-reports/screenshots";
         }
     }
 

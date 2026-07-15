@@ -10,7 +10,7 @@ import java.nio.file.Paths;
 @Configuration
 public class WebConfig implements WebMvcConfigurer {
 
-    @org.springframework.beans.factory.annotation.Value("${bdd.portal.screenshots-path:target/screenshots}")
+    @org.springframework.beans.factory.annotation.Value("${bdd.portal.screenshots-path:bdd-reports/screenshots}")
     private String screenshotsPath;
 
     @Override

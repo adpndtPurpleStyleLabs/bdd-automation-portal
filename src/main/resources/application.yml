@@ -36,7 +36,7 @@ bdd:
     features-path: ${BDD_PORTAL_FEATURES_PATH:src/test/resources/features}
     reports-path: target/allure-results
     selenium-grid-url: ${GRID_URL:http://141.94.137.133:5503/wd/hub}
-    screenshots-path: target/screenshots
+    screenshots-path: bdd-reports/screenshots
 
 logging:
   level:
