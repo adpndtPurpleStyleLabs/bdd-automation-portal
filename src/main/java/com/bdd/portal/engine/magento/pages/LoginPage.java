@@ -32,9 +32,12 @@ public class LoginPage extends BasePage{
 
     public void login(String userName, String password) {
         enterUsername(userName);
+        logStep("Entered username " + userName);
         enterPassword(password);
+        logStep("Entered password " + password);
         clickLogin();
 
         waitForUrlContains("uspp-admin/dashboard");
+        captureScreenshot();
     }
 }

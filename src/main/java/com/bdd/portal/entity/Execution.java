@@ -35,6 +35,10 @@ public class Execution {
     @Column(nullable = false)
     private ExecutionStatus status = ExecutionStatus.QUEUED;
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private ExecutionType executionType = ExecutionType.MANUAL;
+
     private LocalDateTime startTime;
     private LocalDateTime endTime;
 

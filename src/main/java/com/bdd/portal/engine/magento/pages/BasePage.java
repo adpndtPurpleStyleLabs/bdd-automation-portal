@@ -26,10 +26,12 @@ public class BasePage {
     }
 
     protected void click(By locator) {
+        logStep("Clicking element: " + locator.toString());
         waitForClickable(locator).click();
     }
 
     protected void type(By locator, String value) {
+        logStep("Typing '" + value + "' into element: " + locator.toString());
         WebElement element = waitForVisible(locator);
         element.clear();
         element.sendKeys(value);
@@ -45,5 +47,13 @@ public class BasePage {
 
     protected void waitForUrlContains(String text) {
         wait.until(ExpectedConditions.urlContains(text));
+    }
+
+    protected void logStep(String message) {
+        com.bdd.portal.engine.reporting.StepLogger.log(message);
+    }
+
+    protected void captureScreenshot() {
+        com.bdd.portal.engine.reporting.StepLogger.takeScreenshot(driver);
     }
 }

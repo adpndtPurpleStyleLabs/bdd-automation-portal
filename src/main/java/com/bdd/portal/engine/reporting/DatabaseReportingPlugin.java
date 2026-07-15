@@ -29,6 +29,7 @@ public class DatabaseReportingPlugin implements ConcurrentEventListener {
     private final Map<String, FeatureExecution> featureMap = new ConcurrentHashMap<>();
     private final Map<String, ScenarioExecution> scenarioMap = new ConcurrentHashMap<>();
     private final Map<String, StepExecution> stepMap = new ConcurrentHashMap<>();
+    public static final ThreadLocal<Long> currentStepId = new ThreadLocal<>();
 
     private Long currentExecutionId;
 
@@ -145,6 +146,7 @@ public class DatabaseReportingPlugin implements ConcurrentEventListener {
                 
                 step = stepExecutionRepository.save(step);
                 stepMap.put(event.getTestStep().getId().toString(), step);
+                currentStepId.set(step.getId());
             }
         }
     }
@@ -178,9 +180,11 @@ public class DatabaseReportingPlugin implements ConcurrentEventListener {
                         step.setStatus(ExecutionStatus.FAILED);
                 }
                 
+                
                 stepExecutionRepository.save(step);
                 notificationService.sendExecutionStatusUpdate(currentExecutionId, "STEP_FINISHED");
             }
+            currentStepId.remove();
         }
     }
 
