@@ -47,13 +47,13 @@ public class Execution {
     private String allureReportPath;
 
     @OneToMany(mappedBy = "execution", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<ExecutionResult> results = new ArrayList<>();
+    private List<FeatureExecution> featureExecutions = new ArrayList<>();
 
     @OneToMany(mappedBy = "execution", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<ExecutionLog> logs = new ArrayList<>();
 
-    public void addResult(ExecutionResult result) {
-        results.add(result);
-        result.setExecution(this);
+    public void addFeatureExecution(FeatureExecution featureExecution) {
+        featureExecutions.add(featureExecution);
+        featureExecution.setExecution(this);
     }
 }

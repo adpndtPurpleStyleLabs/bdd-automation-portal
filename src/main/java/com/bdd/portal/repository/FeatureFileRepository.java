@@ -9,4 +9,7 @@ import java.util.Optional;
 @Repository
 public interface FeatureFileRepository extends JpaRepository<FeatureFile, Long> {
     Optional<FeatureFile> findByRelativePath(String relativePath);
+
+    @org.springframework.data.jpa.repository.Query("SELECT SUM(f.scenarioCount) FROM FeatureFile f")
+    Long getTotalScenarios();
 }

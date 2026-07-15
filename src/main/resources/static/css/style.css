@@ -44,54 +44,116 @@ body {
 }
 
 #sidebar-wrapper {
-    min-height: 100vh;
+    height: 100vh;
     width: 260px;
-    background-color: var(--bg-sidebar);
+    background-color: #0A192F; /* Very dark rich blue */
     box-shadow: var(--shadow-lg);
     transition: margin 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     z-index: 1000;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    display: flex;
+    flex-direction: column;
 }
 
-#sidebar-wrapper .sidebar-heading {
-    padding: 1.5rem;
-    font-size: 1.25rem;
-    font-weight: 700;
-    color: #fff;
-    border-bottom: 1px solid rgba(255,255,255,0.1);
-    letter-spacing: -0.025em;
+.sidebar-brand {
+    display: flex;
+    align-items: center;
+    padding: 1.75rem 1.5rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
 }
 
-#sidebar-wrapper .list-group {
-    padding: 1rem 0.5rem;
-}
-
-#sidebar-wrapper .list-group-item {
-    background: transparent;
-    color: #cbd5e1;
-    border: none;
-    border-radius: var(--radius-md);
-    margin-bottom: 0.25rem;
-    padding: 0.75rem 1rem;
-    font-weight: 500;
-    transition: var(--transition);
-}
-
-#sidebar-wrapper .list-group-item:hover,
-#sidebar-wrapper .list-group-item:focus {
-    color: #fff;
-    background: rgba(255,255,255,0.1);
-    transform: translateX(4px);
-}
-
-#sidebar-wrapper .list-group-item i {
+.brand-icon {
+    font-size: 1.75rem;
+    color: #e2e8f0;
     margin-right: 0.75rem;
+}
+
+.brand-text {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: #ffffff;
+    line-height: 1.2;
+    letter-spacing: 0.02em;
+}
+
+.sidebar-nav {
+    padding: 1rem 0.75rem;
+    flex: 1;
+    overflow-y: auto;
+}
+
+/* Custom scrollbar for sidebar nav */
+.sidebar-nav::-webkit-scrollbar {
+    width: 4px;
+}
+.sidebar-nav::-webkit-scrollbar-track {
+    background: transparent;
+}
+.sidebar-nav::-webkit-scrollbar-thumb {
+    background-color: rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+}
+.sidebar-nav:hover::-webkit-scrollbar-thumb {
+    background-color: rgba(255, 255, 255, 0.2);
+}
+
+.sidebar-section-title {
+    margin-top: 1rem;
+    margin-bottom: 0.25rem;
+    padding-left: 1rem;
+    font-size: 0.65rem;
+    font-weight: 700;
+    color: #64748b; /* Muted gray */
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+}
+
+.sidebar-link {
+    display: flex;
+    align-items: center;
+    color: #94a3b8; /* Muted gray/blue */
+    text-decoration: none;
+    border-radius: 6px;
+    padding: 0.55rem 1rem;
+    margin-bottom: 0.15rem;
+    font-size: 0.85rem;
+    font-weight: 500;
+    transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.sidebar-link:hover {
+    color: #e2e8f0;
+    background-color: rgba(255, 255, 255, 0.06);
+}
+
+.sidebar-link.active {
+    color: #ffffff;
+    background-color: #2563eb; /* Bright blue */
+    font-weight: 600;
+}
+
+.sidebar-link i {
+    margin-right: 0.85rem;
     font-size: 1.1rem;
-    opacity: 0.8;
+    width: 20px;
+    text-align: center;
 }
 
 #page-content-wrapper {
     min-width: 100vw;
     background-color: var(--bg-main);
+    height: 100vh;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+}
+
+#page-content-wrapper > nav {
+    flex-shrink: 0;
+}
+
+#page-content-wrapper > .container-fluid {
+    flex: 1;
 }
 
 body.sb-sidenav-toggled #wrapper #sidebar-wrapper {
@@ -272,4 +334,143 @@ body.sb-sidenav-toggled #wrapper #sidebar-wrapper {
     body.sb-sidenav-toggled #wrapper #sidebar-wrapper {
         margin-left: -260px;
     }
+}
+
+/* Test Suites UI Specific Styles */
+.text-primary-dark {
+    color: #1e1b4b;
+}
+
+.bg-gray-50 {
+    background-color: #f8fafc;
+}
+
+.module-list {
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+}
+
+.module-card {
+    transition: var(--transition);
+}
+
+.module-card:hover {
+    background-color: #f8fafc;
+}
+
+.module-header {
+    background-color: #fff !important;
+    border: none;
+    transition: background-color 0.2s ease, transform 0.2s ease;
+}
+
+/* Add a bottom border only if the accordion is collapsed (not expanded). But since we rely on custom toggle, we'll keep it on the card. */
+.module-card {
+    border-bottom: 1px solid var(--border-light) !important;
+}
+
+.module-header:hover {
+    background-color: #f8fafc !important;
+}
+
+.cursor-pointer {
+    cursor: pointer;
+}
+
+.toggle-icon {
+    transition: transform 0.2s ease-in-out;
+}
+
+/* When the collapse is open, the trigger does NOT have the collapsed class */
+.custom-accordion-toggle:not(.collapsed) .toggle-icon {
+    transform: rotate(-180deg);
+}
+
+.nested-feature-row {
+    transition: var(--transition);
+}
+
+.nested-feature-row:hover {
+    background-color: #f1f5f9 !important;
+/* Custom Tabs for Detail Page */
+.custom-tabs .nav-link {
+    color: #64748b;
+    border: none;
+    border-bottom: 2px solid transparent;
+    transition: all 0.2s ease;
+}
+
+.custom-tabs .nav-link:hover {
+    color: #0f172a;
+    border-color: transparent;
+}
+
+.custom-tabs .nav-link.active {
+    color: #4f46e5;
+    background-color: transparent;
+    border-bottom: 2px solid #4f46e5;
+}
+
+/* Status Badges */
+.status-badge {
+    padding: 0.35em 0.8em;
+    font-size: 0.75rem;
+    border: 1px solid transparent;
+}
+
+.status-passed {
+    background-color: rgba(34, 197, 94, 0.1);
+    color: #16a34a;
+    border-color: rgba(34, 197, 94, 0.2);
+}
+
+.status-failed {
+    background-color: rgba(239, 68, 68, 0.1);
+    color: #dc2626;
+    border-color: rgba(239, 68, 68, 0.2);
+}
+
+.status-skipped {
+    background-color: rgba(245, 158, 11, 0.1);
+    color: #d97706;
+    border-color: rgba(245, 158, 11, 0.2);
+}
+
+.status-queued, .status-running {
+    background-color: rgba(59, 130, 246, 0.1);
+    color: #2563eb;
+    border-color: rgba(59, 130, 246, 0.2);
+}
+
+.status-not_run {
+    background-color: rgba(100, 116, 139, 0.1);
+    color: #64748b;
+    border-color: rgba(100, 116, 139, 0.2);
+}
+
+.transition-hover {
+    transition: background-color 0.2s ease;
+}
+
+.scenario-row:hover {
+    background-color: #f8fafc !important;
+}
+
+
+.feature-link {
+    transition: var(--transition);
+}
+
+.feature-link:hover {
+    color: var(--primary) !important;
+    text-decoration: underline !important;
+}
+
+.module-actions .btn {
+    opacity: 0.85;
+    transition: all 0.2s;
+}
+
+.module-card:hover .module-actions .btn {
+    opacity: 1;
 }

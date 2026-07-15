@@ -101,6 +101,7 @@ public class FeatureScannerService {
         String name = filePath.getFileName().toString();
         List<String> tags = new ArrayList<>();
         int scenarioCount = 0;
+        int stepCount = 0;
         StringBuilder description = new StringBuilder();
         boolean inFeature = false;
         boolean pastDescription = false;
@@ -120,6 +121,11 @@ public class FeatureScannerService {
             } else if (trimmed.startsWith("Scenario:") || trimmed.startsWith("Scenario Outline:")) {
                 scenarioCount++;
                 pastDescription = true;
+            } else if (trimmed.startsWith("Given ") || trimmed.startsWith("When ") || 
+                       trimmed.startsWith("Then ") || trimmed.startsWith("And ") || 
+                       trimmed.startsWith("But ") || trimmed.startsWith("* ")) {
+                stepCount++;
+                pastDescription = true;
             } else if (inFeature && !pastDescription && !trimmed.isEmpty()) {
                 description.append(trimmed).append("\n");
             }
@@ -128,6 +134,7 @@ public class FeatureScannerService {
         featureFile.setName(name.isEmpty() ? filePath.getFileName().toString() : name);
         featureFile.setTags(String.join(" ", tags));
         featureFile.setScenarioCount(scenarioCount);
+        featureFile.setStepCount(stepCount);
         
         String descStr = description.toString().trim();
         if (descStr.length() > 1000) {

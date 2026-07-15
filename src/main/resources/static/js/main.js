@@ -10,7 +10,7 @@ window.addEventListener('DOMContentLoaded', event => {
 
     // Set active sidebar link based on current path
     const currentPath = window.location.pathname;
-    const navLinks = document.querySelectorAll('#sidebar-nav .list-group-item');
+    const navLinks = document.querySelectorAll('#sidebar-nav .sidebar-link');
     
     // First remove active class from all
     navLinks.forEach(link => link.classList.remove('active'));
@@ -32,8 +32,5 @@ window.addEventListener('DOMContentLoaded', event => {
     
     if (bestMatch) {
         bestMatch.classList.add('active');
-        // Optional: add a visual indicator like a custom class for styling
-        bestMatch.style.backgroundColor = 'rgba(255,255,255,0.1)';
-        bestMatch.style.color = '#fff';
     }
 });

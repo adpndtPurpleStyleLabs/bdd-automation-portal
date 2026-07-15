@@ -30,6 +30,8 @@ public class FeatureFile {
 
     private int scenarioCount;
 
+    private int stepCount;
+
     private LocalDateTime lastModified;
 
     private boolean enabled = true;
