@@ -32,7 +32,7 @@ public class Hooks {
         
         try {
             WebDriver driver = null;
-            if(environment.equalsIgnoreCase("dev")){
+            if(true){
                 ChromeOptions options =  new ChromeOptions();
                 options.addArguments("--remote-allow-origins=*");
                 options.addArguments("disable-notifications");
@@ -41,6 +41,7 @@ public class Hooks {
                 driver = WebDriverManager.chromedriver().capabilities(options).create();
                 driver.manage().timeouts().pageLoadTimeout(Duration.ofSeconds(60));
                 driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(10));
+                DriverManager.setDriver(driver);
                 return;
             }
 
