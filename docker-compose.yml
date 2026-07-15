@@ -1,0 +1,37 @@
+services:
+  automation-portal:
+    image: nexus.ppustage.dev/open-source-test-automation-service:2269d2b
+    container_name: automation-portal
+    restart: unless-stopped
+    depends_on:
+      - selenium-hub
+    ports:
+      - "5536:8080"
+    environment:
+      GRID_URL: http://selenium-hub:4444/wd/hub
+
+  selenium-hub:
+    image: selenium/hub:4.33.0
+    container_name: selenium-hub-wt-app
+    restart: unless-stopped
+    ports:
+      - "5501:4442"
+      - "5502:4443"
+      - "5503:4444"
+    environment:
+      SE_SESSION_REQUEST_TIMEOUT: 300
+      SE_SESSION_RETRY_INTERVAL: 5
+
+  chrome:
+    image: selenium/node-chrome:4.33.0
+    container_name: selenium-chrome-wt-app
+    restart: unless-stopped
+    shm_size: 2gb
+    depends_on:
+      - selenium-hub
+    environment:
+      SE_EVENT_BUS_HOST: selenium-hub
+      SE_EVENT_BUS_PUBLISH_PORT: 4442
+      SE_EVENT_BUS_SUBSCRIBE_PORT: 4443
+      SE_NODE_MAX_SESSIONS: 1
+      SE_NODE_OVERRIDE_MAX_SESSIONS: "true"
