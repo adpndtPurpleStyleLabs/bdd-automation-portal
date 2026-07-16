@@ -39,6 +39,9 @@ public class ExecutionEngineService {
     @Value("${bdd.portal.selenium-grid-url}")
     private String gridUrl;
 
+    @Value("${vnc.public.base-url:http://localhost:7900}")
+    private String publicVncBaseUrl;
+
     @Async
     public void runExecution(Execution execution) {
         log.info("Starting execution {}", execution.getId());
@@ -128,30 +131,13 @@ public class ExecutionEngineService {
                         execution.setPlatform(caps.getPlatformName().name());
                     }
                     
-                    Object vncObj = caps.getCapability("se:vnc");
-                    Object vncLocalObj = caps.getCapability("se:vncLocalAddress");
+                    // The backend must simply append the required parameters to the configured base URL
+                    String publicVncUrl = publicVncBaseUrl.endsWith("/") ? 
+                            publicVncBaseUrl.substring(0, publicVncBaseUrl.length() - 1) : publicVncBaseUrl;
+                    publicVncUrl += "/?autoconnect=1&password=secret&resize=scale";
                     
-                    String vncStr = vncLocalObj != null ? vncLocalObj.toString() : (vncObj != null ? vncObj.toString() : null);
-                    
-                    if (vncStr != null && !vncStr.isEmpty()) {
-                        try {
-                            java.net.URI uri = new java.net.URI(vncStr);
-                            execution.setGridNodeUri(uri.getHost());
-                        } catch (Exception e) {}
-
-                        if (vncStr.startsWith("ws://") || vncStr.startsWith("wss://")) {
-                            vncStr = vncStr.replace("ws://", "http://").replace("wss://", "https://");
-                        }
-                        
-                        execution.setVncUrl(vncStr);
-                        
-                        if (!vncStr.contains("?")) {
-                            vncStr += "/?autoconnect=1&password=secret&resize=scale";
-                        } else if (!vncStr.contains("password=")) {
-                            vncStr += "&autoconnect=1&password=secret&resize=scale";
-                        }
-                        execution.setNoVncUrl(vncStr);
-                    }
+                    execution.setNoVncUrl(publicVncUrl);
+                    execution.setVncUrl(publicVncUrl); // Maintained for backward compatibility
                     
                     logMessage(execution, "INFO", "WebDriver initialized successfully from Grid.");
                 } else {

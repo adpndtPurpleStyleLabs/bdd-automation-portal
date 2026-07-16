@@ -56,7 +56,8 @@ public class ExecutionEventDto {
         dto.setAllureReportPath(execution.getAllureReportPath());
         
         // Live Feed fields
-        dto.setLiveFeedAvailable(execution.getStatus() == com.bdd.portal.entity.ExecutionStatus.RUNNING);
+        dto.setLiveFeedAvailable(execution.getStatus() == com.bdd.portal.entity.ExecutionStatus.RUNNING 
+                && execution.getNoVncUrl() != null && !execution.getNoVncUrl().isEmpty());
         dto.setVncUrl(execution.getVncUrl());
         dto.setNoVncUrl(execution.getNoVncUrl());
         dto.setGridNode(execution.getGridNodeUri() != null ? execution.getGridNodeUri() : execution.getGridNodeId());
