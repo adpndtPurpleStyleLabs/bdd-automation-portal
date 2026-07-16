@@ -139,6 +139,9 @@ public class ExecutionEngineService {
                     execution.setNoVncUrl(publicVncUrl);
                     execution.setVncUrl(publicVncUrl); // Maintained for backward compatibility
                     
+                    executionRepository.save(execution);
+                    notificationService.broadcastExecutionUpdate(execution);
+                    
                     logMessage(execution, "INFO", "WebDriver initialized successfully from Grid.");
                 } else {
                     logMessage(execution, "INFO", "Grid URL not found. Initializing local DEV ChromeDriver.");
