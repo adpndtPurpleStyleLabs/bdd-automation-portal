@@ -169,7 +169,11 @@
                             <td onclick="event.stopPropagation();">
                                 <button th:if="${execution.status.name() == 'RUNNING' && execution.noVncUrl != null}"
                                     class="btn btn-sm btn-success position-relative"
-                                    th:onclick="'openLiveFeed(this, \'' + ${execution.noVncUrl} + '\', \'' + ${execution.featureFile != null ? execution.featureFile.name : execution.targetFolder} + '\', \'' + ${execution.browser} + ' ' + ${execution.browserVersion != null ? execution.browserVersion : ''} + '\', \'' + ${execution.status} + '\')'"
+                                    th:data-vnc-url="${execution.noVncUrl}"
+                                    th:data-feature="${execution.featureFile != null ? execution.featureFile.name : execution.targetFolder}"
+                                    th:data-browser="${(execution.browser ?: '') + ' ' + (execution.browserVersion ?: '')}"
+                                    th:data-status="${execution.status}"
+                                    onclick="openLiveFeed(this)"
                                     title="Watch the test executing live.">
                                     <span
                                         class="position-absolute top-0 start-100 translate-middle p-1 bg-white border border-light rounded-circle"
