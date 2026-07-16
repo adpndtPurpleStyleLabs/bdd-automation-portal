@@ -15,6 +15,8 @@ public class Hooks {
     public void beforeScenario(Scenario scenario) {
         StepLogger.log("Starting Scenario: " + scenario.getName());
         WebDriver driver = DriverManager.getDriver();
+        driver.get("https://google.com/");
+        driver.manage().window().maximize();
         if (driver != null) {
             StepLogger.takeScreenshot(driver);
         }
