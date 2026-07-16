@@ -38,6 +38,10 @@ bdd:
     selenium-grid-url: ${GRID_URL:http://141.94.137.133:5503/wd/hub}
     screenshots-path: bdd-reports/screenshots
 
+vnc:
+  public:
+    base-url: ${VNC_PUBLIC_BASE_URL:http://localhost:7900}
+
 logging:
   level:
     com.bdd.portal: DEBUG
