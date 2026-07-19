@@ -258,7 +258,6 @@ body.sb-sidenav-toggled #wrapper #sidebar-wrapper {
 }
 
 .table td {
-    padding: 1rem 1.5rem;
     vertical-align: middle;
     color: var(--text-primary);
     border-bottom: 1px solid var(--border-light);
