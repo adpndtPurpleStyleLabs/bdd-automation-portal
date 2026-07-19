@@ -1,0 +1,37 @@
+{
+  "customers": [
+    {
+    "type": "ExistingCustomer",
+    "email": "wickjohn876543@gmail.com",
+    "expectedFirstName": "Gaurav",
+    "expectedLastName": "Chavan",
+    "expectedPhone": "1231231233",
+    "billingName": "Sagar Chavan",
+    "billingAddress": "Dhdhdh Dhdh Bxgd",
+    "billingPincode": "IN-231001",
+    "billingPhone": "1231231233"
+  },
+    {
+    "type": "NonExistingCustomer",
+    "email": "new@test.com",
+    "expectedFirstName": null,
+    "expectedLastName": null,
+    "expectedPhone": null,
+    "billingName": "PSL Online store",
+    "billingAddress": "PSL RETAIL PRIVATE LIMITED, Basement 1, Flora Marmo,WE Highway, Next to Shaman cars, Vile Parle E Mumbai Maharashtra",
+    "billingPincode": "IN-400057",
+    "billingPhone": "7847848484"
+  },
+    {
+      "type": "DummyCustomer",
+    "email": null,
+    "expectedFirstName": null,
+    "expectedLastName": null,
+    "expectedPhone": null,
+    "billingName": "PSL Online store",
+    "billingAddress": "PSL RETAIL PRIVATE LIMITED, Basement 1, Flora Marmo,WE Highway, Next to Shaman cars, Vile Parle E Mumbai Maharashtra",
+    "billingPincode": "IN-400057",
+    "billingPhone": "7847848484"
+  }
+    ]
+}
