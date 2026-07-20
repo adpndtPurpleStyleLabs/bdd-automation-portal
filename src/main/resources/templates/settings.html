@@ -5,7 +5,21 @@
 </head>
 <body>
     <div layout:fragment="content">
-        <h2 class="mb-4">Global Settings</h2>
+        <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+            <h1 class="h2">Settings</h1>
+        </div>
+
+        <ul class="nav nav-tabs mb-4">
+            <li class="nav-item">
+                <a class="nav-link active" aria-current="page" th:href="@{/settings}">Global Settings</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" th:href="@{/settings/email}">Email Configuration</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" th:href="@{/settings/email/history}">Email History</a>
+            </li>
+        </ul>
         
         <div th:if="${param.success}" class="alert alert-success">
             Settings saved successfully.

@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout" layout:decorate="~{layout/base}">
+<head>
+    <title>Email Configuration</title>
+</head>
+<body>
+<div layout:fragment="content">
+    <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+        <h1 class="h2">Settings</h1>
+    </div>
+
+    <ul class="nav nav-tabs mb-4">
+        <li class="nav-item">
+            <a class="nav-link" th:href="@{/settings}">Global Settings</a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link active" aria-current="page" th:href="@{/settings/email}">Email Configuration</a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" th:href="@{/settings/email/history}">Email History</a>
+        </li>
+    </ul>
+
+    <div th:if="${successMessage}" class="alert alert-success alert-dismissible fade show" role="alert">
+        <span th:text="${successMessage}"></span>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+    
+    <div th:if="${errorMessage}" class="alert alert-danger alert-dismissible fade show" role="alert">
+        <span th:text="${errorMessage}"></span>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">SMTP Settings</h6>
+        </div>
+        <div class="card-body">
+            <form th:action="@{/settings/email}" method="post" th:object="${emailConfig}">
+                <input type="hidden" th:field="*{id}" />
+                
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label class="form-label">SMTP Host *</label>
+                        <input type="text" class="form-control" th:field="*{smtpHost}" required>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">SMTP Port *</label>
+                        <input type="number" class="form-control" th:field="*{smtpPort}" required>
+                    </div>
+                </div>
+
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label class="form-label">Username *</label>
+                        <input type="text" class="form-control" th:field="*{username}" required>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Password *</label>
+                        <!-- Show dummy password if it's an existing record -->
+                        <input type="password" class="form-control" th:field="*{password}" required>
+                    </div>
+                </div>
+
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label class="form-label">From Email *</label>
+                        <input type="email" class="form-control" th:field="*{fromEmail}" required>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">From Name</label>
+                        <input type="text" class="form-control" th:field="*{fromName}">
+                    </div>
+                </div>
+                
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label class="form-label">Reply-To</label>
+                        <input type="email" class="form-control" th:field="*{replyTo}">
+                    </div>
+                </div>
+
+                <div class="row mb-3">
+                    <div class="col-md-3">
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" th:field="*{authentication}">
+                            <label class="form-check-label">Authentication</label>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" th:field="*{enableTls}">
+                            <label class="form-check-label">Enable TLS</label>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" th:field="*{enableSsl}">
+                            <label class="form-check-label">Enable SSL</label>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" th:field="*{enabled}">
+                            <label class="form-check-label">Enable Email Notifications</label>
+                        </div>
+                    </div>
+                </div>
+
+                <hr>
+                <div class="d-flex justify-content-between">
+                    <button type="submit" class="btn btn-primary"><i class="bi bi-save"></i> Save Configuration</button>
+                    <button type="submit" formaction="/settings/email/test" class="btn btn-info text-white"><i class="bi bi-envelope"></i> Test Connection</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+</body>
+</html>

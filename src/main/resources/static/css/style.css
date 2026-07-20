@@ -8,9 +8,11 @@
     --text-secondary: #64748b;
     --text-muted: #94a3b8;
     
-    --primary: #4f46e5;
-    --primary-hover: #4338ca;
-    --secondary: #3b82f6;
+    --primary: #65519f;
+    --primary-hover: #503d82;
+    --secondary: #65519f;
+    --bs-btn-disabled-bg:  #65519f;
+    --bs-btn-disabled-border-color:  #503d82;
     --success: #10b981;
     --warning: #f59e0b;
     --danger: #ef4444;
@@ -46,7 +48,7 @@ body {
 #sidebar-wrapper {
     height: 100vh;
     width: 260px;
-    background-color: #0A192F; /* Very dark rich blue */
+    background-color: var(--bg-card); /* Light mode sidebar */
     box-shadow: var(--shadow-lg);
     transition: margin 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     z-index: 1000;
@@ -58,26 +60,26 @@ body {
 .sidebar-brand {
     display: flex;
     align-items: center;
-    padding: 1.75rem 1.5rem;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    padding: 0.75rem;
+    border-bottom: 1px solid var(--border-light);
 }
 
 .brand-icon {
     font-size: 1.75rem;
-    color: #e2e8f0;
+    color: var(--primary);
     margin-right: 0.75rem;
 }
 
 .brand-text {
     font-size: 0.95rem;
     font-weight: 700;
-    color: #ffffff;
+    color: var(--text-primary);
     line-height: 1.2;
     letter-spacing: 0.02em;
 }
 
 .sidebar-nav {
-    padding: 1rem 0.75rem;
+    padding: 0.75rem 0.75rem;
     flex: 1;
     overflow-y: auto;
 }
@@ -90,11 +92,11 @@ body {
     background: transparent;
 }
 .sidebar-nav::-webkit-scrollbar-thumb {
-    background-color: rgba(255, 255, 255, 0.1);
+    background-color: var(--border-dark);
     border-radius: 4px;
 }
 .sidebar-nav:hover::-webkit-scrollbar-thumb {
-    background-color: rgba(255, 255, 255, 0.2);
+    background-color: var(--text-muted);
 }
 
 .sidebar-section-title {
@@ -111,24 +113,24 @@ body {
 .sidebar-link {
     display: flex;
     align-items: center;
-    color: #94a3b8; /* Muted gray/blue */
+    color: var(--text-secondary);
     text-decoration: none;
     border-radius: 6px;
-    padding: 0.55rem 1rem;
-    margin-bottom: 0.15rem;
+    padding: 0.5rem 1rem;
+    margin-bottom: 0.1rem;
     font-size: 0.85rem;
     font-weight: 500;
     transition: background-color 0.15s ease, color 0.15s ease;
 }
 
 .sidebar-link:hover {
-    color: #e2e8f0;
-    background-color: rgba(255, 255, 255, 0.06);
+    color: var(--primary);
+    background-color: rgba(101, 81, 159, 0.08); /* Light purple hover */
 }
 
 .sidebar-link.active {
     color: #ffffff;
-    background-color: #2563eb; /* Bright blue */
+    background-color: var(--primary);
     font-weight: 600;
 }
 
@@ -164,7 +166,7 @@ body.sb-sidenav-toggled #wrapper #sidebar-wrapper {
 .navbar {
     background-color: #fff !important;
     box-shadow: var(--shadow-sm);
-    padding: 1rem 1.5rem;
+    padding: 0.75rem 0.2rem;
     border-bottom: 1px solid var(--border-light);
 }
 
@@ -208,11 +210,25 @@ body.sb-sidenav-toggled #wrapper #sidebar-wrapper {
     border-color: var(--primary);
 }
 
+
 .btn-primary:hover {
     background-color: var(--primary-hover);
     border-color: var(--primary-hover);
     transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(79, 70, 229, 0.2);
+    box-shadow: 0 4px 12px rgba(101, 81, 159, 0.2);
+}
+
+.btn-primary:active, .btn-primary:focus, .btn-primary:focus-visible,
+#submitBtn:active, #submitBtn:focus, #submitBtn:focus-visible {
+    background-color: var(--primary-hover) !important;
+    border-color: var(--primary-hover) !important;
+    box-shadow: 0 0 0 0.25rem rgba(101, 81, 159, 0.25) !important;
+}
+
+#submitBtn:disabled, .btn-primary:disabled {
+    background-color: var(--primary) !important;
+    border-color: var(--primary) !important;
+    opacity: 0.65;
 }
 
 .btn-success {
@@ -282,7 +298,7 @@ body.sb-sidenav-toggled #wrapper #sidebar-wrapper {
 
 .form-control:focus, .form-select:focus {
     border-color: var(--primary);
-    box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+    box-shadow: 0 0 0 3px rgba(101, 81, 159, 0.1);
 }
 
 /* Terminal Console */
@@ -316,7 +332,7 @@ body.sb-sidenav-toggled #wrapper #sidebar-wrapper {
     font-size: 1.5rem;
 }
 
-.bg-primary-soft { background-color: rgba(79, 70, 229, 0.1); color: var(--primary); }
+.bg-primary-soft { background-color: rgba(101, 81, 159, 0.1); color: var(--primary); }
 .bg-success-soft { background-color: rgba(16, 185, 129, 0.1); color: var(--success); }
 .bg-danger-soft { background-color: rgba(239, 68, 68, 0.1); color: var(--danger); }
 .bg-warning-soft { background-color: rgba(245, 158, 11, 0.1); color: var(--warning); }
@@ -391,85 +407,88 @@ body.sb-sidenav-toggled #wrapper #sidebar-wrapper {
 
 .nested-feature-row:hover {
     background-color: #f1f5f9 !important;
-/* Custom Tabs for Detail Page */
-.custom-tabs .nav-link {
-    color: #64748b;
-    border: none;
-    border-bottom: 2px solid transparent;
-    transition: all 0.2s ease;
-}
+    /* Custom Tabs for Detail Page */
 
-.custom-tabs .nav-link:hover {
-    color: #0f172a;
-    border-color: transparent;
-}
+    .custom-tabs .nav-link {
+        color: #64748b;
+        border: none;
+        border-bottom: 2px solid transparent;
+        transition: all 0.2s ease;
+    }
 
-.custom-tabs .nav-link.active {
-    color: #4f46e5;
-    background-color: transparent;
-    border-bottom: 2px solid #4f46e5;
-}
+    .custom-tabs .nav-link:hover {
+        color: #0f172a;
+        border-color: transparent;
+    }
 
-/* Status Badges */
-.status-badge {
-    padding: 0.35em 0.8em;
-    font-size: 0.75rem;
-    border: 1px solid transparent;
-}
+    .custom-tabs .nav-link.active {
+        color: var(--primary);
+        background-color: transparent;
+        border-bottom: 2px solid var(--primary);
+    }
 
-.status-passed {
-    background-color: rgba(34, 197, 94, 0.1);
-    color: #16a34a;
-    border-color: rgba(34, 197, 94, 0.2);
-}
+    /* Status Badges */
 
-.status-failed {
-    background-color: rgba(239, 68, 68, 0.1);
-    color: #dc2626;
-    border-color: rgba(239, 68, 68, 0.2);
-}
+    .status-badge {
+        padding: 0.35em 0.8em;
+        font-size: 0.75rem;
+        border: 1px solid transparent;
+    }
 
-.status-skipped {
-    background-color: rgba(245, 158, 11, 0.1);
-    color: #d97706;
-    border-color: rgba(245, 158, 11, 0.2);
-}
+    .status-passed {
+        background-color: rgba(34, 197, 94, 0.1);
+        color: #16a34a;
+        border-color: rgba(34, 197, 94, 0.2);
+    }
 
-.status-queued, .status-running {
-    background-color: rgba(59, 130, 246, 0.1);
-    color: #2563eb;
-    border-color: rgba(59, 130, 246, 0.2);
-}
+    .status-failed {
+        background-color: rgba(239, 68, 68, 0.1);
+        color: #dc2626;
+        border-color: rgba(239, 68, 68, 0.2);
+    }
 
-.status-not_run {
-    background-color: rgba(100, 116, 139, 0.1);
-    color: #64748b;
-    border-color: rgba(100, 116, 139, 0.2);
-}
+    .status-skipped {
+        background-color: rgba(245, 158, 11, 0.1);
+        color: #d97706;
+        border-color: rgba(245, 158, 11, 0.2);
+    }
 
-.transition-hover {
-    transition: background-color 0.2s ease;
-}
+    .status-queued, .status-running {
+        background-color: rgba(59, 130, 246, 0.1);
+        color: #2563eb;
+        border-color: rgba(59, 130, 246, 0.2);
+    }
 
-.scenario-row:hover {
-    background-color: #f8fafc !important;
-}
+    .status-not_run {
+        background-color: rgba(100, 116, 139, 0.1);
+        color: #64748b;
+        border-color: rgba(100, 116, 139, 0.2);
+    }
+
+    .transition-hover {
+        transition: background-color 0.2s ease;
+    }
+
+    .scenario-row:hover {
+        background-color: #f8fafc !important;
+    }
 
 
-.feature-link {
-    transition: var(--transition);
-}
+    .feature-link {
+        transition: var(--transition);
+    }
 
-.feature-link:hover {
-    color: var(--primary) !important;
-    text-decoration: underline !important;
-}
+    .feature-link:hover {
+        color: var(--primary) !important;
+        text-decoration: underline !important;
+    }
 
-.module-actions .btn {
-    opacity: 0.85;
-    transition: all 0.2s;
-}
+    .module-actions .btn {
+        opacity: 0.85;
+        transition: all 0.2s;
+    }
 
-.module-card:hover .module-actions .btn {
-    opacity: 1;
+    .module-card:hover .module-actions .btn {
+        opacity: 1;
+    }
 }

@@ -9,6 +9,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.openqa.selenium.WebDriver;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
@@ -29,6 +30,7 @@ public class ExecutionEngineService {
     private final ExecutionRepository executionRepository;
     private final ExecutionLogRepository executionLogRepository;
     private final WebSocketNotificationService notificationService;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Value("${bdd.portal.features-path}")
     private String featuresPath;
@@ -51,6 +53,7 @@ public class ExecutionEngineService {
         executionRepository.save(execution);
         
         notificationService.sendExecutionStatusUpdate(execution.getId(), ExecutionStatus.RUNNING.name());
+        eventPublisher.publishEvent(new com.bdd.portal.event.ExecutionStartedEvent(this, execution));
         logMessage(execution, "INFO", "Execution started for browser: " + execution.getBrowser());
 
         try {
@@ -107,70 +110,20 @@ public class ExecutionEngineService {
 
             byte exitStatus;
             try {
-                // Initialize WebDriver once for the entire execution
-                String browser = execution.getBrowser();
-                logMessage(execution, "INFO", "Initializing WebDriver for browser: " + browser);
-                WebDriver driver;
-                
-                // If Grid URL is explicitly provided, use Grid, otherwise fallback to local DEV execution
-                if (gridUrl != null && !gridUrl.isEmpty()) {
-                    java.net.URL gridHubUrl = new java.net.URL(gridUrl);
-                    if ("Firefox".equalsIgnoreCase(browser)) {
-                        driver = new org.openqa.selenium.remote.RemoteWebDriver(gridHubUrl, new org.openqa.selenium.firefox.FirefoxOptions());
-                    } else if ("Edge".equalsIgnoreCase(browser)) {
-                        driver = new org.openqa.selenium.remote.RemoteWebDriver(gridHubUrl, new org.openqa.selenium.edge.EdgeOptions());
-                    } else {
-                        org.openqa.selenium.chrome.ChromeOptions options = new org.openqa.selenium.chrome.ChromeOptions();
-                        driver = new org.openqa.selenium.remote.RemoteWebDriver(gridHubUrl, options);
-                    }
-                    
-                    org.openqa.selenium.Capabilities caps = ((org.openqa.selenium.remote.RemoteWebDriver) driver).getCapabilities();
-                    execution.setSeleniumSessionId(((org.openqa.selenium.remote.RemoteWebDriver) driver).getSessionId().toString());
-                    execution.setBrowserVersion(caps.getBrowserVersion());
-                    if (caps.getPlatformName() != null) {
-                        execution.setPlatform(caps.getPlatformName().name());
-                    }
-                    
-                    // The backend must simply append the required parameters to the configured base URL
-                    String publicVncUrl = publicVncBaseUrl.endsWith("/") ? 
-                            publicVncBaseUrl.substring(0, publicVncBaseUrl.length() - 1) : publicVncBaseUrl;
-                    publicVncUrl += "/?autoconnect=1&password=secret&resize=scale";
-                    
-                    execution.setNoVncUrl(publicVncUrl);
-                    execution.setVncUrl(publicVncUrl); // Maintained for backward compatibility
-                    
-                    executionRepository.save(execution);
-                    notificationService.broadcastExecutionUpdate(execution);
-                    
-                    logMessage(execution, "INFO", "WebDriver initialized successfully from Grid.");
-                } else {
-                    logMessage(execution, "INFO", "Grid URL not found. Initializing local DEV ChromeDriver.");
-                    org.openqa.selenium.chrome.ChromeOptions options = new org.openqa.selenium.chrome.ChromeOptions();
-                    options.addArguments("--remote-allow-origins=*");
-                    options.addArguments("disable-notifications");
-                    options.addArguments("start-maximized");
-                    options.addArguments("--disable-notifications");
-                    driver = io.github.bonigarcia.wdm.WebDriverManager.chromedriver().capabilities(options).create();
-                }
-
-                driver.manage().timeouts().pageLoadTimeout(java.time.Duration.ofSeconds(60));
-                driver.manage().timeouts().implicitlyWait(java.time.Duration.ofSeconds(10));
-                
-                DriverManager.setBrowserType(browser);
-                DriverManager.setGridUrl(gridUrl);
-                DriverManager.setEnvironment(execution.getEnvironment());
-                DriverManager.setDriver(driver);
+                // WebDriver initialization is now handled in Cucumber Hooks per scenario
+                logMessage(execution, "INFO", "WebDriver initialization is delegated to Hooks per scenario.");
 
                 // Run Cucumber
                 exitStatus = Main.run(cucumberArgs.toArray(new String[0]), Thread.currentThread().getContextClassLoader());
             } catch (Exception e) {
-                logMessage(execution, "ERROR", "Failed to initialize WebDriver: " + e.getMessage());
-                throw new RuntimeException("Execution failed due to WebDriver initialization error", e);
+                logMessage(execution, "ERROR", "Failed to execute cucumber: " + e.getMessage());
+                throw new RuntimeException("Execution failed due to error", e);
             } finally {
                 System.out.flush();
                 System.setOut(oldOut);
                 
-                logMessage(execution, "INFO", "Quitting WebDriver...");
+                logMessage(execution, "INFO", "Execution finished, ensuring WebDriver is quit...");
+                // Just in case anything was left over, though Hooks should handle it.
                 DriverManager.quitDriver();
                 DriverManager.removeBrowserType();
             }
@@ -247,6 +200,12 @@ public class ExecutionEngineService {
                 executionRepository.save(exec);
                 notificationService.sendExecutionStatusUpdate(executionId, finalStatus.name());
                 notificationService.broadcastExecutionUpdate(exec);
+                
+                if (finalStatus == ExecutionStatus.CANCELLED) {
+                    eventPublisher.publishEvent(new com.bdd.portal.event.ExecutionCancelledEvent(this, exec));
+                } else {
+                    eventPublisher.publishEvent(new com.bdd.portal.event.ExecutionCompletedEvent(this, exec));
+                }
             }
         } catch (Exception e) {
             log.error("Failed to update final execution state", e);

@@ -75,17 +75,13 @@
                             <div class="text-muted" style="font-size: 0.75rem;">Steps</div>
                         </div>
 
-                        <!-- Right: Actions -->
                         <div class="col-3 d-flex justify-content-end align-items-center gap-3 pe-2 module-actions">
-                            <form th:action="@{/executions/run/folder}" method="post" class="m-0 p-0 d-inline-flex align-items-center">
-                                <input type="hidden" name="folderPath" th:value="${entry.key}">
-                                <select name="environment" class="form-select form-select-sm me-2" style="width: 100px; font-size: 0.8rem;">
-                                    <option th:each="env : ${environments}" th:value="${env}" th:text="${env}"></option>
-                                </select>
-                                <button type="submit" class="btn btn-outline-primary btn-sm px-3 fw-medium" style="font-size: 0.85rem;">
-                                    <i class="bi bi-play-fill"></i> Run
-                                </button>
-                            </form>
+                            <button type="button" class="btn btn-outline-primary btn-sm px-3 fw-medium" style="font-size: 0.85rem;"
+                                    data-url="/executions/run/folder"
+                                    th:data-folderpath="${entry.key}"
+                                    onclick="openRunModal(this.getAttribute('data-url'), true, this.getAttribute('data-folderpath'))">
+                                <i class="bi bi-play-fill"></i> Run
+                            </button>
                             <button class="btn btn-link text-muted p-0 text-decoration-none custom-accordion-toggle" type="button" data-bs-toggle="collapse" th:data-bs-target="'#collapse' + ${stat.index}" aria-expanded="false" th:aria-controls="'collapse' + ${stat.index}">
                                 <i class="bi bi-chevron-down toggle-icon"></i>
                             </button>
@@ -131,14 +127,11 @@
                                 <a th:href="@{/features/{id}(id=${feature.id})}" class="btn btn-sm btn-light border text-muted px-2" title="View Details">
                                     <i class="bi bi-eye"></i>
                                 </a>
-                                <form th:action="@{/executions/run/feature/{id}(id=${feature.id})}" method="post" class="m-0 p-0 d-inline-flex align-items-center">
-                                    <select name="environment" class="form-select form-select-sm me-2" style="width: 100px; font-size: 0.8rem;">
-                                        <option th:each="env : ${environments}" th:value="${env}" th:text="${env}"></option>
-                                    </select>
-                                    <button type="submit" class="btn btn-sm btn-outline-primary px-3  fw-medium" style="font-size: 0.8rem;">
-                                        <i class="bi bi-play-fill"></i> Run
-                                    </button>
-                                </form>
+                                <button type="button" class="btn btn-sm btn-outline-primary px-3 fw-medium" style="font-size: 0.8rem;"
+                                        th:data-url="'/executions/run/feature/' + ${feature.id}"
+                                        onclick="openRunModal(this.getAttribute('data-url'), false, '')">
+                                    <i class="bi bi-play-fill"></i> Run
+                                </button>
                             </div>
                         </div>
                         
@@ -165,6 +158,87 @@
             </ul>
         </div>
         
+        <!-- Run Execution Modal -->
+        <div class="modal fade" id="runExecutionModal" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content border-0 shadow">
+                    <div class="modal-header border-bottom-0 bg-light">
+                        <h5 class="modal-title fw-bold">Run Test</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <form id="runExecutionForm" method="post">
+                        <!-- CSRF Token -->
+                        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
+                        <div class="modal-body">
+                            <input type="hidden" id="runFolderPath" name="folderPath">
+                            <div class="row mb-3">
+                                <div class="col-6">
+                                    <label class="form-label fw-semibold">Environment</label>
+                                    <select name="environment" class="form-select">
+                                        <option th:each="env : ${environments}" th:value="${env}" th:text="${env}"></option>
+                                    </select>
+                                </div>
+                                <div class="col-6">
+                                    <label class="form-label fw-semibold">Browser</label>
+                                    <select name="browser" class="form-select">
+                                        <option value="Chrome">Chrome</option>
+                                        <option value="Firefox">Firefox</option>
+                                        <option value="Edge">Edge</option>
+                                        <option value="Safari">Safari</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label fw-semibold">Reason for Test (Optional)</label>
+                                <textarea class="form-control" name="reason" rows="2" placeholder="E.g., Regression testing for v1.2 release"></textarea>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label fw-semibold">Email Report To (Optional)</label>
+                                <input name="notifyEmails" id="notifyEmailsInput" class="form-control" placeholder="Type email and press enter">
+                                <div class="form-text">Press Enter to add multiple emails.</div>
+                            </div>
+                        </div>
+                        <div class="modal-footer border-top-0 bg-light">
+                            <button type="button" class="btn btn-light border" data-bs-dismiss="modal">Cancel</button>
+                            <button type="submit" class="btn btn-primary"><i class="bi bi-play-fill"></i> Run Now</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            var input = document.querySelector('#notifyEmailsInput');
+            var tagify = new Tagify(input, {
+                pattern: /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/,
+                originalInputValueFormat: valuesArr => valuesArr.map(item => item.value).join(','),
+                dropdown: {
+                    enabled: 0,
+                    maxItems: 10,
+                    closeOnSelect: false
+                }
+            });
+
+            fetch('/api/executions/emails/used')
+                .then(response => response.json())
+                .then(emails => {
+                    tagify.settings.whitelist = emails;
+                });
+
+            window.openRunModal = function(url, isFolder, folderPath) {
+                document.getElementById('runExecutionForm').action = url;
+                if (isFolder) {
+                    document.getElementById('runFolderPath').value = folderPath;
+                    document.getElementById('runFolderPath').disabled = false;
+                } else {
+                    document.getElementById('runFolderPath').disabled = true;
+                }
+                var modal = new bootstrap.Modal(document.getElementById('runExecutionModal'));
+                modal.show();
+            };
+        });
+        </script>
     </div>
 </body>
 </html>

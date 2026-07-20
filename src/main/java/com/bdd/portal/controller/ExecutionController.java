@@ -88,6 +88,8 @@ public class ExecutionController {
     public String runFeature(@PathVariable Long id, 
                            @RequestParam(required = false, defaultValue = "Chrome") String browser,
                            @RequestParam(required = false, defaultValue = "STAGE") String environment,
+                           @RequestParam(required = false) String reason,
+                           @RequestParam(required = false) String notifyEmails,
                            org.springframework.web.servlet.mvc.support.RedirectAttributes redirectAttributes) {
         
         FeatureFile feature = featureFileRepository.findById(id).orElse(null);
@@ -101,6 +103,8 @@ public class ExecutionController {
         execution.setBrowser(browser);
         execution.setEnvironment(environment);
         execution.setExecutionType(ExecutionType.MANUAL);
+        execution.setReason(reason);
+        execution.setNotifyEmails(notifyEmails);
         executionRepository.save(execution);
         
         // executionEngineService.runExecution(execution); // Removed: handled by ExecutionQueueManager
@@ -115,6 +119,8 @@ public class ExecutionController {
     public String runFolder(@RequestParam String folderPath, 
                           @RequestParam(required = false, defaultValue = "Chrome") String browser,
                           @RequestParam(required = false, defaultValue = "STAGE") String environment,
+                          @RequestParam(required = false) String reason,
+                          @RequestParam(required = false) String notifyEmails,
                           org.springframework.web.servlet.mvc.support.RedirectAttributes redirectAttributes) {
         
         Execution execution = new Execution();
@@ -123,6 +129,8 @@ public class ExecutionController {
         execution.setBrowser(browser);
         execution.setEnvironment(environment);
         execution.setExecutionType(ExecutionType.MANUAL);
+        execution.setReason(reason);
+        execution.setNotifyEmails(notifyEmails);
         executionRepository.save(execution);
         
         // executionEngineService.runExecution(execution); // Removed: handled by ExecutionQueueManager

@@ -22,10 +22,18 @@ public class DataSeeder implements CommandLineRunner {
         if (userRepository.count() == 0) {
             log.info("Seeding initial admin user...");
             User admin = new User();
-            admin.setUsername("admin");
-            admin.setPassword(passwordEncoder.encode("admin"));
+            admin.setUsername("admin@psl.com");
+            admin.setEmail("admin@psl.com");
+            admin.setFirstName("Super");
+            admin.setLastName("Admin");
+            admin.setPassword(passwordEncoder.encode("Admin@123"));
             admin.setRole(Role.ADMIN);
+            admin.setDepartment("IT");
+            admin.setJobTitle("System Administrator");
+            admin.setEnabled(true);
+            admin.setRequirePasswordChange(true);
             userRepository.save(admin);
+            log.info("Default admin created: admin@psl.com / Admin@123");
         }
     }
 }

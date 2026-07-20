@@ -60,6 +60,12 @@ public class Execution {
     @Column(nullable = false)
     private ExecutionType executionType = ExecutionType.MANUAL;
 
+    @Column(columnDefinition = "TEXT")
+    private String reason;
+
+    @Column(columnDefinition = "TEXT")
+    private String notifyEmails;
+
     private LocalDateTime startTime;
     private LocalDateTime endTime;
 

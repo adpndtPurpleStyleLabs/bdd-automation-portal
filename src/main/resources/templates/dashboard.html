@@ -78,7 +78,7 @@
                                                   th:text="${exec.status}">PASSED</span>
                                         </td>
                                         <td>
-                                            <a th:href="@{/reports/detail/{id}(id=${exec.id})}" class="btn btn-sm btn-outline-primary">View</a>
+                                            <a th:href="@{/executions/{id}(id=${exec.id})}" class="btn btn-sm btn-outline-primary">View</a>
                                         </td>
                                     </tr>
                                     <tr th:if="${#lists.isEmpty(recentExecutions)}">
@@ -117,7 +117,7 @@
                                                   th:text="${exec.status}">PASSED</span>
                                         </td>
                                         <td>
-                                            <a th:href="@{/reports/detail/{id}(id=${exec.id})}" class="btn btn-sm btn-outline-primary">View</a>
+                                            <a th:href="@{/executions/{id}(id=${exec.id})}" class="btn btn-sm btn-outline-primary">View</a>
                                         </td>
                                     </tr>
                                     <tr th:if="${#lists.isEmpty(moduleExecutions)}">
