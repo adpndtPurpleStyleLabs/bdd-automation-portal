@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 250" width="100%" height="100%">
+  <defs>
+    <!-- Gradients for the main central hub -->
+    <linearGradient id="hubGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#2ecc71" />
+      <stop offset="50%" stop-color="#2980b9" />
+      <stop offset="100%" stop-color="#4e54c8" />
+    </linearGradient>
+    
+    <!-- Font Styles -->
+    <style>
+      .title-main { font-family: 'Inter', 'Segoe UI', Arial, sans-serif; font-weight: 800; font-size: 82px; fill: #1e272e; }
+      .title-sub { font-family: 'Inter', 'Segoe UI', Arial, sans-serif; font-weight: 800; font-size: 82px; fill: #4e54c8; }
+      .subtitle { font-family: 'Inter', 'Segoe UI', Arial, sans-serif; font-weight: 500; font-size: 26px; fill: #57606f; letter-spacing: 1px; }
+    </style>
+  </defs>
+
+  <g transform="translate(10, 10)">
+    <!-- Connecting links between hexagons and central hub -->
+    <path d="M 120,85 L 140,85" stroke="#a4b0be" stroke-width="6" stroke-linecap="round" stroke-dasharray="1 8" />
+    <path d="M 190,85 L 210,85" stroke="#a4b0be" stroke-width="6" stroke-linecap="round" stroke-dasharray="1 8" />
+    <path d="M 165,115 L 165,135" stroke="#a4b0be" stroke-width="6" stroke-linecap="round" stroke-dasharray="1 8" />
+    
+    <!-- Link connector caps -->
+    <rect x="123" y="81" width="6" height="8" rx="3" fill="#a4b0be" />
+    <rect x="201" y="81" width="6" height="8" rx="3" fill="#a4b0be" />
+    <rect x="161" y="121" width="8" height="6" rx="3" fill="#a4b0be" />
+
+    <!-- Left Green Hexagon -->
+    <polygon points="85,30 125,53 125,99 85,122 45,99 45,53" 
+             fill="none" stroke="#2ecc71" stroke-width="9" stroke-linejoin="round" />
+
+    <!-- Right Purple Hexagon -->
+    <polygon points="245,30 285,53 285,99 245,122 205,99 205,53" 
+             fill="none" stroke="#4e54c8" stroke-width="9" stroke-linejoin="round" />
+
+    <!-- Bottom Blue Hexagon -->
+    <polygon points="165,137 205,160 205,206 165,229 125,206 125,160" 
+             fill="none" stroke="#00a8ff" stroke-width="9" stroke-linejoin="round" />
+
+    <!-- Central Hub Circle -->
+    <circle cx="165" cy="85" r="32" fill="url(#hubGradient)" />
+  </g>
+
+  <!-- Typography -->
+  <text x="330" y="128">
+    <tspan class="title-main">Scenario</tspan>
+    <tspan class="title-sub">Hub</tspan>
+  </text>
+  <text x="333" y="172" class="subtitle">Project E2E Test</text>
+</svg>

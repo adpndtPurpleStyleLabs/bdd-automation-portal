@@ -20,5 +20,7 @@ public interface ExecutionRepository extends JpaRepository<Execution, Long>, Jpa
     List<Execution> findByStatusOrderByIdAsc(ExecutionStatus status);
     long countByStatusAndBrowserIgnoreCase(ExecutionStatus status, String browser);
     List<Execution> findTop10ByOrderByStartTimeDesc();
+    List<Execution> findTop30ByOrderByStartTimeDesc();
+    List<Execution> findByStartTimeAfterOrderByStartTimeAsc(java.time.LocalDateTime startTime);
     Page<Execution> findAll(Pageable pageable);
 }

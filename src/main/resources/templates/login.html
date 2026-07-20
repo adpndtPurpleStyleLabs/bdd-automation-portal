@@ -127,6 +127,22 @@
             box-shadow: 0 4px 12px rgba(101, 81, 159, 0.25);
         }
         
+        .btn-primary:active,
+        .btn-primary:focus {
+            background-color: var(--primary-hover) !important;
+            border-color: var(--primary-hover) !important;
+            box-shadow: 0 0 0 3px rgba(101, 81, 159, 0.25) !important;
+        }
+        
+        .btn-primary:disabled,
+        .btn-primary.disabled {
+            background-color: rgba(101, 81, 159, 0.65) !important;
+            border-color: rgba(101, 81, 159, 0.65) !important;
+            cursor: not-allowed;
+            transform: none !important;
+            box-shadow: none !important;
+        }
+        
         a {
             color: var(--primary-color);
         }
@@ -170,16 +186,15 @@
             <!-- Login Form Area -->
             <div class="col-lg-7 login-form-container">
                 <div class="card login-card p-4">
-                    <div class="text-center mb-5 d-lg-none">
-                        <i class="bi bi-box-seam" style="font-size: 3rem; color: var(--primary-color);"></i>
-                        <h3 class="mt-2 fw-bold" style="color: var(--text-main);">PSL Automation</h3>
+                    <div class="text-center mb-3">
+                        <img src="/images/logo.svg" alt="Scenario Hub Logo" style="max-width: 200px; height: auto;" />
                     </div>
                     <form id="loginForm" th:action="@{/login}" method="post">
-                        <div th:if="${param.error}" class="alert alert-danger d-flex align-items-center border-0" style="background-color: #fee2e2; color: #991b1b;">
+                        <div th:if="${param.error}" class="alert alert-danger d-flex align-items-center border-0 mb-3" style="background-color: #fee2e2; color: #991b1b; padding: 0.5rem 0.75rem;">
                             <i class="bi bi-exclamation-triangle-fill me-2"></i>
                             <div>Invalid credentials or account disabled.</div>
                         </div>
-                        <div th:if="${param.logout}" class="alert alert-success d-flex align-items-center border-0" style="background-color: #d1fae5; color: #065f46;">
+                        <div th:if="${param.logout}" class="alert alert-success d-flex align-items-center border-0 mb-3" style="background-color: #d1fae5; color: #065f46; padding: 0.5rem 0.75rem;">
                             <i class="bi bi-check-circle-fill me-2"></i>
                             <div>You have been successfully logged out.</div>
                         </div>
@@ -211,7 +226,7 @@
                             <label class="form-check-label" for="remember-me" style="color: var(--text-main);">Remember me</label>
                         </div>
 
-                        <button class="btn btn-primary w-100 py-2" type="submit" id="submitBtn">Sign in</button>
+                        <button class="btn btn-primary w-100 py-1" type="submit" id="submitBtn">Sign in</button>
                     </form>
                 </div>
             </div>

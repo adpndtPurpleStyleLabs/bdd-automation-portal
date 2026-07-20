@@ -5,8 +5,6 @@
 </head>
 <body>
     <div layout:fragment="content">
-        <h2 class="mb-4">Dashboard</h2>
-        
         <div class="row mb-4">
             <div class="col-md-3">
                 <div class="card stat-card mb-3">
@@ -49,15 +47,35 @@
             </div>
         </div>
 
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card shadow-sm">
+                    <div class="card-header bg-white py-2 d-flex justify-content-between align-items-center">
+                        <h6 class="mb-0 fw-bold text-secondary">Execution Results Trend</h6>
+                        <div>
+                            <select class="form-select form-select-sm" onchange="window.location.href='/?days=' + this.value;">
+                                <option value="7" th:selected="${chartDays == 7}">Last 7 Days</option>
+                                <option value="15" th:selected="${chartDays == 15}">Last 15 Days</option>
+                                <option value="30" th:selected="${chartDays == 30}">Last 30 Days</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <canvas id="executionsChart" style="max-height: 250px; width: 100%;"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <div class="row">
             <div class="col-md-6 mb-4">
                 <div class="card shadow-sm h-100">
-                    <div class="card-header bg-white">
-                        <h5 class="mb-0">Recent Executions</h5>
+                    <div class="card-header bg-white py-2">
+                        <h6 class="mb-0 fw-bold text-secondary">Recent Executions</h6>
                     </div>
-                    <div class="card-body">
+                    <div class="card-body p-2">
                         <div class="table-responsive">
-                            <table class="table table-hover">
+                            <table class="table table-sm table-hover mb-0" style="font-size: 0.9rem;">
                                 <thead>
                                     <tr>
                                         <th>ID</th>
@@ -93,12 +111,12 @@
             
             <div class="col-md-6 mb-4">
                 <div class="card shadow-sm h-100">
-                    <div class="card-header bg-white">
-                        <h5 class="mb-0">Last Module Executions</h5>
+                    <div class="card-header bg-white py-2">
+                        <h6 class="mb-0 fw-bold text-secondary">Last Module Executions</h6>
                     </div>
-                    <div class="card-body">
+                    <div class="card-body p-2">
                         <div class="table-responsive">
-                            <table class="table table-hover">
+                            <table class="table table-sm table-hover mb-0" style="font-size: 0.9rem;">
                                 <thead>
                                     <tr>
                                         <th>Module</th>
@@ -131,5 +149,74 @@
             </div>
         </div>
     </div>
+
+    <th:block layout:fragment="scripts">
+        <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+        <script th:inline="javascript">
+            document.addEventListener("DOMContentLoaded", function() {
+                var labels = [];
+                var passedData = [];
+                var failedData = [];
+                var skippedData = [];
+
+                /*[# th:each="exec : ${chartExecutions}"]*/
+                var rawDate = /*[[${exec.startTime != null ? exec.startTime.toString() : ''}]]*/ '';
+                if (rawDate) {
+                    var date = new Date(rawDate);
+                    labels.push(date.toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute:'2-digit' }));
+                } else {
+                    labels.push('Exec #' + /*[[${exec.id}]]*/ 0);
+                }
+                passedData.push(/*[[${exec.passedScenarios}]]*/ 0);
+                failedData.push(/*[[${exec.failedScenarios}]]*/ 0);
+                skippedData.push(/*[[${exec.skippedScenarios}]]*/ 0);
+                /*[/]*/
+
+                var ctx = document.getElementById('executionsChart').getContext('2d');
+                new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: labels,
+                        datasets: [
+                            {
+                                label: 'Passed',
+                                data: passedData,
+                                backgroundColor: '#198754', // Bootstrap success green
+                                maxBarThickness: 40
+                            },
+                            {
+                                label: 'Failed',
+                                data: failedData,
+                                backgroundColor: '#dc3545', // Bootstrap danger red
+                                maxBarThickness: 40
+                            },
+                            {
+                                label: 'Skipped',
+                                data: skippedData,
+                                backgroundColor: '#6c757d', // Bootstrap secondary gray
+                                maxBarThickness: 40
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            x: {
+                                stacked: true,
+                            },
+                            y: {
+                                stacked: true,
+                                beginAtZero: true,
+                                ticks: {
+                                    stepSize: 1
+                                }
+                            }
+                        }
+                    }
+                });
+            });
+        </script>
+    </th:block>
 </body>
 </html>
