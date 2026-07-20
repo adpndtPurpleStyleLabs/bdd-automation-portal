@@ -23,6 +23,11 @@ public class FeatureFile {
     @Column(nullable = false, unique = true)
     private String relativePath;
 
+    @Column(unique = true)
+    private String slug;
+
+    private String moduleSlug;
+
     private String folder;
 
     @Column(length = 1000)
@@ -48,6 +53,7 @@ public class FeatureFile {
     public static class FeatureScenario {
         private String name;
         private int lineNumber;
+        private String slug;
 
         public FeatureScenario() {}
 

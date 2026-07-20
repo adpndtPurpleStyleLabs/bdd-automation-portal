@@ -85,4 +85,24 @@ public class FeatureController {
         featureScannerService.scanFeatures();
         return "redirect:/features";
     }
+
+    @PostMapping("/api/rescan/start")
+    public org.springframework.http.ResponseEntity<Void> startRescanAsync(@org.springframework.web.bind.annotation.RequestParam String scanId) {
+        new Thread(() -> {
+            try {
+                // Short sleep to ensure client has subscribed
+                Thread.sleep(500);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+            featureScannerService.scanInMemory(scanId);
+        }).start();
+        return org.springframework.http.ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/api/rescan/save")
+    public org.springframework.http.ResponseEntity<Void> saveRescan(@org.springframework.web.bind.annotation.RequestParam String scanId) {
+        featureScannerService.saveInMemoryScan(scanId);
+        return org.springframework.http.ResponseEntity.ok().build();
+    }
 }
