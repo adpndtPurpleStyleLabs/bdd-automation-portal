@@ -1,16 +1,18 @@
 {
   "customers": [
     {
-    "type": "ExistingCustomer",
-    "email": "wickjohn876543@gmail.com",
-    "expectedFirstName": "Gaurav",
-    "expectedLastName": "Chavan",
-    "expectedPhone": "1231231233",
-    "billingName": "Sagar Chavan",
-    "billingAddress": "Dhdhdh Dhdh Bxgd",
-    "billingPincode": "IN-231001",
-    "billingPhone": "1231231233"
-  },
+      "type": "ExistingCustomer",
+      "email": "psltest12321@gmail.com",
+      "firstName": "Automation",
+      "lastName": "Testing",
+      "billingName": "Automation Testing",
+      "billingAddress": "Automated Order",
+      "city": "Mumbai",
+      "state": "Maharshtra",
+      "country": "India",
+      "billingPincode": "431001",
+      "billingPhone": "8558558558"
+    },
     {
     "type": "NonExistingCustomer",
     "email": "new@test.com",
@@ -19,19 +21,34 @@
     "expectedPhone": null,
     "billingName": "PSL Online store",
     "billingAddress": "PSL RETAIL PRIVATE LIMITED, Basement 1, Flora Marmo,WE Highway, Next to Shaman cars, Vile Parle E Mumbai Maharashtra",
-    "billingPincode": "IN-400057",
+    "billingPincode": "400057",
     "billingPhone": "7847848484"
   },
     {
       "type": "DummyCustomer",
-    "email": null,
-    "expectedFirstName": null,
-    "expectedLastName": null,
-    "expectedPhone": null,
-    "billingName": "PSL Online store",
-    "billingAddress": "PSL RETAIL PRIVATE LIMITED, Basement 1, Flora Marmo,WE Highway, Next to Shaman cars, Vile Parle E Mumbai Maharashtra",
-    "billingPincode": "IN-400057",
-    "billingPhone": "7847848484"
-  }
-    ]
+      "email": null,
+      "firstName": null,
+      "lastName": null,
+      "billingName": null,
+      "billingAddress": "Pernia's Pop Up Studio, A-287, First floor, Defence Colony",
+      "city": "Delhi",
+      "state": "Delhi",
+      "country": "India",
+      "billingPincode": "110024",
+      "billingPhone": null
+  },
+    {
+      "type": "DummyCustomer-NYC",
+      "email": null,
+      "firstName": null,
+      "lastName": null,
+      "billingName": null,
+      "billingAddress": "PURPLE STYLE LABS USA INC, 601-603 Madison Avenue",
+      "city": "New York",
+      "state": "New York",
+      "country": "US",
+      "billingPincode": "10022",
+      "billingPhone": null
+    }
+  ]
 }

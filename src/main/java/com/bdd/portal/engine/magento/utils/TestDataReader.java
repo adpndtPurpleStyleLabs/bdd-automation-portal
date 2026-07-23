@@ -42,4 +42,60 @@ public class TestDataReader {
                 new TypeReference<List<CustomerData>>() {}
         );
     }
+
+    public static CustomerData getCustomerByType(String type) throws Exception {
+
+        return getAllCustomers()
+                .stream()
+                .filter(customer -> customer.getType().equalsIgnoreCase(type))
+                .findFirst()
+                .orElseThrow(() ->
+                        new RuntimeException("Customer type not found: " + type));
+    }
+
+    public static List<ItemData> getAllItem() throws Exception {
+
+        InputStream inputStream = TestDataReader.class
+                .getClassLoader()
+                .getResourceAsStream("testData/itemData.json");
+
+        if (inputStream == null) {
+            throw new RuntimeException("itemData.json not found");
+        }
+
+        JsonNode root = mapper.readTree(inputStream);
+
+        return mapper.convertValue(
+                root.get("ItemData"),
+                new TypeReference<List<ItemData>>() {}
+        );
+    }
+
+    public static PaymentData getPaymentData(String key) throws Exception {
+
+        InputStream inputStream = TestDataReader.class
+                .getClassLoader()
+                .getResourceAsStream("testData/paymentType.json");
+
+        if (inputStream == null) {
+            throw new RuntimeException("paymentData.json not found");
+        }
+
+        JsonNode root = mapper.readTree(inputStream);
+
+        return mapper.treeToValue(root.get(key), PaymentData.class);
+    }
+
+    public static CurrencyData getCurrencyData(String currency) throws Exception {
+
+        InputStream inputStream = TestDataReader.class
+                .getClassLoader()
+                .getResourceAsStream("testData/currencyConversionRate.json");
+
+        JsonNode root = mapper.readTree(inputStream);
+
+        return mapper.treeToValue(
+                root.get(currency.toLowerCase()),
+                CurrencyData.class);
+    }
 }
