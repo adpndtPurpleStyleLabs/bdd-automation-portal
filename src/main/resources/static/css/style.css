@@ -521,21 +521,29 @@ body.sb-sidenav-toggled #wrapper #sidebar-wrapper {
         opacity: 1;
     }
 }
-
 /* SPA (Turbo & NProgress) Styling */
 .turbo-progress-bar {
     display: none !important;
 }
 
+#nprogress {
+    pointer-events: none;
+}
+
 #nprogress .bar {
     background: var(--primary) !important;
     top: auto !important;
-    bottom: -1px !important; /* Positions it directly under the header border */
+    bottom: -1px !important; /* Position directly under the header */
     height: 3px !important;
     z-index: 1030 !important;
+
+    /* Glow the entire progress bar */
+    box-shadow:
+            0 0 5px var(--primary),
+            0 0 10px var(--primary),
+            0 0 15px color-mix(in srgb, var(--primary) 50%, transparent) !important;
 }
 
 #nprogress .peg {
-    box-shadow: 0 0 10px var(--primary), 0 0 5px var(--primary) !important;
-    transform: none !important;
+    display: none !important; /* Optional: remove the glowing end peg */
 }

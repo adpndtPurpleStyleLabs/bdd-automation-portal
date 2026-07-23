@@ -28,7 +28,7 @@
             </div>
 
             <div class="d-flex gap-2">
-                <button type="button" class="btn btn-outline-secondary" onclick="openRescanModal()">
+                <button type="button" class="btn btn-primary d-flex align-items-center gap-2 px-4 fw-bold shadow-sm" onclick="openRescanModal()">
                     <i class="bi bi-arrow-clockwise me-1"></i> Rescan
                 </button>
             </div>
@@ -49,9 +49,9 @@
             <div th:each="entry, stat : ${featuresByFolder}" class="accordion-item border-0 border-bottom module-card">
                 <div class="accordion-header" th:id="'heading' + ${stat.index}">
                     
-                    <div class="d-flex w-100 align-items-center module-header py-2 px-3">
+                    <div class="d-flex w-100 align-items-center module-header py-2 px-3 cursor-pointer custom-accordion-toggle collapsed" data-bs-toggle="collapse" th:data-bs-target="'#collapse' + ${stat.index}" aria-expanded="false" th:aria-controls="'collapse' + ${stat.index}">
                         <!-- Left: Icon & Name -->
-                        <div class="col-5 d-flex align-items-center cursor-pointer" data-bs-toggle="collapse" th:data-bs-target="'#collapse' + ${stat.index}" aria-expanded="false" th:aria-controls="'collapse' + ${stat.index}">
+                        <div class="col-5 d-flex align-items-center">
                             <div class="module-icon me-3 bg-primary-soft text-primary rounded p-2 d-flex align-items-center justify-content-center" style="width: 32px; height: 32px;">
                                 <i class="bi bi-folder2 fs-6"></i>
                             </div>
@@ -62,15 +62,15 @@
                         </div>
                         
                         <!-- Middle: Stats -->
-                        <div class="col-1 text-center cursor-pointer" data-bs-toggle="collapse" th:data-bs-target="'#collapse' + ${stat.index}">
+                        <div class="col-1 text-center">
                             <div class="fw-bold text-dark" style="font-size: 1.1rem;" th:text="${#lists.size(entry.value)}">0</div>
                             <div class="text-muted" style="font-size: 0.75rem;">Features</div>
                         </div>
-                        <div class="col-2 text-center cursor-pointer" data-bs-toggle="collapse" th:data-bs-target="'#collapse' + ${stat.index}">
+                        <div class="col-2 text-center">
                             <div class="fw-bold text-dark" style="font-size: 1.1rem;" th:text="${#aggregates.sum(entry.value.![scenarioCount])} ?: 0">0</div>
                             <div class="text-muted" style="font-size: 0.75rem;">Scenarios</div>
                         </div>
-                        <div class="col-1 text-center cursor-pointer" data-bs-toggle="collapse" th:data-bs-target="'#collapse' + ${stat.index}">
+                        <div class="col-1 text-center">
                             <div class="fw-bold text-dark" style="font-size: 1.1rem;" th:text="${#aggregates.sum(entry.value.![stepCount])} ?: 0">0</div>
                             <div class="text-muted" style="font-size: 0.75rem;">Steps</div>
                         </div>
@@ -79,12 +79,12 @@
                             <button type="button" class="btn btn-outline-primary btn-sm px-3 fw-medium" style="font-size: 0.85rem;"
                                     data-url="/executions/run/folder"
                                     th:data-folderpath="${entry.key}"
-                                    onclick="openRunModal(this.getAttribute('data-url'), true, this.getAttribute('data-folderpath'))">
+                                    onclick="event.stopPropagation(); openRunModal(this.getAttribute('data-url'), true, this.getAttribute('data-folderpath'))">
                                 <i class="bi bi-play-fill"></i> Run
                             </button>
-                            <button class="btn btn-link text-muted p-0 text-decoration-none custom-accordion-toggle" type="button" data-bs-toggle="collapse" th:data-bs-target="'#collapse' + ${stat.index}" aria-expanded="false" th:aria-controls="'collapse' + ${stat.index}">
-                                <i class="bi bi-chevron-down toggle-icon"></i>
-                            </button>
+                            <div class="text-muted p-0 text-decoration-none" style="width: 24px; text-align: center;">
+                                <i class="bi bi-chevron-down toggle-icon d-inline-block"></i>
+                            </div>
                         </div>
                     </div>
 
@@ -130,9 +130,12 @@
                             </div>
 
                             <div class="col-3 d-flex justify-content-end gap-2 pe-4 align-items-center">
-                                <a th:href="@{/features/{moduleSlug}/{slug}(moduleSlug=${feature.moduleSlug}, slug=${feature.slug})}" class="btn btn-sm btn-light border text-muted px-2" title="View Details">
-                                    <i class="bi bi-code-slash"></i>
-                                </a>
+                                <button type="button"
+                                        class="btn btn-sm btn-light border text-muted px-3 fw-medium"
+                                        style="font-size: 0.8rem;"
+                                        th:onclick="|window.location.href='@{/features/{moduleSlug}/{slug}(moduleSlug=${feature.moduleSlug}, slug=${feature.slug})}'|">
+                                    <i class="bi bi-info-circle"></i> View Details
+                                </button>
                                 <button type="button" class="btn btn-sm btn-outline-primary px-3 fw-medium" style="font-size: 0.8rem;"
                                         th:data-url="'/executions/run/feature/' + ${feature.id}"
                                         onclick="openRunModal(this.getAttribute('data-url'), false, '')">
@@ -280,7 +283,7 @@
         <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
         <script src="https://cdn.jsdelivr.net/npm/stompjs@2.3.3/lib/stomp.min.js"></script>
         <script th:inline="javascript">
-        document.addEventListener('DOMContentLoaded', function() {
+        (function() {
             var input = document.querySelector('#notifyEmailsInput');
             var tagify = new Tagify(input, {
                 pattern: /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/,
@@ -547,7 +550,7 @@
                     btn.textContent = 'Save';
                 });
             };
-        });
+        })();
         </script>
     </div>
 </body>

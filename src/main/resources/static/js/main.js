@@ -21,6 +21,8 @@ document.addEventListener('turbo:load', event => {
     
     navLinks.forEach(link => {
         const path = link.getAttribute('data-path');
+        if (!path) return; // Skip links without a data-path attribute
+        
         if (path === '/' && currentPath === '/') {
             bestMatch = link;
             maxMatchLength = 1;
