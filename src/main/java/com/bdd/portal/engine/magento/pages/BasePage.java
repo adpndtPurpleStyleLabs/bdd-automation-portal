@@ -1,11 +1,13 @@
 package com.bdd.portal.engine.magento.pages;
 
 import com.bdd.portal.engine.DriverManager;
-import org.openqa.selenium.By;
+import org.openqa.selenium.*;
+
 import java.time.Duration;
-import org.openqa.selenium.WebDriver;
-import org.openqa.selenium.WebElement;
+import java.util.NoSuchElementException;
+
 import org.openqa.selenium.support.ui.ExpectedConditions;
+import org.openqa.selenium.support.ui.Select;
 import org.openqa.selenium.support.ui.WebDriverWait;
 public class BasePage {
 
@@ -55,5 +57,68 @@ public class BasePage {
 
     protected void captureScreenshot() {
         com.bdd.portal.engine.reporting.StepLogger.takeScreenshot(driver);
+    }
+
+    protected void waitForLoaderToDisappear() {
+
+        By loader = By.id("loading-mask");
+
+        try {
+            wait.until(driver -> {
+                try {
+                    WebElement element = driver.findElement(loader);
+
+                    String style = element.getAttribute("style");
+
+                    return style == null || !style.contains("display: block");
+
+                } catch (NoSuchElementException | StaleElementReferenceException e) {
+                    return true;
+                }
+            });
+
+        } catch (TimeoutException e) {
+            logStep("Loader did not disappear within timeout.");
+        }
+    }
+
+    public void scrollToLastCartItem() {
+     try {
+         ((JavascriptExecutor) driver).executeScript(
+                 "window.scrollBy(0, document.body.scrollHeight);"
+         );
+         Thread.sleep(2000);
+     } catch (InterruptedException e) {
+         throw new RuntimeException(e);
+     }
+    }
+
+    protected WebDriver driver() {
+        return driver;
+    }
+
+    protected void scrollIntoView(By locator) {
+        WebElement element = waitForVisible(locator);
+
+        ((JavascriptExecutor) driver).executeScript(
+                "arguments[0].scrollIntoView({block:'center', inline:'nearest'});",
+                element);
+    }
+
+    public void selectByVisibleText(By locator, String text) {
+        WebElement element = wait.until(ExpectedConditions.visibilityOfElementLocated(locator));
+        new Select(element).selectByVisibleText(text);
+    }
+
+    public void acceptAlert() {
+        Alert alert = wait.until(ExpectedConditions.alertIsPresent());
+        System.out.println("Alert Message: " + alert.getText());
+        alert.accept();
+    }
+
+    public void clear(By locator) {
+        WebElement element = wait.until(
+                ExpectedConditions.elementToBeClickable(locator));
+        element.clear();
     }
 }

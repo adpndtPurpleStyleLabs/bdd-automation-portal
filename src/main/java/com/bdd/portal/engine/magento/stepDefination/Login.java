@@ -19,10 +19,9 @@ public class Login {
 
     LoginPage loginPage = new LoginPage();
     private DashboardPage dashboardPage = new DashboardPage();
-    private String userName = "gaurav.dubey@purplestylelabs.com";
-    private String password = "1qaz1qaz";
+    private String userName ;
 
-    @Given("the user is on the login page")
+    @Given("User is on the login page")
     public void the_user_is_on_the_login_page() {
         WebDriver driver = DriverManager.getDriver();
         String envKey = DriverManager.getEnvironment();
@@ -33,12 +32,13 @@ public class Login {
         driver.get(url);
     }
 
-    @When("the user enters valid username and password")
-    public void theUserEntersValidUsernameAndPassword() {
+    @When("User enters valid {string} and {string}")
+    public void theUserEntersValidUsernameAndPassword(String userName, String password) {
+        this.userName = userName;
         loginPage.login(userName, password);
     }
 
-    @Then("the user should be redirected to the homepage")
+    @Then("User should be redirected to the homepage")
     public void theUserShouldBeRedirectedToTheHomepage() {
         Assertions.assertTrue(dashboardPage.isLoginSuccessful(userName));
         System.out.println("-------------------Login success --------------------");
