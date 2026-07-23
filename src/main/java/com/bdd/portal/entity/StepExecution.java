@@ -39,5 +39,8 @@ public class StepExecution {
     @Column(columnDefinition = "TEXT")
     private String stackTrace;
 
+    @Column(columnDefinition = "TEXT")
+    private String stepLog;
+
     private String screenshotPath;
 }

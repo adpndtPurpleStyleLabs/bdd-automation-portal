@@ -11,4 +11,5 @@ public interface FeatureExecutionRepository extends JpaRepository<FeatureExecuti
     List<FeatureExecution> findByExecutionId(Long executionId);
     
     FeatureExecution findFirstByFeatureNameOrderByStartTimeDesc(String featureName);
+    List<FeatureExecution> findTop5ByFeatureNameOrderByStartTimeDesc(String featureName);
 }

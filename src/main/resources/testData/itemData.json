@@ -1,0 +1,18 @@
+{
+  "ItemData": [
+    {
+      "sku": "ONAY052533-BO-M",
+      "priceIn":12995.00,
+      "category": "Womenswear",
+      "subCategory": "Sarees",
+      "deliveryAwaited": true
+    },
+    {
+      "sku": "ONAY052550-BO-XL",
+      "priceIn":58294.50,
+      "category": "Womenswear",
+      "subCategory": "Lehenga",
+      "deliveryAwaited": true
+    }
+  ]
+}

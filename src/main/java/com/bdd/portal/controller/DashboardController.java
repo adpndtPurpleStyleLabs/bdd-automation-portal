@@ -8,6 +8,9 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 
+import org.springframework.web.bind.annotation.RequestParam;
+
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Controller
@@ -18,7 +21,7 @@ public class DashboardController {
     private final ExecutionRepository executionRepository;
 
     @GetMapping("/")
-    public String dashboard(Model model) {
+    public String dashboard(Model model, @RequestParam(defaultValue = "7") int days) {
         long totalFeatures = featureFileRepository.count();
         long totalExecutions = executionRepository.count();
         Long totalScenarios = featureFileRepository.getTotalScenarios();
@@ -30,6 +33,11 @@ public class DashboardController {
         
         List<Execution> recent = executionRepository.findTop10ByOrderByStartTimeDesc();
         model.addAttribute("recentExecutions", recent);
+        
+        LocalDateTime cutoff = LocalDateTime.now().minusDays(days);
+        List<Execution> chartExecutions = executionRepository.findByStartTimeAfterOrderByStartTimeAsc(cutoff);
+        model.addAttribute("chartExecutions", chartExecutions);
+        model.addAttribute("chartDays", days);
         
         // Group by module (folder)
         java.util.Map<String, com.bdd.portal.entity.Execution> moduleExecutions = new java.util.LinkedHashMap<>();

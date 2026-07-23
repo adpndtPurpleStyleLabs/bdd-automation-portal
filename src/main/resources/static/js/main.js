@@ -1,4 +1,4 @@
-window.addEventListener('DOMContentLoaded', event => {
+document.addEventListener('turbo:load', event => {
     // Toggle the side navigation
     const sidebarToggle = document.body.querySelector('#menu-toggle');
     if (sidebarToggle) {
@@ -21,6 +21,8 @@ window.addEventListener('DOMContentLoaded', event => {
     
     navLinks.forEach(link => {
         const path = link.getAttribute('data-path');
+        if (!path) return; // Skip links without a data-path attribute
+        
         if (path === '/' && currentPath === '/') {
             bestMatch = link;
             maxMatchLength = 1;

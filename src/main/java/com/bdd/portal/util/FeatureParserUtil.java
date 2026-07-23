@@ -18,8 +18,10 @@ public class FeatureParserUtil {
             List<String> lines = Files.readAllLines(filePath);
             ScenarioDto currentScenario = null;
             List<String> currentTags = new ArrayList<>();
+            int lineNumber = 0;
 
             for (String line : lines) {
+                lineNumber++;
                 String trimmed = line.trim();
                 
                 // Collect tags
@@ -46,6 +48,9 @@ public class FeatureParserUtil {
                         currentScenario.setType("Scenario Outline");
                         currentScenario.setName(trimmed.substring("Scenario Outline:".length()).trim());
                     }
+                    currentScenario.setSlug(currentScenario.getName().toLowerCase().replaceAll("[^a-z0-9]+", "-").replaceAll("^-|-$", ""));
+                    currentScenario.setLine(lineNumber);
+                    currentScenario.setSteps(new ArrayList<>());
                     currentTags.clear(); // Clear tags for the next scenario
                 } 
                 // Detect steps
@@ -54,6 +59,7 @@ public class FeatureParserUtil {
                         trimmed.startsWith("Then ") || trimmed.startsWith("And ") || 
                         trimmed.startsWith("But ") || trimmed.startsWith("* "))) {
                     currentScenario.setStepCount(currentScenario.getStepCount() + 1);
+                    currentScenario.getSteps().add(trimmed);
                 }
             }
             

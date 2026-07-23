@@ -6,32 +6,32 @@
 <body>
     <div layout:fragment="content">
         <!-- Page Header -->
-        <div class="d-flex justify-content-between align-items-center mb-3">
-            <div>
-                <h3 class="fw-bold mb-1 text-primary-dark">Test Suites</h3>
-                <p class="text-muted mb-0" style="font-size: 0.9rem;">Organize and manage your test modules, features and scenarios</p>
-            </div>
-            <div class="d-flex gap-2">
-                <form th:action="@{/features/rescan}" method="post">
-                    <button type="submit" class="btn btn-outline-secondary">
-                        <i class="bi bi-arrow-clockwise me-1"></i> Rescan
-                    </button>
-                </form>
-                <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#newSuiteModal">
-                    <i class="bi bi-plus-lg me-1"></i> New Suite
-                </button>
-            </div>
-        </div>
+<!--        <div class="d-flex justify-content-between align-items-center mb-3">-->
+<!--            <div>-->
+<!--                <h3 class="fw-bold mb-1 text-primary-dark">Test Suites</h3>-->
+<!--                <p class="text-muted mb-0" style="font-size: 0.9rem;">Organize and manage your test modules, features and scenarios</p>-->
+<!--            </div>-->
+<!--            -->
+<!--        </div>-->
 
         <!-- Controls (Search/Filter) -->
-        <div class="d-flex mb-3 gap-2">
-            <div class="input-group input-group-sm" style="max-width: 300px;">
-                <span class="input-group-text bg-white"><i class="bi bi-search text-muted"></i></span>
-                <input type="text" class="form-control border-start-0 ps-0" id="moduleSearch" placeholder="Search modules...">
+        <div class="d-flex justify-content-between mb-3">
+            <div class="d-flex gap-2 ">
+                <div class="input-group input-group-sm" style="max-width: 300px;">
+                    <span class="input-group-text bg-white"><i class="bi bi-search text-muted"></i></span>
+                    <input type="text" class="form-control border-start-0 ps-0" id="moduleSearch"
+                           placeholder="Search modules...">
+                </div>
+                <button class="btn btn-sm btn-outline-secondary">
+                    <i class="bi bi-funnel"></i>
+                </button>
             </div>
-            <button class="btn btn-sm btn-outline-secondary">
-                <i class="bi bi-funnel"></i>
-            </button>
+
+            <div class="d-flex gap-2">
+                <button type="button" class="btn btn-primary d-flex align-items-center gap-2 px-4 fw-bold shadow-sm" onclick="openRescanModal()">
+                    <i class="bi bi-arrow-clockwise me-1"></i> Rescan
+                </button>
+            </div>
         </div>
 
         <!-- Table Header for Modules -->
@@ -49,9 +49,9 @@
             <div th:each="entry, stat : ${featuresByFolder}" class="accordion-item border-0 border-bottom module-card">
                 <div class="accordion-header" th:id="'heading' + ${stat.index}">
                     
-                    <div class="d-flex w-100 align-items-center module-header py-2 px-3">
+                    <div class="d-flex w-100 align-items-center module-header py-2 px-3 cursor-pointer custom-accordion-toggle collapsed" data-bs-toggle="collapse" th:data-bs-target="'#collapse' + ${stat.index}" aria-expanded="false" th:aria-controls="'collapse' + ${stat.index}">
                         <!-- Left: Icon & Name -->
-                        <div class="col-5 d-flex align-items-center cursor-pointer" data-bs-toggle="collapse" th:data-bs-target="'#collapse' + ${stat.index}" aria-expanded="false" th:aria-controls="'collapse' + ${stat.index}">
+                        <div class="col-5 d-flex align-items-center">
                             <div class="module-icon me-3 bg-primary-soft text-primary rounded p-2 d-flex align-items-center justify-content-center" style="width: 32px; height: 32px;">
                                 <i class="bi bi-folder2 fs-6"></i>
                             </div>
@@ -62,33 +62,29 @@
                         </div>
                         
                         <!-- Middle: Stats -->
-                        <div class="col-1 text-center cursor-pointer" data-bs-toggle="collapse" th:data-bs-target="'#collapse' + ${stat.index}">
+                        <div class="col-1 text-center">
                             <div class="fw-bold text-dark" style="font-size: 1.1rem;" th:text="${#lists.size(entry.value)}">0</div>
                             <div class="text-muted" style="font-size: 0.75rem;">Features</div>
                         </div>
-                        <div class="col-2 text-center cursor-pointer" data-bs-toggle="collapse" th:data-bs-target="'#collapse' + ${stat.index}">
+                        <div class="col-2 text-center">
                             <div class="fw-bold text-dark" style="font-size: 1.1rem;" th:text="${#aggregates.sum(entry.value.![scenarioCount])} ?: 0">0</div>
                             <div class="text-muted" style="font-size: 0.75rem;">Scenarios</div>
                         </div>
-                        <div class="col-1 text-center cursor-pointer" data-bs-toggle="collapse" th:data-bs-target="'#collapse' + ${stat.index}">
+                        <div class="col-1 text-center">
                             <div class="fw-bold text-dark" style="font-size: 1.1rem;" th:text="${#aggregates.sum(entry.value.![stepCount])} ?: 0">0</div>
                             <div class="text-muted" style="font-size: 0.75rem;">Steps</div>
                         </div>
 
-                        <!-- Right: Actions -->
                         <div class="col-3 d-flex justify-content-end align-items-center gap-3 pe-2 module-actions">
-                            <form th:action="@{/executions/run/folder}" method="post" class="m-0 p-0 d-inline-flex align-items-center">
-                                <input type="hidden" name="folderPath" th:value="${entry.key}">
-                                <select name="environment" class="form-select form-select-sm d-none">
-                                    <option th:each="env : ${environments}" th:value="${env}" th:text="${env}"></option>
-                                </select>
-                                <button type="submit" class="btn btn-outline-primary btn-sm px-3 rounded-pill fw-medium" style="font-size: 0.85rem;">
-                                    <i class="bi bi-play-fill"></i> Run
-                                </button>
-                            </form>
-                            <button class="btn btn-link text-muted p-0 text-decoration-none custom-accordion-toggle" type="button" data-bs-toggle="collapse" th:data-bs-target="'#collapse' + ${stat.index}" aria-expanded="false" th:aria-controls="'collapse' + ${stat.index}">
-                                <i class="bi bi-chevron-down toggle-icon"></i>
+                            <button type="button" class="btn btn-outline-primary btn-sm px-3 fw-medium" style="font-size: 0.85rem;"
+                                    data-url="/executions/run/folder"
+                                    th:data-folderpath="${entry.key}"
+                                    onclick="event.stopPropagation(); openRunModal(this.getAttribute('data-url'), true, this.getAttribute('data-folderpath'))">
+                                <i class="bi bi-play-fill"></i> Run
                             </button>
+                            <div class="text-muted p-0 text-decoration-none" style="width: 24px; text-align: center;">
+                                <i class="bi bi-chevron-down toggle-icon d-inline-block"></i>
+                            </div>
                         </div>
                     </div>
 
@@ -109,10 +105,16 @@
 
                         <!-- Nested Rows -->
                         <div th:each="feature : ${entry.value}" class="d-flex align-items-center px-3 py-1 border-bottom nested-feature-row bg-white">
-                            <div class="col-5 ps-4 d-flex align-items-center">
-                                <i class="bi bi-file-earmark-text text-primary opacity-75 me-2 fs-6"></i>
+                            <div class="col-5 ps-2 d-flex align-items-center">
+                                <div class=" p-2 text-primary rounded d-flex align-items-center justify-content-center">
+                                    <img src="/images/girkin-logo.svg"
+                                         alt="Girkin Logo"
+                                         width="16"
+                                         height="16"
+                                         class="img-fluid">
+                                </div>
                                 <div>
-                                    <a th:href="@{/features/{id}(id=${feature.id})}" class="text-decoration-none fw-medium text-dark feature-link" th:text="${feature.name}" style="font-size: 0.85rem;">feature_name.feature</a>
+                                    <a th:href="@{/features/{moduleSlug}/{slug}(moduleSlug=${feature.moduleSlug}, slug=${feature.slug})}" class="text-decoration-none fw-medium text-dark feature-link" th:text="${feature.name}" style="font-size: 0.85rem;">feature_name.feature</a>
                                     <!-- Optional description if needed, removed for cleaner look -->
                                 </div>
                             </div>
@@ -128,17 +130,17 @@
                             </div>
 
                             <div class="col-3 d-flex justify-content-end gap-2 pe-4 align-items-center">
-                                <a th:href="@{/features/{id}(id=${feature.id})}" class="btn btn-sm btn-light border text-muted px-2" title="View Details">
-                                    <i class="bi bi-eye"></i>
-                                </a>
-                                <form th:action="@{/executions/run/feature/{id}(id=${feature.id})}" method="post" class="m-0 p-0 d-inline-flex align-items-center">
-                                    <select name="environment" class="form-select form-select-sm d-none">
-                                        <option th:each="env : ${environments}" th:value="${env}" th:text="${env}"></option>
-                                    </select>
-                                    <button type="submit" class="btn btn-sm btn-outline-primary px-3 rounded-pill fw-medium" style="font-size: 0.8rem;">
-                                        <i class="bi bi-play-fill"></i> Run
-                                    </button>
-                                </form>
+                                <button type="button"
+                                        class="btn btn-sm btn-light border text-muted px-3 fw-medium"
+                                        style="font-size: 0.8rem;"
+                                        th:onclick="|window.location.href='@{/features/{moduleSlug}/{slug}(moduleSlug=${feature.moduleSlug}, slug=${feature.slug})}'|">
+                                    <i class="bi bi-info-circle"></i> View Details
+                                </button>
+                                <button type="button" class="btn btn-sm btn-outline-primary px-3 fw-medium" style="font-size: 0.8rem;"
+                                        th:data-url="'/executions/run/feature/' + ${feature.id}"
+                                        onclick="openRunModal(this.getAttribute('data-url'), false, '')">
+                                    <i class="bi bi-play-fill"></i> Run
+                                </button>
                             </div>
                         </div>
                         
@@ -165,6 +167,391 @@
             </ul>
         </div>
         
+        <!-- Run Execution Modal -->
+        <div class="modal fade" id="runExecutionModal" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content border-0 shadow">
+                    <div class="modal-header border-bottom-0 bg-light">
+                        <h5 class="modal-title fw-bold">Run Test</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <form id="runExecutionForm" method="post">
+                        <!-- CSRF Token -->
+                        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
+                        <div class="modal-body">
+                            <input type="hidden" id="runFolderPath" name="folderPath">
+                            <div class="row mb-3">
+                                <div class="col-6">
+                                    <label class="form-label fw-semibold">Environment</label>
+                                    <select name="environment" class="form-select">
+                                        <option th:each="env : ${environments}" th:value="${env}" th:text="${env}"></option>
+                                    </select>
+                                </div>
+                                <div class="col-6">
+                                    <label class="form-label fw-semibold">Browser</label>
+                                    <select name="browser" class="form-select">
+                                        <option value="Chrome">Chrome</option>
+                                        <option value="Firefox">Firefox</option>
+                                        <option value="Edge">Edge</option>
+                                        <option value="Safari">Safari</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label fw-semibold">Reason for Test (Optional)</label>
+                                <textarea class="form-control" name="reason" rows="2" placeholder="E.g., Regression testing for v1.2 release"></textarea>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label fw-semibold">Email Report To (Optional)</label>
+                                <input name="notifyEmails" id="notifyEmailsInput" class="form-control" placeholder="Type email and press enter">
+                                <div class="form-text">Press Enter to add multiple emails.</div>
+                            </div>
+                        </div>
+                        <div class="modal-footer border-top-0 bg-light">
+                            <button type="button" class="btn btn-light border" data-bs-dismiss="modal">Cancel</button>
+                            <button type="submit" class="btn btn-primary"><i class="bi bi-play-fill"></i> Run Now</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Rescan Modal -->
+        <div class="modal fade" id="rescanModal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content border-0 shadow">
+                    <div class="modal-header border-bottom-0 bg-light">
+                        <h5 class="modal-title fw-bold">Rescanning Test Suite</h5>
+                    </div>
+                    <div class="modal-body">
+                        <!-- Progress -->
+                        <div class="d-flex justify-content-between mb-1">
+                            <span class="fw-semibold">Overall Progress</span>
+                            <span class="text-muted" id="rescanProgressText">0 / 0 Files</span>
+                        </div>
+                        <div class="progress mb-3" style="height: 20px;">
+                            <div class="progress-bar progress-bar-striped progress-bar-animated bg-primary" id="rescanProgressBar" role="progressbar" style="width: 0%; transition: width 0.3s ease;">0%</div>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <span class="fw-semibold">Current File: </span>
+                            <span id="rescanCurrentFile" class="text-muted">Initializing...</span>
+                        </div>
+
+                        <!-- Feature Files List -->
+                        <h6 class="fw-bold mb-2 border-bottom pb-1">Feature Files</h6>
+                        <div class="border rounded mb-4 p-2 bg-light" style="max-height: 200px; overflow-y: auto;" id="rescanFeatureList">
+                            <!-- Items go here -->
+                        </div>
+
+                        <!-- Elapsed Time and Estimate (Placeholder for now) -->
+                        <div class="d-flex justify-content-between text-muted small mt-2">
+                            <span id="rescanElapsedTime">Elapsed: 0s</span>
+                        </div>
+                        
+                        <div id="rescanErrorAlert" class="alert alert-danger mt-3 d-none p-2 small">
+                            <i class="bi bi-exclamation-triangle-fill"></i> Validation Failed! Cannot save until errors are resolved.
+                        </div>
+                        
+                        <!-- Duplicates Report (Hidden initially) -->
+                        <div id="rescanDuplicatesReport" class="mt-3 d-none p-3 bg-warning-subtle border border-warning rounded">
+                            <h6 class="text-warning-emphasis fw-bold mb-2"><i class="bi bi-info-circle-fill"></i> Duplicates Detected</h6>
+                            <p class="small text-muted mb-2">The following items were found multiple times. They have been assigned unique identifiers (slugs) automatically, but you may want to review them:</p>
+                            <div class="row">
+                                <div class="col-6">
+                                    <div class="fw-semibold small text-dark mb-1 border-bottom pb-1">Feature Files</div>
+                                    <ul id="duplicateFeaturesList" class="small text-muted ps-3 mb-0" style="max-height: 100px; overflow-y: auto;"></ul>
+                                </div>
+                                <div class="col-6">
+                                    <div class="fw-semibold small text-dark mb-1 border-bottom pb-1">Scenarios</div>
+                                    <ul id="duplicateScenariosList" class="small text-muted ps-3 mb-0" style="max-height: 100px; overflow-y: auto;"></ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer border-top-0 bg-light d-flex justify-content-between">
+                        <span id="rescanStatusLabel" class="fw-bold text-muted">Waiting...</span>
+                        <div>
+                            <button type="button" class="btn btn-light border" id="rescanCancelBtn" onclick="closeRescanModal()">Cancel</button>
+                            <button type="button" class="btn btn-primary" id="rescanSaveBtn" onclick="saveRescan()" disabled>Save Disabled</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/stompjs@2.3.3/lib/stomp.min.js"></script>
+        <script th:inline="javascript">
+        (function() {
+            var input = document.querySelector('#notifyEmailsInput');
+            var tagify = new Tagify(input, {
+                pattern: /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/,
+                originalInputValueFormat: valuesArr => valuesArr.map(item => item.value).join(','),
+                dropdown: {
+                    enabled: 0,
+                    maxItems: 10,
+                    closeOnSelect: false
+                }
+            });
+
+            fetch('/api/executions/emails/used')
+                .then(response => response.json())
+                .then(emails => {
+                    tagify.settings.whitelist = emails;
+                });
+
+            window.openRunModal = function(url, isFolder, folderPath) {
+                document.getElementById('runExecutionForm').action = url;
+                if (isFolder) {
+                    document.getElementById('runFolderPath').value = folderPath;
+                    document.getElementById('runFolderPath').disabled = false;
+                } else {
+                    document.getElementById('runFolderPath').disabled = true;
+                }
+                var modal = new bootstrap.Modal(document.getElementById('runExecutionModal'));
+                modal.show();
+            };
+            
+            // Rescan Modal Logic
+            let stompClient = null;
+            let currentScanId = null;
+            let totalFeatures = 0;
+            let processedFeatures = 0;
+            let hasErrors = false;
+            let rescanModalObj = null;
+            
+            let startTime = 0;
+            let timerInterval = null;
+
+            function updateTimer() {
+                if(startTime > 0) {
+                    const elapsed = Math.floor((Date.now() - startTime) / 1000);
+                    document.getElementById('rescanElapsedTime').textContent = 'Elapsed: ' + elapsed + 's';
+                }
+            }
+
+            function updateProgress() {
+                if (totalFeatures === 0) return;
+                const pct = Math.floor((processedFeatures / totalFeatures) * 100);
+                document.getElementById('rescanProgressText').textContent = processedFeatures + " / " + totalFeatures + " Files";
+                const bar = document.getElementById('rescanProgressBar');
+                bar.style.width = pct + "%";
+                bar.textContent = pct + "%";
+                
+                if (processedFeatures === totalFeatures) {
+                    bar.classList.remove('progress-bar-animated', 'progress-bar-striped');
+                    if (hasErrors) {
+                        bar.classList.replace('bg-primary', 'bg-danger');
+                        bar.classList.replace('bg-success', 'bg-danger');
+                    } else {
+                        bar.classList.replace('bg-primary', 'bg-success');
+                        bar.classList.replace('bg-danger', 'bg-success');
+                    }
+                }
+            }
+
+            function getFeatureRow(featureName) {
+                const id = 'feature_row_' + featureName.replace(/[^a-zA-Z0-9]/g, '_');
+                let row = document.getElementById(id);
+                if (!row) {
+                    row = document.createElement('div');
+                    row.id = id;
+                    row.className = 'd-flex justify-content-between align-items-center border-bottom py-1';
+                    row.innerHTML = `
+                        <div>
+                            <span class="status-icon me-2">○</span>
+                            <span class="fw-medium">${featureName}</span>
+                            <div class="text-danger small error-msg d-none"></div>
+                        </div>
+                        <div class="text-muted small scenario-count">Waiting...</div>
+                    `;
+                    document.getElementById('rescanFeatureList').appendChild(row);
+                }
+                return row;
+            }
+
+            function setFeatureStatus(featureName, status, extra) {
+                const row = getFeatureRow(featureName);
+                const icon = row.querySelector('.status-icon');
+                const count = row.querySelector('.scenario-count');
+                const errorDiv = row.querySelector('.error-msg');
+                
+                if (status === 'SCANNING') {
+                    icon.innerHTML = '<span class="fw-bold" style="display:inline-block; animation: spin 2s linear infinite;">⟳</span>';
+                    count.textContent = 'Scanning...';
+                } else if (status === 'SUCCESS') {
+                    icon.innerHTML = '<i class="bi bi-check-lg text-success"></i>';
+                    count.textContent = extra + ' Scenarios';
+                } else if (status === 'ERROR') {
+                    icon.innerHTML = '<i class="bi bi-x-lg text-danger"></i>';
+                    count.textContent = 'Failed';
+                    errorDiv.textContent = extra;
+                    errorDiv.classList.remove('d-none');
+                    hasErrors = true;
+                }
+            }
+            
+            // Add spin keyframes if not exists
+            if (!document.getElementById('spin-style')) {
+                const style = document.createElement('style');
+                style.id = 'spin-style';
+                style.innerHTML = `@keyframes spin { 100% { transform: rotate(360deg); } }`;
+                document.head.appendChild(style);
+            }
+
+            function connectScanWebSocket(scanId) {
+                var socket = new SockJS('/ws-stomp');
+                stompClient = Stomp.over(socket);
+                stompClient.debug = null; 
+                stompClient.connect({}, function (frame) {
+                    stompClient.subscribe('/topic/scan/' + scanId, function (message) {
+                        const event = JSON.parse(message.body);
+                        
+                        if (event.type === 'SCAN_STARTED') {
+                            totalFeatures = event.totalFeatures;
+                            processedFeatures = 0;
+                            startTime = Date.now();
+                            timerInterval = setInterval(updateTimer, 1000);
+                            updateProgress();
+                        } 
+                        else if (event.type === 'FEATURE_FOUND') {
+                            document.getElementById('rescanCurrentFile').textContent = event.featureName;
+                            setFeatureStatus(event.featureName, 'SCANNING');
+                        }
+                        else if (event.type === 'SCENARIO_FOUND') {
+                            const row = getFeatureRow(event.featureName);
+                            const countSpan = row.querySelector('.scenario-count');
+                            let currentCount = parseInt(countSpan.getAttribute('data-count') || '0') + 1;
+                            countSpan.setAttribute('data-count', currentCount);
+                            countSpan.textContent = currentCount + ' Scenarios Found...';
+                        }
+                        else if (event.type === 'FEATURE_COMPLETED') {
+                            setFeatureStatus(event.featureName, 'SUCCESS', event.scenarioCount);
+                            processedFeatures++;
+                            updateProgress();
+                        }
+                        else if (event.type === 'FEATURE_FAILED') {
+                            setFeatureStatus(event.featureName, 'ERROR', event.message);
+                            processedFeatures++;
+                            updateProgress();
+                        }
+                        else if (event.type === 'SCAN_COMPLETED') {
+                            clearInterval(timerInterval);
+                            document.getElementById('rescanCurrentFile').textContent = 'Done';
+                            if (hasErrors) {
+                                document.getElementById('rescanStatusLabel').innerHTML = '✔ ' + processedFeatures + ' Features &nbsp;&nbsp;&nbsp; ✗ Errors Found';
+                                document.getElementById('rescanErrorAlert').classList.remove('d-none');
+                                document.getElementById('rescanSaveBtn').disabled = true;
+                                document.getElementById('rescanSaveBtn').textContent = 'Save Disabled';
+                            } else {
+                                document.getElementById('rescanStatusLabel').innerHTML = '✔ Scan completed successfully';
+                                document.getElementById('rescanSaveBtn').disabled = false;
+                                document.getElementById('rescanSaveBtn').textContent = 'Save';
+                                
+                                // Show duplicates if any
+                                if ((event.duplicateFeatures && event.duplicateFeatures.length > 0) || 
+                                    (event.duplicateScenarios && event.duplicateScenarios.length > 0)) {
+                                    
+                                    document.getElementById('rescanDuplicatesReport').classList.remove('d-none');
+                                    
+                                    const featList = document.getElementById('duplicateFeaturesList');
+                                    featList.innerHTML = '';
+                                    if (event.duplicateFeatures && event.duplicateFeatures.length > 0) {
+                                        event.duplicateFeatures.forEach(f => {
+                                            featList.innerHTML += `<li>${f}</li>`;
+                                        });
+                                    } else {
+                                        featList.innerHTML = '<li class="text-success list-unstyled"><i class="bi bi-check"></i> None</li>';
+                                    }
+                                    
+                                    const scenList = document.getElementById('duplicateScenariosList');
+                                    scenList.innerHTML = '';
+                                    if (event.duplicateScenarios && event.duplicateScenarios.length > 0) {
+                                        event.duplicateScenarios.forEach(s => {
+                                            scenList.innerHTML += `<li>${s}</li>`;
+                                        });
+                                    } else {
+                                        scenList.innerHTML = '<li class="text-success list-unstyled"><i class="bi bi-check"></i> None</li>';
+                                    }
+                                }
+                            }
+                            if(stompClient) stompClient.disconnect();
+                        }
+                    });
+                    
+                    fetch('/features/api/rescan/start?scanId=' + scanId, {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRF-TOKEN': document.querySelector('meta[name="_csrf"]').getAttribute('content')
+                        }
+                    });
+                });
+            }
+
+            window.openRescanModal = function() {
+                totalFeatures = 0;
+                processedFeatures = 0;
+                hasErrors = false;
+                startTime = 0;
+                if(timerInterval) clearInterval(timerInterval);
+                document.getElementById('rescanElapsedTime').textContent = 'Elapsed: 0s';
+                document.getElementById('rescanFeatureList').innerHTML = '';
+                document.getElementById('rescanProgressText').textContent = '0 / 0 Files';
+                document.getElementById('rescanProgressBar').style.width = '0%';
+                document.getElementById('rescanProgressBar').textContent = '0%';
+                document.getElementById('rescanProgressBar').className = 'progress-bar progress-bar-striped progress-bar-animated bg-primary';
+                document.getElementById('rescanCurrentFile').textContent = 'Connecting...';
+                document.getElementById('rescanStatusLabel').textContent = 'Waiting...';
+                document.getElementById('rescanSaveBtn').disabled = true;
+                document.getElementById('rescanSaveBtn').textContent = 'Save Disabled';
+                document.getElementById('rescanErrorAlert').classList.add('d-none');
+                document.getElementById('rescanDuplicatesReport').classList.add('d-none');
+
+                rescanModalObj = new bootstrap.Modal(document.getElementById('rescanModal'));
+                rescanModalObj.show();
+
+                currentScanId = 'scan-' + Date.now();
+                connectScanWebSocket(currentScanId);
+            };
+
+            window.closeRescanModal = function() {
+                if (stompClient) {
+                    stompClient.disconnect();
+                }
+                if (timerInterval) clearInterval(timerInterval);
+                if (rescanModalObj) {
+                    rescanModalObj.hide();
+                }
+            };
+
+            window.saveRescan = function() {
+                if (!currentScanId) return;
+                const btn = document.getElementById('rescanSaveBtn');
+                btn.disabled = true;
+                btn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Saving...';
+
+                fetch('/features/api/rescan/save?scanId=' + currentScanId, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="_csrf"]').getAttribute('content')
+                    }
+                }).then(res => {
+                    if (res.ok) {
+                        window.location.reload();
+                    } else {
+                        alert('Error saving scan results.');
+                        btn.disabled = false;
+                        btn.textContent = 'Save';
+                    }
+                }).catch(err => {
+                    alert('Error saving scan results.');
+                    btn.disabled = false;
+                    btn.textContent = 'Save';
+                });
+            };
+        })();
+        </script>
     </div>
 </body>
 </html>

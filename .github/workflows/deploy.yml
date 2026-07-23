@@ -1,0 +1,98 @@
+name: Test, Upload Artifact
+
+on:
+  push:
+    branches:
+      - '**'
+
+jobs:
+
+  build:
+    name: Build, Package and Push Docker Image
+    runs-on:
+      - self-hosted
+      - label-1
+
+    env:
+      HOME: /root
+
+    steps:
+
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 25
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '25'
+          cache: maven
+
+      - name: Verify Environment
+        shell: bash
+        run: |
+          echo "User:"
+          whoami
+
+          echo "Home:"
+          echo $HOME
+
+          echo "Java:"
+          java -version
+
+          echo "Docker:"
+          docker --version
+
+      - name: Build Spring Boot Application
+        shell: bash
+        run: |
+          set -euxo pipefail
+
+          chmod +x mvnw
+
+          ./mvnw clean package -DskipTests
+
+          ls -lh target/
+
+      - name: Build and Push Docker Image
+        shell: bash
+        env:
+          NEXUS_USERNAME: ${{ secrets.NEXUS_USER_NAME }}
+          NEXUS_PASSWORD: ${{ secrets.NEXUS_PASSWORD }}
+        run: |
+          set -euxo pipefail
+
+          REV=$(git rev-parse --short HEAD)
+
+          echo "Building image with revision: ${REV}"
+
+          IMAGE=nexus.ppustage.dev/open-source-test-automation-service
+
+          docker build \
+            --build-arg GIT_COMMIT=${REV} \
+            -t ${IMAGE}:${REV} \
+            -t ${IMAGE}:latest \
+            -f Dockerfile .
+
+          echo "Logging into Nexus..."
+
+          echo "${NEXUS_PASSWORD}" | docker login \
+            nexus.ppustage.dev \
+            --username "${NEXUS_USERNAME}" \
+            --password-stdin
+
+          echo "Pushing ${REV}"
+
+          docker push ${IMAGE}:${REV}
+
+          echo "Pushing latest"
+
+          docker push ${IMAGE}:latest
+
+          docker logout nexus.ppustage.dev
+
+      - name: Cleanup Docker Images
+        if: always()
+        shell: bash
+        run: |
+          docker image prune -f

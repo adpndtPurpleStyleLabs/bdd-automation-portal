@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout" layout:decorate="~{layout/base}">
+<head>
+    <title>User Management</title>
+</head>
+<body>
+    <div layout:fragment="content">
+        <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+            <h1 class="h2">User Management</h1>
+            <div class="btn-toolbar mb-2 mb-md-0">
+                <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#userModal" onclick="resetForm()">
+                    <i class="bi bi-person-plus"></i> Add User
+                </button>
+            </div>
+        </div>
+
+        <!-- Search and Filters -->
+        <div class="row mb-4">
+            <div class="col-md-4">
+                <input type="text" class="form-control" id="searchInput" placeholder="Search users by name or email..." onkeyup="filterUsers()">
+            </div>
+        </div>
+
+        <div class="card shadow-sm">
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0" id="usersTable">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Avatar</th>
+                                <th>Name</th>
+                                <th>Email</th>
+                                <th>Role</th>
+                                <th>Status</th>
+                                <th>Last Login</th>
+                                <th class="text-end">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="usersTableBody">
+                            <!-- Populated by JS -->
+                        </tbody>
+                    </table>
+                </div>
+                <!-- Loading State -->
+                <div id="loadingState" class="text-center p-5">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- User Modal (Add/Edit) -->
+        <div class="modal fade" id="userModal" tabindex="-1">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="userModalTitle">Add User</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <form id="userForm">
+                            <input type="hidden" id="userId">
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label class="form-label">First Name *</label>
+                                    <input type="text" class="form-control" id="firstName" required>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Last Name *</label>
+                                    <input type="text" class="form-control" id="lastName" required>
+                                </div>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label class="form-label">Email *</label>
+                                    <input type="email" class="form-control" id="email" required>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Phone</label>
+                                    <input type="text" class="form-control" id="phone">
+                                </div>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-md-4">
+                                    <label class="form-label">Role *</label>
+                                    <select class="form-select" id="role" required>
+                                        <option value="USER">USER</option>
+                                        <option value="MANAGER">MANAGER</option>
+                                        <option value="ADMIN">ADMIN</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label">Department</label>
+                                    <input type="text" class="form-control" id="department">
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label">Job Title</label>
+                                    <input type="text" class="form-control" id="jobTitle">
+                                </div>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-md-6" id="passwordGroup">
+                                    <label class="form-label">Password *</label>
+                                    <input type="password" class="form-control" id="password">
+                                    <div class="form-text">For new users, provide a temporary password.</div>
+                                </div>
+                                <div class="col-md-6 d-flex align-items-center mt-md-4">
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input" type="checkbox" id="enabled" checked>
+                                        <label class="form-check-label" for="enabled">Active Account</label>
+                                    </div>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="button" class="btn btn-primary" onclick="saveUser()">Save User</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <script>
+            let allUsers = [];
+
+            document.addEventListener('DOMContentLoaded', loadUsers);
+
+            function loadUsers() {
+                document.getElementById('loadingState').style.display = 'block';
+                document.getElementById('usersTableBody').innerHTML = '';
+                
+                fetch('/api/users')
+                    .then(res => res.json())
+                    .then(users => {
+                        allUsers = users;
+                        renderTable(users);
+                        document.getElementById('loadingState').style.display = 'none';
+                    });
+            }
+
+            function renderTable(users) {
+                const tbody = document.getElementById('usersTableBody');
+                tbody.innerHTML = '';
+                
+                if (users.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-4">No users found.</td></tr>';
+                    return;
+                }
+
+                users.forEach(user => {
+                    const statusBadge = user.enabled ? 
+                        '<span class="badge bg-success">Active</span>' : 
+                        '<span class="badge bg-danger">Disabled</span>';
+                    
+                    const avatar = user.avatar ? user.avatar : 
+                        `https://ui-avatars.com/api/?name=${user.firstName}+${user.lastName}&background=random`;
+
+                    const row = `<tr>
+                        <td><img src="${avatar}" class="rounded-circle" width="32" height="32" alt="Avatar"></td>
+                        <td>
+                            <div class="fw-bold">${user.firstName} ${user.lastName}</div>
+                            <div class="small text-muted">${user.department || ''} ${user.jobTitle ? '- ' + user.jobTitle : ''}</div>
+                        </td>
+                        <td>${user.email}</td>
+                        <td><span class="badge bg-secondary">${user.role}</span></td>
+                        <td>${statusBadge}</td>
+                        <td>${user.lastLogin ? new Date(user.lastLogin).toLocaleDateString() : 'Never'}</td>
+                        <td class="text-end">
+                            <button class="btn btn-sm btn-outline-primary me-1" onclick="editUser(${user.id})">
+                                <i class="bi bi-pencil"></i>
+                            </button>
+                            <button class="btn btn-sm btn-outline-danger" onclick="deleteUser(${user.id})" ${user.enabled ? '' : 'disabled'}>
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </td>
+                    </tr>`;
+                    tbody.insertAdjacentHTML('beforeend', row);
+                });
+            }
+
+            function filterUsers() {
+                const term = document.getElementById('searchInput').value.toLowerCase();
+                const filtered = allUsers.filter(u => 
+                    u.firstName.toLowerCase().includes(term) || 
+                    u.lastName.toLowerCase().includes(term) || 
+                    u.email.toLowerCase().includes(term)
+                );
+                renderTable(filtered);
+            }
+
+            function resetForm() {
+                document.getElementById('userForm').reset();
+                document.getElementById('userId').value = '';
+                document.getElementById('userModalTitle').innerText = 'Add User';
+                document.getElementById('email').readOnly = false;
+                document.getElementById('passwordGroup').style.display = 'block';
+            }
+
+            function editUser(id) {
+                const user = allUsers.find(u => u.id === id);
+                if (!user) return;
+                
+                resetForm();
+                document.getElementById('userModalTitle').innerText = 'Edit User';
+                
+                document.getElementById('userId').value = user.id;
+                document.getElementById('firstName').value = user.firstName;
+                document.getElementById('lastName').value = user.lastName;
+                document.getElementById('email').value = user.email;
+                document.getElementById('email').readOnly = true; // Email cannot be changed easily
+                document.getElementById('phone').value = user.phone || '';
+                document.getElementById('role').value = user.role;
+                document.getElementById('department').value = user.department || '';
+                document.getElementById('jobTitle').value = user.jobTitle || '';
+                document.getElementById('enabled').checked = user.enabled;
+                
+                document.getElementById('passwordGroup').style.display = 'none'; // Don't show password on edit
+                
+                new bootstrap.Modal(document.getElementById('userModal')).show();
+            }
+
+            function saveUser() {
+                const id = document.getElementById('userId').value;
+                const user = {
+                    firstName: document.getElementById('firstName').value,
+                    lastName: document.getElementById('lastName').value,
+                    email: document.getElementById('email').value,
+                    phone: document.getElementById('phone').value,
+                    role: document.getElementById('role').value,
+                    department: document.getElementById('department').value,
+                    jobTitle: document.getElementById('jobTitle').value,
+                    enabled: document.getElementById('enabled').checked,
+                    username: document.getElementById('email').value // For compatibility
+                };
+                
+                if (!id) {
+                    user.password = document.getElementById('password').value;
+                    if (!user.password) {
+                        alert('Password is required for new users');
+                        return;
+                    }
+                }
+
+                const method = id ? 'PUT' : 'POST';
+                const url = id ? '/api/users/' + id : '/api/users';
+                
+                const csrfToken = document.querySelector("meta[name='_csrf']")?.getAttribute("content");
+                const csrfHeader = document.querySelector("meta[name='_csrf_header']")?.getAttribute("content");
+                
+                const headers = { 'Content-Type': 'application/json' };
+                if (csrfToken && csrfHeader) {
+                    headers[csrfHeader] = csrfToken;
+                }
+
+                fetch(url, {
+                    method: method,
+                    headers: headers,
+                    body: JSON.stringify(user)
+                })
+                .then(res => {
+                    if (res.ok) {
+                        bootstrap.Modal.getInstance(document.getElementById('userModal')).hide();
+                        loadUsers();
+                    } else {
+                        res.json().then(data => alert(data.error || 'Failed to save user'));
+                    }
+                });
+            }
+
+            function deleteUser(id) {
+                if (confirm('Are you sure you want to disable this user?')) {
+                    const csrfToken = document.querySelector("meta[name='_csrf']")?.getAttribute("content");
+                    const csrfHeader = document.querySelector("meta[name='_csrf_header']")?.getAttribute("content");
+                    const headers = {};
+                    if (csrfToken && csrfHeader) headers[csrfHeader] = csrfToken;
+
+                    fetch('/api/users/' + id, { method: 'DELETE', headers: headers })
+                        .then(res => {
+                            if (res.ok) loadUsers();
+                            else alert('Failed to disable user');
+                        });
+                }
+            }
+        </script>
+    </div>
+</body>
+</html>

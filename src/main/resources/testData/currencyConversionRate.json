@@ -1,0 +1,18 @@
+{
+  "inr": {
+    "multiplier": 1,
+    "rate": 1
+  },
+  "gbp": {
+    "multiplier": 1.2,
+    "rate": 0.0095
+  },
+  "aed": {
+    "multiplier": 1,
+    "rate": 0.04428
+  },
+  "usd": {
+    "multiplier": 1.1,
+    "rate": 0.01171
+  }
+}

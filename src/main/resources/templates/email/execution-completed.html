@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Execution Completed</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f6f9; margin: 0; padding: 20px; color: #333; }
+        .container { max-width: 700px; margin: 0 auto; background: #fff; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); overflow: hidden; }
+        .header { text-align: center; padding: 20px; color: #fff; }
+        .header.green { background-color: #2ecc71; }
+        .header.red { background-color: #e74c3c; }
+        .header h2 { margin: 0; font-size: 24px; }
+        .content { padding: 20px; }
+        .summary-box { display: flex; justify-content: space-between; background: #f9fafb; padding: 15px; border-radius: 6px; margin-bottom: 20px; }
+        .stat-item { text-align: center; }
+        .stat-item .val { font-size: 24px; font-weight: bold; }
+        .stat-item .lbl { font-size: 12px; color: #777; text-transform: uppercase; }
+        .details-table, .scenario-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+        .details-table th, .details-table td, .scenario-table th, .scenario-table td { padding: 10px; border-bottom: 1px solid #eee; text-align: left; }
+        .details-table th, .scenario-table th { background-color: #f9fafb; color: #555; }
+        .failed-section { border-left: 4px solid #e74c3c; padding-left: 15px; margin-bottom: 20px; }
+        .failed-item { background: #fff5f5; padding: 15px; border-radius: 6px; margin-bottom: 10px; border: 1px solid #ffcece; }
+        .failed-item h4 { margin: 0 0 10px 0; color: #c0392b; }
+        .btn { display: inline-block; padding: 8px 15px; background: #3498db; color: #fff; text-decoration: none; border-radius: 4px; font-size: 14px; margin-right: 10px; }
+        .footer { text-align: center; padding: 15px; font-size: 12px; color: #777; background: #f9fafb; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div th:class="'header ' + ${theme}">
+        <h2 th:text="'Test Execution ' + (${theme} == 'green' ? 'Passed' : 'Failed')">Execution Status</h2>
+        <p th:text="${suiteName}">Suite Name</p>
+    </div>
+    
+    <div class="content">
+        <div class="summary-box">
+            <div class="stat-item">
+                <div class="val" th:text="${passPercentage} + '%'">100%</div>
+                <div class="lbl">Pass Rate</div>
+            </div>
+            <div class="stat-item">
+                <div class="val" th:text="${totalScenarios}">10</div>
+                <div class="lbl">Total</div>
+            </div>
+            <div class="stat-item" style="color: #2ecc71;">
+                <div class="val" th:text="${execution.passedScenarios}">10</div>
+                <div class="lbl">Passed</div>
+            </div>
+            <div class="stat-item" style="color: #e74c3c;">
+                <div class="val" th:text="${execution.failedScenarios}">0</div>
+                <div class="lbl">Failed</div>
+            </div>
+            <div class="stat-item" style="color: #f39c12;">
+                <div class="val" th:text="${execution.skippedScenarios}">0</div>
+                <div class="lbl">Skipped</div>
+            </div>
+        </div>
+
+        <h3>Execution Summary</h3>
+        <table class="details-table">
+            <tr><th>Execution ID</th><td th:text="${execution.id}">1</td></tr>
+            <tr><th>Environment</th><td th:text="${execution.environment}">STAGE</td></tr>
+            <tr><th>Browser</th><td th:text="${execution.browser}">Chrome</td></tr>
+            <tr><th>Grid Node</th><td th:text="${execution.gridNodeUri != null ? execution.gridNodeUri : 'Local/Unknown'}">Local</td></tr>
+            <tr><th>Start Time</th><td th:text="${#temporals.format(execution.startTime, 'yyyy-MM-dd HH:mm:ss')}">Time</td></tr>
+            <tr><th>Duration (s)</th><td th:text="${execution.durationMs != null ? execution.durationMs / 1000 : 0}">0</td></tr>
+        </table>
+
+        <!-- Failed Scenarios Section -->
+        <div th:if="${execution.failedScenarios > 0}" class="failed-section">
+            <h3 style="color: #e74c3c;">Failed Scenarios</h3>
+            <p>The following scenarios failed during execution:</p>
+            <!-- In a real implementation, we would iterate over execution.featureExecutions -> scenarioExecutions -->
+            <div th:each="featExec : ${execution.featureExecutions}">
+                <div th:each="scenExec : ${featExec.scenarioExecutions}" th:if="${scenExec.status == T(com.bdd.portal.entity.ExecutionStatus).FAILED}" class="failed-item">
+                    <h4 th:text="${scenExec.name}">Scenario Name</h4>
+                    <p><strong>Feature:</strong> <span th:text="${featExec.featureFile.name}">Feature Name</span></p>
+                    <p style="color: #c0392b; font-family: monospace; font-size: 12px; background: #fff; padding: 10px; border: 1px solid #ffcece; overflow-x: auto;" th:text="${scenExec.errorMessage}">Error message</p>
+                    <div style="margin-top: 10px;">
+                        <a th:if="${scenExec.screenshotPath != null}" th:href="${scenExec.screenshotPath}" class="btn" style="background: #e67e22;">View Screenshot</a>
+                        <a th:if="${scenExec.videoPath != null}" th:href="${scenExec.videoPath}" class="btn" style="background: #9b59b6;">View Video</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div style="text-align: center; margin-top: 30px;">
+            <a th:if="${execution.allureReportPath != null}" th:href="${execution.allureReportPath}" class="btn">View Full HTML Report</a>
+        </div>
+    </div>
+    
+    <div class="footer">
+        <p>&copy; BDD Automation Portal</p>
+    </div>
+</div>
+</body>
+</html>

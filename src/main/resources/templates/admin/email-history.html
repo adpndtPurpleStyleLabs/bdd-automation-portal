@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout" layout:decorate="~{layout/base}">
+<head>
+    <title>Email History</title>
+</head>
+<body>
+<div layout:fragment="content">
+    <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+        <h1 class="h2">Settings</h1>
+    </div>
+
+    <ul class="nav nav-tabs mb-4">
+        <li class="nav-item">
+            <a class="nav-link" th:href="@{/settings}">Global Settings</a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" th:href="@{/settings/email}">Email Configuration</a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link active" aria-current="page" th:href="@{/settings/email/history}">Email History</a>
+        </li>
+    </ul>
+
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">Email Logs</h6>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered table-striped" id="dataTable" width="100%" cellspacing="0">
+                    <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Recipient</th>
+                        <th>Subject</th>
+                        <th>Status</th>
+                        <th>Created At</th>
+                        <th>Sent At</th>
+                        <th>Retries</th>
+                        <th>Error</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:each="email : ${historyPage.content}">
+                        <td th:text="${email.id}"></td>
+                        <td th:text="${email.recipient}"></td>
+                        <td th:text="${email.subject}"></td>
+                        <td>
+                            <span th:class="${email.status.name() == 'SENT' ? 'badge bg-success' : (email.status.name() == 'FAILED' ? 'badge bg-danger' : (email.status.name() == 'PROCESSING' ? 'badge bg-warning' : 'badge bg-secondary'))}"
+                                  th:text="${email.status.name()}"></span>
+                        </td>
+                        <td th:text="${#temporals.format(email.createdAt, 'yyyy-MM-dd HH:mm:ss')}"></td>
+                        <td th:text="${email.sentAt != null ? #temporals.format(email.sentAt, 'yyyy-MM-dd HH:mm:ss') : '-'}"></td>
+                        <td th:text="${email.retryCount}"></td>
+                        <td>
+                            <button type="button" class="btn btn-sm btn-outline-danger" th:if="${email.lastError != null}" 
+                                    data-bs-toggle="popover" title="Error Details" th:data-bs-content="${email.lastError}">
+                                View Error
+                            </button>
+                            <span th:if="${email.lastError == null}">-</span>
+                        </td>
+                    </tr>
+                    <tr th:if="${historyPage.empty}">
+                        <td colspan="8" class="text-center">No email history found.</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- Pagination -->
+            <nav aria-label="Page navigation" th:if="${historyPage.totalPages > 1}" class="mt-4">
+                <ul class="pagination justify-content-center">
+                    <li class="page-item" th:classappend="${historyPage.first ? 'disabled' : ''}">
+                        <a class="page-link" th:href="@{/settings/email/history(page=${historyPage.number - 1})}" tabindex="-1">Previous</a>
+                    </li>
+                    <li class="page-item" th:each="i : ${#numbers.sequence(0, historyPage.totalPages - 1)}" th:classappend="${historyPage.number == i ? 'active' : ''}">
+                        <a class="page-link" th:href="@{/settings/email/history(page=${i})}" th:text="${i + 1}">1</a>
+                    </li>
+                    <li class="page-item" th:classappend="${historyPage.last ? 'disabled' : ''}">
+                        <a class="page-link" th:href="@{/settings/email/history(page=${historyPage.number + 1})}">Next</a>
+                    </li>
+                </ul>
+            </nav>
+        </div>
+    </div>
+</div>
+</body>
+</html>

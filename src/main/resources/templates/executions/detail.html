@@ -2,158 +2,354 @@
 <html xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout" layout:decorate="~{layout/base}">
 <head>
     <title>Execution Details</title>
+    <style>
+        .feature-card { border-radius: 4px; border: 1px solid #e2e8f0; margin-bottom: 8px; overflow: hidden; background: white; font-size: 0.9rem; }
+        .feature-header { background: #f8fafc; padding: 8px 15px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; transition: background 0.2s; }
+        .feature-header:hover { background: #edf2f7; }
+        .scenario-container { border-bottom: 1px solid #edf2f7; background: #fff; }
+        .scenario-item { padding: 6px 15px 6px 30px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; transition: background 0.2s; font-size: 0.85rem; }
+        .scenario-item:hover { background: #f8fafc; }
+        .step-list { list-style: none; padding: 0; margin: 0; display: none; background: #f8fafc; border-top: 1px solid #edf2f7; }
+        .step-item { padding: 4px 15px 4px 45px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px dashed #e2e8f0; font-size: 0.8rem; }
+        .step-keyword { font-weight: bold; color: #4a5568; margin-right: 6px; }
+        .step-name { color: #2d3748; }
+        .status-badge { padding: 3px 8px; border-radius: 12px; font-weight: 600; font-size: 0.75rem; }
+        .status-PASSED { background-color: #def7ec; color: #03543f; }
+        .status-FAILED { background-color: #fde8e8; color: #9b1c1c; }
+        .status-RUNNING { background-color: #e1effe; color: #1e429f; }
+        .status-QUEUED { background-color: #f3f4f6; color: #4b5563; }
+        .toggle-icon { transition: transform 0.3s; }
+        .expanded .toggle-icon { transform: rotate(90deg); }
+    </style>
 </head>
 <body>
     <div layout:fragment="content">
-        <input type="hidden" id="executionId" th:value="${execution.id}">
-        
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <h2>Execution #<span th:text="${execution.id}"></span></h2>
-            <span id="statusBadge" class="badge fs-5" 
-                  th:classappend="${execution.status.name() == 'PASSED' ? 'bg-success' : (execution.status.name() == 'FAILED' ? 'bg-danger' : (execution.status.name() == 'RUNNING' ? 'bg-primary progress-bar-striped progress-bar-animated' : 'bg-secondary'))}"
-                  th:text="${execution.status}">STATUS</span>
-        </div>
-
-        <div class="row mb-4">
-            <div class="col-md-6">
-                <div class="card shadow-sm h-100">
-                    <div class="card-header bg-light">
-                        <h5 class="mb-0">Execution Info</h5>
-                    </div>
-                    <div class="card-body">
-                        <table class="table table-borderless table-sm">
-                            <tr>
-                                <th>Target:</th>
-                                <td th:text="${execution.featureFile != null ? execution.featureFile.name : execution.targetFolder}">Feature</td>
-                            </tr>
-                            <tr>
-                                <th>Browser:</th>
-                                <td th:text="${execution.browser}">Chrome</td>
-                            </tr>
-                            <tr>
-                                <th>Environment:</th>
-                                <td th:text="${execution.environment}">QA</td>
-                            </tr>
-                            <tr>
-                                <th>Started:</th>
-                                <td th:text="${#temporals.format(execution.startTime, 'yyyy-MM-dd HH:mm:ss')}">Time</td>
-                            </tr>
-                            <tr>
-                                <th>Duration:</th>
-                                <td th:text="${execution.durationMs != null ? execution.durationMs / 1000 + 's' : '-'}">0s</td>
-                            </tr>
-                        </table>
-                    </div>
+        <!-- Dashboard Header -->
+        <div class="report-header d-flex justify-content-between align-items-center mb-2">
+            <div>
+                <h5 class="mb-1">Execution Trigger: <span class="text-primary">#[[${execution.id}]]</span></h5>
+                <p class="text-muted mb-0">
+                    Started: [[${#temporals.format(execution.startTime, 'yyyy-MM-dd HH:mm:ss')}]] | 
+                    Type: <span class="fw-bold">[[${execution.executionType}]]</span>
+                </p>
+            </div>
+            <div class="text-end">
+                <div class="mb-2">
+                    <span class="status-badge" th:classappend="'status-' + ${execution.status.name()}">
+                        <span th:if="${execution.status.name() == 'RUNNING'}" class="spinner-border spinner-border-sm me-2"></span>
+                        [[${execution.status}]]
+                    </span>
+                    <a th:if="${execution.allureReportPath != null}" th:href="${execution.allureReportPath}" target="_blank" class="btn btn-sm btn-outline-primary ms-2" title="Open Allure Report">
+                        <img src="https://allurereport.org/public/img/allure-report.svg" style="height: 16px; width: 16px; margin-right: 4px;" alt="Allure">
+                        View Allure Report
+                    </a>
+                </div>
+                <div class="text-muted small">
+                    Duration: [[${execution.durationMs != null ? execution.durationMs / 1000.0 : '-'}]]s
                 </div>
             </div>
-            <div class="col-md-6">
-                <div class="card shadow-sm h-100">
-                    <div class="card-header bg-light">
-                        <h5 class="mb-0">Results Summary</h5>
-                    </div>
-                    <div class="card-body d-flex justify-content-around align-items-center">
+        </div>
+
+        <div class="row mb-2">
+            <div class="col-md-12">
+                <div class="card shadow-sm">
+                    <div class="card-body d-flex justify-content-around align-items-center py-2">
                         <div class="text-center">
-                            <h3 class="text-success" th:text="${execution.passedScenarios}">0</h3>
-                            <span>Passed</span>
+                            <h5 class="text-success mb-0 fw-bold" th:text="${execution.passedScenarios}">0</h5>
+                            <span class="text-muted" style="font-size: 0.75rem;">Passed Scenarios</span>
                         </div>
                         <div class="text-center">
-                            <h3 class="text-danger" th:text="${execution.failedScenarios}">0</h3>
-                            <span>Failed</span>
+                            <h5 class="text-danger mb-0 fw-bold" th:text="${execution.failedScenarios}">0</h5>
+                            <span class="text-muted" style="font-size: 0.75rem;">Failed Scenarios</span>
                         </div>
                         <div class="text-center">
-                            <h3 class="text-secondary" th:text="${execution.skippedScenarios}">0</h3>
-                            <span>Skipped</span>
+                            <h5 class="text-secondary mb-0 fw-bold" th:text="${execution.skippedScenarios}">0</h5>
+                            <span class="text-muted" style="font-size: 0.75rem;">Skipped Scenarios</span>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- Live Logs View -->
-        <div class="card shadow-sm border-dark">
-            <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
-                <h5 class="mb-0"><i class="bi bi-terminal"></i> Live Execution Logs</h5>
-                <div class="spinner-grow spinner-grow-sm text-success" role="status" id="liveIndicator" th:style="${execution.status.name() == 'RUNNING' ? 'display:block;' : 'display:none;'}">
-                    <span class="visually-hidden">Running...</span>
+        <div class="row">
+            <div class="col-12">
+                <div id="feature-container">
+                    <!-- Iterate through Features -->
+                    <div th:each="feature : ${execution.featureExecutions}" class="feature-card">
+                        <div class="feature-header" th:onclick="'toggleScenarios(this, ' + ${feature.id} + ')'">
+                            <div class="d-flex align-items-center">
+                                <i class="bi bi-chevron-right toggle-icon me-2" style="font-size: 0.8rem;"></i>
+                                <div>
+                                    <h6 class="mb-0 fw-bold">[[${feature.featureName}]]</h6>
+                                    <small class="text-muted" style="font-size: 0.75rem;">Duration: [[${feature.durationMs != null ? feature.durationMs / 1000.0 : '-'}]]s</small>
+                                </div>
+                            </div>
+                            <span class="status-badge" th:classappend="'status-' + ${feature.status.name()}">
+                                <span th:if="${feature.status.name() == 'RUNNING'}" class="spinner-border spinner-border-sm me-1"></span>
+                                [[${feature.status}]]
+                            </span>
+                        </div>
+                        
+                        <!-- Scenarios Container (hidden by default) -->
+                        <div th:id="'scenarios-' + ${feature.id}" style="display: none;">
+                            <div th:each="scenario : ${feature.scenarios}" class="scenario-container">
+                                <div class="scenario-item" th:onclick="'toggleSteps(this, ' + ${scenario.id} + ')'">
+                                    <div class="d-flex align-items-center ms-4">
+                                        <i class="bi bi-list-task text-secondary me-2"></i>
+                                        <div>
+                                            <span class="fw-medium">[[${scenario.scenarioName}]]</span>
+                                            <div class="text-muted small">Duration: [[${scenario.durationMs != null ? scenario.durationMs / 1000.0 : '-'}]]s</div>
+                                        </div>
+                                    </div>
+                                    <span class="status-badge" th:classappend="'status-' + ${scenario.status.name()}">
+                                        <span th:if="${scenario.status.name() == 'RUNNING'}" class="spinner-border spinner-border-sm me-1"></span>
+                                        [[${scenario.status}]]
+                                    </span>
+                                </div>
+                                
+                                <!-- Steps Container -->
+                                <ul class="step-list" th:id="'steps-' + ${scenario.id}">
+                                    <th:block th:each="step : ${scenario.steps}">
+                                        <li class="step-item" style="cursor: pointer;" th:onclick="'toggleStepDetails(this, ' + ${step.id} + ')'">
+                                            <div class="d-flex align-items-center">
+                                                <i class="bi bi-chevron-right toggle-icon me-2 text-muted" style="font-size: 0.8rem; transition: transform 0.2s;"></i>
+                                                <span class="step-keyword">[[${step.keyword}]]</span>
+                                                <span class="step-name">[[${step.stepName}]]</span>
+                                                <small class="ms-2 text-muted">([[${step.durationMs != null ? step.durationMs / 1000.0 : '-'}]]s)</small>
+                                            </div>
+                                            <div>
+                                                <span class="badge" th:classappend="${step.status.name() == 'PASSED' ? 'bg-success' : (step.status.name() == 'FAILED' ? 'bg-danger' : (step.status.name() == 'RUNNING' ? 'bg-primary' : 'bg-secondary'))}">
+                                                    [[${step.status}]]
+                                                </span>
+                                            </div>
+                                        </li>
+                                        <!-- Step Extended Details (Logs & Screenshot) -->
+                                        <li class="step-extended-details bg-light border-start border-3" th:id="'step-details-' + ${step.id}" style="display: none; padding: 6px 12px; font-size: 0.8rem;" th:classappend="${step.status.name() == 'FAILED' ? 'border-danger' : 'border-primary'}">
+                                            
+                                            <div th:if="${step.errorMessage != null}" class="text-danger mb-1">
+                                                <strong>Error:</strong> [[${step.errorMessage}]]
+                                            </div>
+                                            
+                                            <div th:if="${step.stepLog != null and !step.stepLog.isEmpty()}" class="step-log-container">
+                                                <strong class="text-muted d-block mb-1" style="font-size: 0.75rem;">Execution Logs & Evidence:</strong>
+                                                <textarea class="raw-step-log d-none" th:text="${step.stepLog}"></textarea>
+                                                <div class="parsed-step-log bg-dark text-light p-2 rounded" style="font-size: 0.75rem; font-family: monospace;"></div>
+                                            </div>
+
+                                            <div th:if="${step.errorMessage == null and (step.stepLog == null or step.stepLog.isEmpty())}" class="text-muted fst-italic" style="font-size: 0.75rem;">
+                                                No logs or screenshots available for this step.
+                                            </div>
+                                        </li>
+                                    </th:block>
+                                    <li class="step-item" th:if="${#lists.isEmpty(scenario.steps)}">
+                                        <span class="text-muted fst-italic">No steps recorded or execution pending...</span>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div th:if="${#lists.isEmpty(execution.featureExecutions)}" class="text-center py-5 text-muted">
+                        <i class="bi bi-journal-x fs-1 d-block mb-3"></i>
+                        <h5>No feature execution data available yet.</h5>
+                    </div>
                 </div>
-            </div>
-            <div class="card-body bg-black text-light p-0">
-                <pre id="logConsole" class="m-0 p-3" style="height: 400px; overflow-y: scroll; font-family: monospace; font-size: 14px;">
-<th:block th:each="log : ${execution.logs}">
-<span th:class="${log.level == 'ERROR' ? 'text-danger' : (log.level == 'WARN' ? 'text-warning' : 'text-success')}" th:text="|[${#temporals.format(log.timestamp, 'HH:mm:ss')}] [${log.level}] ${log.message}|"></span>
-</th:block>
-                </pre>
             </div>
         </div>
     </div>
     
-    <th:block layout:fragment="scripts">
+    <div layout:fragment="scripts">
         <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
-        <script>
-            $(document).ready(function() {
-                var executionId = $('#executionId').val();
-                var status = $('#statusBadge').text().trim();
+        <script src="https://cdn.jsdelivr.net/npm/stompjs@2.3.3/lib/stomp.min.js"></script>
+        <script th:inline="javascript">
+            // UI Toggle Functions
+            function toggleScenarios(headerElement, featureId) {
+                headerElement.classList.toggle('expanded');
+                const scenariosDiv = document.getElementById('scenarios-' + featureId);
+                if (scenariosDiv.style.display === 'none') {
+                    scenariosDiv.style.display = 'block';
+                } else {
+                    scenariosDiv.style.display = 'none';
+                }
+            }
+            
+            function toggleSteps(itemElement, scenarioId) {
+                const stepsList = document.getElementById('steps-' + scenarioId);
+                if (stepsList.style.display === 'none' || stepsList.style.display === '') {
+                    stepsList.style.display = 'block';
+                } else {
+                    stepsList.style.display = 'none';
+                }
+            }
+
+            function toggleStepDetails(itemElement, stepId) {
+                const icon = itemElement.querySelector('.toggle-icon');
+                if (icon) {
+                    if (icon.style.transform === 'rotate(90deg)') {
+                        icon.style.transform = 'rotate(0deg)';
+                    } else {
+                        icon.style.transform = 'rotate(90deg)';
+                    }
+                }
                 
-                // Scroll console to bottom initially
-                var logConsole = document.getElementById('logConsole');
-                logConsole.scrollTop = logConsole.scrollHeight;
+                const detailsList = document.getElementById('step-details-' + stepId);
+                if (detailsList) {
+                    if (detailsList.style.display === 'none' || detailsList.style.display === '') {
+                        detailsList.style.display = 'block';
+                        
+                        parseStepLogs(detailsList);
+                    } else {
+                        detailsList.style.display = 'none';
+                    }
+                }
+            }
 
-                if (status === 'RUNNING' || status === 'QUEUED') {
-                    var socket = new SockJS('/ws-stomp');
-                    var stompClient = Stomp.over(socket);
-                    stompClient.debug = null; // disable debug logs
-
-                    stompClient.connect({}, function (frame) {
-                        // Subscribe to logs
-                        stompClient.subscribe('/topic/execution/' + executionId + '/logs', function (message) {
-                            var logMsg = message.body;
-                            var timestamp = new Date().toLocaleTimeString();
-                            var colorClass = 'text-success';
-                            if(logMsg.includes("ERROR") || logMsg.includes("FAILED")) colorClass = 'text-danger';
+            function parseStepLogs(detailsList) {
+                const rawLogDiv = detailsList.querySelector('.raw-step-log');
+                const parsedLogDiv = detailsList.querySelector('.parsed-step-log');
+                
+                if (rawLogDiv && parsedLogDiv && parsedLogDiv.innerHTML.trim() === '') {
+                    const rawText = rawLogDiv.value || rawLogDiv.textContent;
+                    const lines = rawText.split('\n');
+                    let htmlContent = '';
+                    
+                    lines.forEach(line => {
+                        if (line.trim() === '') return;
+                        
+                        if (line.includes('[SCREENSHOT]')) {
+                            const parts = line.split('[SCREENSHOT]');
+                            const timestamp = parts[0].trim();
+                            const imgPath = parts[1].trim();
                             
-                            var logLine = '<span class="' + colorClass + '">[' + timestamp + '] [INFO] ' + escapeHtml(logMsg) + '</span><br>';
-                            $('#logConsole').append(logLine);
-                            
-                            // Auto scroll
-                            logConsole.scrollTop = logConsole.scrollHeight;
-                        });
-
-                        // Subscribe to status updates
-                        stompClient.subscribe('/topic/execution/' + executionId + '/status', function (message) {
-                            var newStatus = message.body;
-                            var badge = $('#statusBadge');
-                            badge.text(newStatus);
-                            
-                            badge.removeClass('bg-success bg-danger bg-primary bg-secondary progress-bar-striped progress-bar-animated');
-                            
-                            if (newStatus === 'PASSED') {
-                                badge.addClass('bg-success');
-                                $('#liveIndicator').hide();
-                                setTimeout(function(){ window.location.reload(); }, 2000);
-                            } else if (newStatus === 'FAILED') {
-                                badge.addClass('bg-danger');
-                                $('#liveIndicator').hide();
-                                setTimeout(function(){ window.location.reload(); }, 2000);
-                            } else if (newStatus === 'RUNNING') {
-                                badge.addClass('bg-primary progress-bar-striped progress-bar-animated');
-                            } else {
-                                badge.addClass('bg-secondary');
-                            }
-                        });
+                            htmlContent += `
+                                <div class="mt-3 mb-3 p-2 bg-white rounded border d-inline-block w-100 text-center">
+                                    <div class="text-muted small mb-1 text-start">${timestamp} <i class="bi bi-camera"></i> Evidence Captured</div>
+                                    <img src="${imgPath}" class="img-fluid border shadow-sm rounded" style="max-height: 450px; cursor: pointer;" onclick="window.open(this.src, '_blank')" title="Click to view full size" />
+                                </div>
+                            `;
+                        } else if (line.includes('[ERROR]') || line.includes('[FAILED]')) {
+                            htmlContent += `<div class="text-danger fw-bold">${line}</div>`;
+                        } else if (line.includes('[WARN]')) {
+                            htmlContent += `<div class="text-warning">${line}</div>`;
+                        } else {
+                            htmlContent += `<div>${line}</div>`;
+                        }
                     });
+                    
+                    parsedLogDiv.innerHTML = htmlContent;
                 }
+            }
+
+            (function() {
+                var executionId = [[${execution.id}]];
+                var status = /*[[${execution.status.name()}]]*/ 'UNKNOWN';
                 
-                function escapeHtml(unsafe) {
-                    return unsafe
-                         .replace(/&/g, "&amp;")
-                         .replace(/</g, "&lt;")
-                         .replace(/>/g, "&gt;")
-                         .replace(/"/g, "&quot;")
-                         .replace(/'/g, "&#039;");
+                if (status !== 'RUNNING' && status !== 'QUEUED') {
+                    return; // No need to connect websocket if it's already finished
                 }
-            });
+
+                var socket = new SockJS('/ws-stomp');
+                var stompClient = Stomp.over(socket);
+                stompClient.debug = null;
+
+                var updatePending = false;
+
+                function fetchAndUpdate() {
+                    var url = new URL(window.location.href);
+                    url.searchParams.set('_t', new Date().getTime());
+                    fetch(url.toString(), { cache: 'no-store' })
+                        .then(res => res.text())
+                        .then(html => {
+                            var parser = new DOMParser();
+                            var doc = parser.parseFromString(html, 'text/html');
+                            
+                            // Update header status badge and duration
+                            var currentHeader = document.querySelector('.report-header');
+                            var newHeader = doc.querySelector('.report-header');
+                            if (currentHeader && newHeader) {
+                                currentHeader.innerHTML = newHeader.innerHTML;
+                            }
+                            
+                            // Update counts
+                            var currentCounts = document.querySelector('.card-body');
+                            var newCounts = doc.querySelector('.card-body');
+                            if (currentCounts && newCounts) {
+                                currentCounts.innerHTML = newCounts.innerHTML;
+                            }
+                            
+                            // Capture expanded state
+                            var expandedScenarios = [];
+                            document.querySelectorAll('[id^="scenarios-"]').forEach(el => {
+                                if (el.style.display === 'block') expandedScenarios.push(el.id);
+                            });
+                            
+                            var expandedSteps = [];
+                            document.querySelectorAll('[id^="steps-"]').forEach(el => {
+                                if (el.style.display === 'block') expandedSteps.push(el.id);
+                            });
+                            
+                            var expandedDetails = [];
+                            document.querySelectorAll('[id^="step-details-"]').forEach(el => {
+                                if (el.style.display === 'block') expandedDetails.push(el.id);
+                            });
+                            
+                            // Update feature container
+                            var currentFeatureContainer = document.getElementById('feature-container');
+                            var newFeatureContainer = doc.getElementById('feature-container');
+                            if (currentFeatureContainer && newFeatureContainer) {
+                                currentFeatureContainer.innerHTML = newFeatureContainer.innerHTML;
+                            }
+                            
+                            // Restore expanded state
+                            expandedScenarios.forEach(id => {
+                                var el = document.getElementById(id);
+                                if (el) {
+                                    el.style.display = 'block';
+                                    var header = el.previousElementSibling;
+                                    if (header) header.classList.add('expanded');
+                                }
+                            });
+                            
+                            expandedSteps.forEach(id => {
+                                var el = document.getElementById(id);
+                                if (el) el.style.display = 'block';
+                            });
+                            
+                            expandedDetails.forEach(id => {
+                                var el = document.getElementById(id);
+                                if (el) {
+                                    el.style.display = 'block';
+                                    var stepItem = el.previousElementSibling;
+                                    if (stepItem) {
+                                        var icon = stepItem.querySelector('.toggle-icon');
+                                        if (icon) icon.style.transform = 'rotate(90deg)';
+                                    }
+                                    parseStepLogs(el);
+                                }
+                            });
+                            
+                            updatePending = false;
+                        });
+                }
+
+                stompClient.connect({}, function (frame) {
+                    stompClient.subscribe('/topic/execution/' + executionId + '/status', function (message) {
+                        if (!updatePending) {
+                            updatePending = true;
+                            setTimeout(fetchAndUpdate, 500); // Debounce updates
+                        }
+                    });
+                    
+                    stompClient.subscribe('/topic/executions', function (message) {
+                        var execution = JSON.parse(message.body);
+                        if (execution.id === executionId && !updatePending) {
+                            updatePending = true;
+                            setTimeout(fetchAndUpdate, 500);
+                        }
+                    });
+                });
+            })();
         </script>
-    </th:block>
+    </div>
 </body>
 </html>
