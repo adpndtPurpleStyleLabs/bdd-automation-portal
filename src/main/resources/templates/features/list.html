@@ -15,9 +15,6 @@
                 <button type="button" class="btn btn-outline-secondary" onclick="openRescanModal()">
                     <i class="bi bi-arrow-clockwise me-1"></i> Rescan
                 </button>
-                <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#newSuiteModal">
-                    <i class="bi bi-plus-lg me-1"></i> New Suite
-                </button>
             </div>
         </div>
 
@@ -103,10 +100,16 @@
 
                         <!-- Nested Rows -->
                         <div th:each="feature : ${entry.value}" class="d-flex align-items-center px-3 py-1 border-bottom nested-feature-row bg-white">
-                            <div class="col-5 ps-4 d-flex align-items-center">
-                                <i class="bi bi-file-earmark-text text-primary opacity-75 me-2 fs-6"></i>
+                            <div class="col-5 ps-2 d-flex align-items-center">
+                                <div class=" p-2 text-primary rounded d-flex align-items-center justify-content-center">
+                                    <img src="/images/girkin-logo.svg"
+                                         alt="Girkin Logo"
+                                         width="16"
+                                         height="16"
+                                         class="img-fluid">
+                                </div>
                                 <div>
-                                    <a th:href="@{/features/{id}(id=${feature.id})}" class="text-decoration-none fw-medium text-dark feature-link" th:text="${feature.name}" style="font-size: 0.85rem;">feature_name.feature</a>
+                                    <a th:href="@{/features/{moduleSlug}/{slug}(moduleSlug=${feature.moduleSlug}, slug=${feature.slug})}" class="text-decoration-none fw-medium text-dark feature-link" th:text="${feature.name}" style="font-size: 0.85rem;">feature_name.feature</a>
                                     <!-- Optional description if needed, removed for cleaner look -->
                                 </div>
                             </div>
@@ -122,8 +125,8 @@
                             </div>
 
                             <div class="col-3 d-flex justify-content-end gap-2 pe-4 align-items-center">
-                                <a th:href="@{/features/{id}(id=${feature.id})}" class="btn btn-sm btn-light border text-muted px-2" title="View Details">
-                                    <i class="bi bi-eye"></i>
+                                <a th:href="@{/features/{moduleSlug}/{slug}(moduleSlug=${feature.moduleSlug}, slug=${feature.slug})}" class="btn btn-sm btn-light border text-muted px-2" title="View Details">
+                                    <i class="bi bi-code-slash"></i>
                                 </a>
                                 <button type="button" class="btn btn-sm btn-outline-primary px-3 fw-medium" style="font-size: 0.8rem;"
                                         th:data-url="'/executions/run/feature/' + ${feature.id}"

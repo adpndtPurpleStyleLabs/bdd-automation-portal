@@ -114,6 +114,99 @@ public class ExecutionController {
         redirectAttributes.addFlashAttribute("successMessage", "Test Execution has been queued");
         return "redirect:/executions";
     }
+
+    @PostMapping("/run/feature/{id}/scenario/{slug}")
+    public String runScenario(@PathVariable Long id, @PathVariable String slug,
+                           @RequestParam(required = false, defaultValue = "Chrome") String browser,
+                           @RequestParam(required = false, defaultValue = "STAGE") String environment,
+                           @RequestParam(required = false) String reason,
+                           @RequestParam(required = false) String notifyEmails,
+                           org.springframework.web.servlet.mvc.support.RedirectAttributes redirectAttributes) {
+        
+        FeatureFile feature = featureFileRepository.findById(id).orElse(null);
+        if (feature == null) {
+            return "redirect:/features";
+        }
+        
+        // Parse feature file to find line number of the scenario by slug
+        java.nio.file.Path path = java.nio.file.Paths.get(com.bdd.portal.config.SpringContext.getBean(org.springframework.core.env.Environment.class).getProperty("bdd.portal.features-path"), feature.getRelativePath());
+        List<com.bdd.portal.dto.ScenarioDto> scenarios = com.bdd.portal.util.FeatureParserUtil.parseFeatureFile(path);
+        
+        com.bdd.portal.dto.ScenarioDto targetScenario = scenarios.stream()
+                .filter(s -> slug.equals(s.getSlug()))
+                .findFirst()
+                .orElse(null);
+                
+        if (targetScenario == null) {
+            return "redirect:/features";
+        }
+        
+        Execution execution = new Execution();
+        execution.setFeatureFile(feature);
+        
+        List<String> targetScenariosList = new java.util.ArrayList<>();
+        targetScenariosList.add(feature.getRelativePath() + ":" + targetScenario.getLine());
+        execution.setTargetScenarios(targetScenariosList);
+        
+        execution.setStatus(ExecutionStatus.QUEUED);
+        execution.setBrowser(browser);
+        execution.setEnvironment(environment);
+        execution.setExecutionType(ExecutionType.MANUAL);
+        execution.setReason(reason);
+        execution.setNotifyEmails(notifyEmails);
+        executionRepository.save(execution);
+        
+        com.bdd.portal.config.SpringContext.getBean(com.bdd.portal.service.WebSocketNotificationService.class).broadcastExecutionUpdate(execution);
+        
+        redirectAttributes.addFlashAttribute("successMessage", "Test Execution has been queued for Scenario: " + targetScenario.getName());
+        return "redirect:/executions";
+    }
+    
+    @PostMapping("/run/feature/{id}/scenarios")
+    public String runMultipleScenarios(@PathVariable Long id, @RequestParam List<String> slugs,
+                           @RequestParam(required = false, defaultValue = "Chrome") String browser,
+                           @RequestParam(required = false, defaultValue = "STAGE") String environment,
+                           @RequestParam(required = false) String reason,
+                           @RequestParam(required = false) String notifyEmails,
+                           org.springframework.web.servlet.mvc.support.RedirectAttributes redirectAttributes) {
+        
+        FeatureFile feature = featureFileRepository.findById(id).orElse(null);
+        if (feature == null) {
+            return "redirect:/features";
+        }
+        
+        java.nio.file.Path path = java.nio.file.Paths.get(com.bdd.portal.config.SpringContext.getBean(org.springframework.core.env.Environment.class).getProperty("bdd.portal.features-path"), feature.getRelativePath());
+        List<com.bdd.portal.dto.ScenarioDto> scenarios = com.bdd.portal.util.FeatureParserUtil.parseFeatureFile(path);
+        
+        List<String> targetScenariosList = new java.util.ArrayList<>();
+        for (String slug : slugs) {
+            scenarios.stream()
+                .filter(s -> slug.equals(s.getSlug()))
+                .findFirst()
+                .ifPresent(s -> targetScenariosList.add(feature.getRelativePath() + ":" + s.getLine()));
+        }
+        
+        if (targetScenariosList.isEmpty()) {
+            return "redirect:/features";
+        }
+        
+        Execution execution = new Execution();
+        execution.setFeatureFile(feature);
+        execution.setTargetScenarios(targetScenariosList);
+        
+        execution.setStatus(ExecutionStatus.QUEUED);
+        execution.setBrowser(browser);
+        execution.setEnvironment(environment);
+        execution.setExecutionType(ExecutionType.MANUAL);
+        execution.setReason(reason);
+        execution.setNotifyEmails(notifyEmails);
+        executionRepository.save(execution);
+        
+        com.bdd.portal.config.SpringContext.getBean(com.bdd.portal.service.WebSocketNotificationService.class).broadcastExecutionUpdate(execution);
+        
+        redirectAttributes.addFlashAttribute("successMessage", "Test Execution has been queued for " + targetScenariosList.size() + " Scenarios");
+        return "redirect:/executions";
+    }
     
     @PostMapping("/run/folder")
     public String runFolder(@RequestParam String folderPath, 

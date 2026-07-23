@@ -16,9 +16,14 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import com.bdd.portal.dto.ScenarioDto;
 import com.bdd.portal.entity.FeatureExecution;
 import com.bdd.portal.repository.FeatureExecutionRepository;
+import com.bdd.portal.repository.ScenarioExecutionRepository;
+import com.bdd.portal.entity.ScenarioExecution;
 import com.bdd.portal.util.FeatureParserUtil;
 
 import java.nio.file.Path;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.web.bind.annotation.RequestParam;
 import java.nio.file.Paths;
 import java.util.List;
 import java.util.Map;
@@ -33,6 +38,7 @@ public class FeatureController {
     private final FeatureFileRepository featureFileRepository;
     private final FeatureScannerService featureScannerService;
     private final FeatureExecutionRepository featureExecutionRepository;
+    private final ScenarioExecutionRepository scenarioExecutionRepository;
     private final TestEnvironmentService testEnvironmentService;
 
     @Value("${bdd.portal.features-path}")
@@ -51,26 +57,36 @@ public class FeatureController {
         return "features/list";
     }
 
-    @GetMapping("/{id}")
-    public String viewFeatureDetails(@PathVariable Long id, Model model) {
-        FeatureFile feature = featureFileRepository.findById(id).orElse(null);
+    @GetMapping("/{moduleSlug}/{featureSlug}")
+    public String viewFeatureDetails(@PathVariable String moduleSlug, @PathVariable String featureSlug, Model model) {
+        FeatureFile feature = featureFileRepository.findByModuleSlugAndSlug(moduleSlug, featureSlug).orElse(null);
         if (feature == null) {
             return "redirect:/features";
         }
         Path path = Paths.get(featuresPath, feature.getRelativePath());
         List<ScenarioDto> scenarios = FeatureParserUtil.parseFeatureFile(path);
         
-        FeatureExecution latestExecution = featureExecutionRepository.findFirstByFeatureNameOrderByStartTimeDesc(feature.getName());
-        if (latestExecution != null && latestExecution.getScenarios() != null) {
-            for (ScenarioDto dto : scenarios) {
-                latestExecution.getScenarios().stream()
-                    .filter(se -> se.getScenarioName().equals(dto.getName()))
-                    .findFirst()
-                    .ifPresent(se -> {
-                        dto.setStatus(se.getStatus());
-                        dto.setDurationMs(se.getDurationMs());
-                        dto.setLastRun(se.getStartTime());
-                    });
+        List<FeatureExecution> topExecutions = featureExecutionRepository.findTop5ByFeatureNameOrderByStartTimeDesc(path.getFileName().toString());
+        
+        for (ScenarioDto dto : scenarios) {
+            List<ScenarioExecution> scenarioHistory = new java.util.ArrayList<>();
+            for (FeatureExecution fe : topExecutions) {
+                if (fe.getScenarios() != null) {
+                    fe.getScenarios().stream()
+                        .filter(se -> se.getScenarioName().equals(dto.getName()))
+                        .findFirst()
+                        .ifPresent(scenarioHistory::add);
+                }
+            }
+            if (!scenarioHistory.isEmpty()) {
+                ScenarioExecution current = scenarioHistory.get(0);
+                dto.setStatus(current.getStatus());
+                dto.setDurationMs(current.getDurationMs());
+                dto.setLastRun(current.getStartTime());
+                
+                if (scenarioHistory.size() > 1) {
+                    dto.setPreviousStatus(scenarioHistory.get(1).getStatus());
+                }
             }
         }
         
@@ -78,6 +94,56 @@ public class FeatureController {
         model.addAttribute("scenarios", scenarios);
         model.addAttribute("environments", testEnvironmentService.getAllEnvironmentNames());
         return "features/detail";
+    }
+
+    @GetMapping("/{moduleSlug}/{featureSlug}/{scenarioSlug}")
+    public String viewScenarioDetails(@PathVariable String moduleSlug, @PathVariable String featureSlug, @PathVariable String scenarioSlug, 
+                                      @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "10") int size, Model model) {
+        FeatureFile feature = featureFileRepository.findByModuleSlugAndSlug(moduleSlug, featureSlug).orElse(null);
+        if (feature == null) {
+            return "redirect:/features";
+        }
+        Path path = Paths.get(featuresPath, feature.getRelativePath());
+        List<ScenarioDto> scenarios = FeatureParserUtil.parseFeatureFile(path);
+        
+        ScenarioDto scenario = scenarios.stream()
+                .filter(s -> scenarioSlug.equals(s.getSlug()))
+                .findFirst()
+                .orElse(null);
+                
+        if (scenario == null) {
+            return "redirect:/features/" + moduleSlug + "/" + featureSlug;
+        }
+
+        List<FeatureExecution> topExecutions = featureExecutionRepository.findTop5ByFeatureNameOrderByStartTimeDesc(Path.of(feature.getRelativePath()).getFileName().toString());
+        List<ScenarioExecution> scenarioHistoryList = new java.util.ArrayList<>();
+        for (FeatureExecution fe : topExecutions) {
+            if (fe.getScenarios() != null) {
+                fe.getScenarios().stream()
+                    .filter(se -> se.getScenarioName().equals(scenario.getName()))
+                    .findFirst()
+                    .ifPresent(scenarioHistoryList::add);
+            }
+        }
+        if (!scenarioHistoryList.isEmpty()) {
+            ScenarioExecution current = scenarioHistoryList.get(0);
+            scenario.setStatus(current.getStatus());
+            scenario.setDurationMs(current.getDurationMs());
+            scenario.setLastRun(current.getStartTime());
+            
+            if (scenarioHistoryList.size() > 1) {
+                scenario.setPreviousStatus(scenarioHistoryList.get(1).getStatus());
+            }
+        }
+        
+        Page<ScenarioExecution> executionHistory = scenarioExecutionRepository.findByFeatureExecutionFeatureNameAndScenarioNameOrderByStartTimeDesc(
+                Path.of(feature.getRelativePath()).getFileName().toString(), scenario.getName(), PageRequest.of(page, size));
+        
+        model.addAttribute("feature", feature);
+        model.addAttribute("scenario", scenario);
+        model.addAttribute("executionHistory", executionHistory);
+        model.addAttribute("environments", testEnvironmentService.getAllEnvironmentNames());
+        return "features/scenario_detail";
     }
     
     @PostMapping("/rescan")

@@ -9,8 +9,12 @@
         <!-- Header -->
         <div class="d-flex justify-content-between align-items-center mb-3 bg-white p-3 rounded border shadow-sm">
             <div class="d-flex align-items-start gap-3">
-                <div class="bg-primary-soft text-primary p-3 rounded">
-                    <i class="bi bi-file-earmark-text fs-3"></i>
+                <div class="text-primary rounded d-flex align-items-center justify-content-center">
+                    <img src="/images/girkin-logo.svg"
+                         alt="Girkin Logo"
+                         width="32"
+                         height="32"
+                         class="img-fluid">
                 </div>
                 <div>
                     <h3 class="fw-bold mb-1 text-dark" th:text="${feature.name}">feature.name</h3>
@@ -18,13 +22,10 @@
                 </div>
             </div>
             <div class="d-flex gap-2">
-                <button class="btn btn-outline-secondary d-flex align-items-center gap-2 px-3 fw-medium">
-                    <i class="bi bi-code-slash"></i> View Source
-                </button>
-                <button type="button" class="btn btn-primary d-flex align-items-center gap-2 px-4 fw-bold shadow-sm" style="background-color: #4f46e5; border-color: #4f46e5;"
-                        th:data-url="'/executions/run/feature/' + ${feature.id}"
-                        onclick="openRunModal(this.getAttribute('data-url'), false, '')">
-                    <i class="bi bi-play-fill fs-5"></i> Run Feature
+                <button type="button" id="mainRunBtn" class="btn btn-primary d-flex align-items-center gap-2 px-4 fw-bold shadow-sm"
+                        th:data-feature-url="'/executions/run/feature/' + ${feature.id}"
+                        th:data-scenarios-url="'/executions/run/feature/' + ${feature.id} + '/scenarios'">
+                    <i class="bi bi-play-fill fs-5"></i> <span id="mainRunBtnText">Run Feature</span>
                 </button>
             </div>
         </div>
@@ -49,15 +50,12 @@
                     </div>
                     <button class="btn btn-sm btn-outline-secondary bg-white"><i class="bi bi-funnel"></i></button>
                 </div>
-                <button class="btn btn-sm btn-light border fw-medium d-flex align-items-center gap-2">
-                    <i class="bi bi-play-fill text-dark"></i> Run Selected
-                </button>
-            </div>
+                </div>
 
             <!-- Table Header -->
             <div class="row m-0 p-2 border-bottom fw-bold text-muted text-uppercase align-items-center" style="font-size: 0.7rem; letter-spacing: 0.05em; background-color: #fafafa;">
                 <div class="col-auto ps-2 pe-3">
-                    <input class="form-check-input" type="checkbox">
+                    <input class="form-check-input" type="checkbox" id="selectAllScenarios">
                 </div>
                 <div class="col-3">Scenario Name</div>
                 <div class="col-2">Tags</div>
@@ -71,10 +69,10 @@
             <!-- Table Body -->
             <div th:each="scenario : ${scenarios}" class="row m-0 p-2 border-bottom align-items-center scenario-row transition-hover bg-white" style="font-size: 0.85rem;">
                 <div class="col-auto ps-2 pe-3">
-                    <input class="form-check-input" type="checkbox" style="transform: scale(0.9);">
+                    <input class="form-check-input scenario-checkbox" type="checkbox" style="transform: scale(0.9);" th:data-slug="${scenario.slug}">
                 </div>
                 <div class="col-3">
-                    <div class="fw-medium text-dark text-truncate" th:title="${scenario.name}" th:text="${scenario.name}">Scenario Name</div>
+                    <a th:href="@{/features/{module}/{feature}/{scenario}(module=${feature.moduleSlug},feature=${feature.slug},scenario=${scenario.slug})}" class="text-decoration-none fw-medium text-dark feature-link" th:title="${scenario.name}" th:text="${scenario.name}">Scenario Name</a>
                     <small class="text-muted" th:if="${scenario.type == 'Scenario Outline'}"><i class="bi bi-table me-1"></i>Scenario Outline</small>
                 </div>
                 <div class="col-2">
@@ -86,9 +84,28 @@
                 <div class="col-1 text-center fw-medium text-dark" th:text="${scenario.stepCount}">
                     0
                 </div>
-                <div class="col-1 text-center">
-                    <span th:if="${scenario.status != null}" th:class="'badge rounded-pill fw-medium status-badge status-' + ${#strings.toLowerCase(scenario.status)}" th:text="${scenario.status}">PASSED</span>
-                    <span th:if="${scenario.status == null}" class="badge rounded-pill fw-medium status-badge status-not_run">Not Run</span>
+                <div class="col-1 text-center d-flex flex-column align-items-center justify-content-center gap-1">
+                    <span th:if="${scenario.status != null and scenario.status.name() == 'PASSED'}">
+                        <i class="bi bi-check-circle-fill text-success fs-5"></i>
+                    </span>
+                    <span th:if="${scenario.status != null and scenario.status.name() == 'FAILED'}">
+                        <i class="bi bi-x-circle-fill text-danger fs-5"></i>
+                    </span>
+                    <span th:if="${scenario.status != null and (scenario.status.name() == 'QUEUED' or scenario.status.name() == 'SKIPPED')}">
+                        <i class="bi bi-dash-circle-fill text-warning fs-5"></i>
+                    </span>
+                    <span th:if="${scenario.status != null and scenario.status.name() == 'RUNNING'}">
+                        <div class="spinner-border spinner-border-sm text-primary" role="status">
+                            <span class="visually-hidden">Running...</span>
+                        </div>
+                    </span>
+                    <span th:if="${scenario.status == null}">
+                        <i class="bi bi-circle text-muted fs-5"></i>
+                    </span>
+                    
+                    <small th:if="${scenario.status != null and (scenario.status.name() == 'RUNNING' or scenario.status.name() == 'QUEUED') and scenario.previousStatus != null}"
+                           class="text-muted fw-medium" style="font-size: 0.65rem;"
+                           th:text="'Prev: ' + ${scenario.previousStatus}">Prev: PASSED</small>
                 </div>
                 <div class="col-1 text-center text-muted small font-monospace">
                     <span th:if="${scenario.durationMs != null}" th:text="${T(java.time.Duration).ofMillis(scenario.durationMs).toSeconds()} + 's'">0s</span>
@@ -101,7 +118,7 @@
                     </div>
                     <div th:if="${scenario.lastRun == null}">-</div>
                 </div>
-                <div class="col text-end pe-3 d-flex justify-content-end align-items-center gap-2">
+                <div class="col-1 text-end pe-3 d-flex justify-content-end align-items-center gap-2">
                     <button class="btn btn-sm btn-outline-primary px-3 py-1 fw-medium" style="font-size: 0.75rem;">
                         <i class="bi bi-play-fill"></i> Run
                     </button>
@@ -137,8 +154,6 @@
             </div>
         </div>
 
-    </div>
-    
         <!-- Run Execution Modal -->
         <div class="modal fade" id="runExecutionModal" tabindex="-1">
             <div class="modal-dialog">
@@ -187,25 +202,30 @@
                 </div>
             </div>
         </div>
+        
+    </div>
 
+    <th:block layout:fragment="scripts">
         <script>
         document.addEventListener('DOMContentLoaded', function() {
             var input = document.querySelector('#notifyEmailsInput');
-            var tagify = new Tagify(input, {
-                pattern: /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/,
-                originalInputValueFormat: valuesArr => valuesArr.map(item => item.value).join(','),
-                dropdown: {
-                    enabled: 0,
-                    maxItems: 10,
-                    closeOnSelect: false
-                }
-            });
-
-            fetch('/api/executions/emails/used')
-                .then(response => response.json())
-                .then(emails => {
-                    tagify.settings.whitelist = emails;
+            if (input && typeof Tagify !== 'undefined') {
+                var tagify = new Tagify(input, {
+                    pattern: /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/,
+                    originalInputValueFormat: valuesArr => valuesArr.map(item => item.value).join(','),
+                    dropdown: {
+                        enabled: 0,
+                        maxItems: 10,
+                        closeOnSelect: false
+                    }
                 });
+    
+                fetch('/api/executions/emails/used')
+                    .then(response => response.json())
+                    .then(emails => {
+                        tagify.settings.whitelist = emails;
+                    });
+            }
 
             window.openRunModal = function(url, isFolder, folderPath) {
                 document.getElementById('runExecutionForm').action = url;
@@ -218,7 +238,76 @@
                 var modal = new bootstrap.Modal(document.getElementById('runExecutionModal'));
                 modal.show();
             };
+
+            var selectAll = document.getElementById('selectAllScenarios');
+            var checkboxes = document.querySelectorAll('.scenario-checkbox');
+            var mainRunBtnText = document.getElementById('mainRunBtnText');
+            var mainRunBtn = document.getElementById('mainRunBtn');
+            var featureUrl = mainRunBtn ? mainRunBtn.getAttribute('data-feature-url') : '';
+            var scenariosUrl = mainRunBtn ? mainRunBtn.getAttribute('data-scenarios-url') : '';
+            
+            function updateRunButton() {
+                var checkedCount = document.querySelectorAll('.scenario-checkbox:checked').length;
+                var totalCount = checkboxes.length;
+                
+                if (checkedCount === 0 || checkedCount === totalCount) {
+                    if(mainRunBtnText) mainRunBtnText.textContent = 'Run Feature';
+                } else {
+                    if(mainRunBtnText) mainRunBtnText.textContent = 'Run Scenario (' + checkedCount + ')';
+                }
+            }
+            
+            if (selectAll) {
+                selectAll.addEventListener('change', function() {
+                    checkboxes.forEach(function(cb) {
+                        cb.checked = selectAll.checked;
+                    });
+                    updateRunButton();
+                });
+            }
+            
+            checkboxes.forEach(function(cb) {
+                cb.addEventListener('change', function() {
+                    var checkedCount = document.querySelectorAll('.scenario-checkbox:checked').length;
+                    var totalCount = checkboxes.length;
+                    
+                    if (selectAll) {
+                        selectAll.checked = (checkedCount === totalCount && totalCount > 0);
+                    }
+                    updateRunButton();
+                });
+            });
+            
+            if (mainRunBtn) {
+                mainRunBtn.addEventListener('click', function() {
+                    var checkedCount = document.querySelectorAll('.scenario-checkbox:checked').length;
+                    var totalCount = checkboxes.length;
+                    
+                    // Remove any existing hidden inputs for slugs to prevent duplicates across modal opens
+                    var form = document.getElementById('runExecutionForm');
+                    var existingSlugs = form.querySelectorAll('input[name="slugs"]');
+                    existingSlugs.forEach(el => el.remove());
+                    
+                    if (checkedCount === 0 || checkedCount === totalCount) {
+                        // Run entire feature
+                        openRunModal(featureUrl, false, '');
+                    } else {
+                        // Run specific scenarios
+                        var checkedBoxes = document.querySelectorAll('.scenario-checkbox:checked');
+                        checkedBoxes.forEach(function(cb) {
+                            var slug = cb.getAttribute('data-slug');
+                            var hiddenInput = document.createElement('input');
+                            hiddenInput.type = 'hidden';
+                            hiddenInput.name = 'slugs';
+                            hiddenInput.value = slug;
+                            form.appendChild(hiddenInput);
+                        });
+                        openRunModal(scenariosUrl, false, '');
+                    }
+                });
+            }
         });
         </script>
+    </th:block>
 </body>
 </html>

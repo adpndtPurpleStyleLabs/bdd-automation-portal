@@ -60,7 +60,7 @@ body {
 .sidebar-brand {
     display: flex;
     align-items: center;
-    padding: 0.75rem;
+    /*padding: 0.75rem;*/
     border-bottom: 1px solid var(--border-light);
 }
 
@@ -121,17 +121,22 @@ body {
     font-size: 0.85rem;
     font-weight: 500;
     transition: background-color 0.15s ease, color 0.15s ease;
+    border-bottom-right-radius: 100px;
+    border-top-right-radius: 100px;
 }
 
 .sidebar-link:hover {
     color: var(--primary);
-    background-color: rgba(101, 81, 159, 0.08); /* Light purple hover */
+    background-color: rgba(101, 81, 159, 0.08);
 }
 
 .sidebar-link.active {
     color: #ffffff;
-    background-color: var(--primary);
+    background-color:rgba(99, 79, 158, 0.15) !important;
     font-weight: 600;
+    color: var(--primary);
+    border-top-right-radius: 100px;
+    border-bottom-right-radius: 100px;
 }
 
 .sidebar-link i {
@@ -145,7 +150,7 @@ body {
     min-width: 100vw;
     background-color: var(--bg-main);
     height: 100vh;
-    overflow-y: auto;
+    overflow-y: hidden;
     display: flex;
     flex-direction: column;
 }
@@ -156,6 +161,7 @@ body {
 
 #page-content-wrapper > .container-fluid {
     flex: 1;
+    overflow-y: auto;
 }
 
 body.sb-sidenav-toggled #wrapper #sidebar-wrapper {
@@ -399,6 +405,12 @@ body.sb-sidenav-toggled #wrapper #sidebar-wrapper {
 /* When the collapse is open, the trigger does NOT have the collapsed class */
 .custom-accordion-toggle:not(.collapsed) .toggle-icon {
     transform: rotate(-180deg);
+}
+
+.bg-info{
+    --bs-bg-opacity :1;
+    background-color : var(--primary) !important;
+    color: white !important;
 }
 
 .nested-feature-row {
