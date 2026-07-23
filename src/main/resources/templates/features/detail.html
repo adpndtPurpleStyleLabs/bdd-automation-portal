@@ -223,7 +223,7 @@
 
     <th:block layout:fragment="scripts">
         <script>
-        document.addEventListener('DOMContentLoaded', function() {
+        (function() {
             var input = document.querySelector('#notifyEmailsInput');
             if (input && typeof Tagify !== 'undefined') {
                 var tagify = new Tagify(input, {
@@ -322,7 +322,7 @@
                     }
                 });
             }
-        });
+        })();
         </script>
     </th:block>
 </body>
