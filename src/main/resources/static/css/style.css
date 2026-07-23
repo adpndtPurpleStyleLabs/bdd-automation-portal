@@ -38,15 +38,21 @@ body {
     background-color: var(--bg-main);
     color: var(--text-primary);
     -webkit-font-smoothing: antialiased;
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    margin: 0;
+    overflow: hidden;
 }
 
 /* Layout */
 #wrapper {
-    overflow-x: hidden;
+    flex: 1;
+    overflow: hidden;
 }
 
 #sidebar-wrapper {
-    height: 100vh;
+    height: 100%;
     width: 260px;
     background-color: var(--bg-card); /* Light mode sidebar */
     box-shadow: var(--shadow-lg);
@@ -55,6 +61,17 @@ body {
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     display: flex;
     flex-direction: column;
+}
+
+#page-content-wrapper {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+#mainScrollArea {
+    flex: 1;
+    overflow-y: auto;
 }
 
 .sidebar-brand {
@@ -172,7 +189,7 @@ body.sb-sidenav-toggled #wrapper #sidebar-wrapper {
 .navbar {
     background-color: #fff !important;
     box-shadow: var(--shadow-sm);
-    padding: 0.75rem 0.2rem;
+    /*padding: 0.75rem 0.2rem;*/
     border-bottom: 1px solid var(--border-light);
 }
 
@@ -503,4 +520,22 @@ body.sb-sidenav-toggled #wrapper #sidebar-wrapper {
     .module-card:hover .module-actions .btn {
         opacity: 1;
     }
+}
+
+/* SPA (Turbo & NProgress) Styling */
+.turbo-progress-bar {
+    display: none !important;
+}
+
+#nprogress .bar {
+    background: var(--primary) !important;
+    top: auto !important;
+    bottom: -1px !important; /* Positions it directly under the header border */
+    height: 3px !important;
+    z-index: 1030 !important;
+}
+
+#nprogress .peg {
+    box-shadow: 0 0 10px var(--primary), 0 0 5px var(--primary) !important;
+    transform: none !important;
 }

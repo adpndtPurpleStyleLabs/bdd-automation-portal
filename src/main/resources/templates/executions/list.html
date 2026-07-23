@@ -235,14 +235,14 @@
                 <div class="d-flex align-items-center gap-3">
                     <ul class="pagination pagination-sm m-0" th:if="${executionPage.totalPages > 0}">
                         <li class="page-item" th:classappend="${executionPage.first ? 'disabled' : ''}">
-                            <a class="page-link border-0 text-muted" th:href="${executionPage.first ? '#' : @{/executions(page=${executionPage.number - 1}, type=${type}, date=${date}, size=${executionPage.size})}}"><i class="bi bi-chevron-left"></i></a>
+                            <a class="page-link border-0 text-muted" th:href="@{/executions(page=${executionPage.number - 1}, type=${type}, date=${date}, size=${executionPage.size})}"><i class="bi bi-chevron-left"></i></a>
                         </li>
                         <li class="page-item" th:each="i : ${#numbers.sequence(0, executionPage.totalPages - 1)}"
                             th:classappend="${executionPage.number == i ? 'active' : ''}">
                             <a class="page-link border-0" th:classappend="${executionPage.number == i ? 'rounded bg-primary text-white' : 'text-muted'}" th:href="@{/executions(page=${i}, type=${type}, date=${date}, size=${executionPage.size})}">[[${i + 1}]]</a>
                         </li>
                         <li class="page-item" th:classappend="${executionPage.last ? 'disabled' : ''}">
-                            <a class="page-link border-0 text-muted" th:href="${executionPage.last ? '#' : @{/executions(page=${executionPage.number + 1}, type=${type}, date=${date}, size=${executionPage.size})}}"><i class="bi bi-chevron-right"></i></a>
+                            <a class="page-link border-0 text-muted" th:href="@{/executions(page=${executionPage.number + 1}, type=${type}, date=${date}, size=${executionPage.size})}"><i class="bi bi-chevron-right"></i></a>
                         </li>
                     </ul>
                     <select class="form-select form-select-sm w-auto border-0 bg-transparent text-muted fw-medium" onchange="window.location.href=this.value">

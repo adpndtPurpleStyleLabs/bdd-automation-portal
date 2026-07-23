@@ -1,4 +1,4 @@
-window.addEventListener('DOMContentLoaded', event => {
+document.addEventListener('turbo:load', event => {
     // Toggle the side navigation
     const sidebarToggle = document.body.querySelector('#menu-toggle');
     if (sidebarToggle) {
