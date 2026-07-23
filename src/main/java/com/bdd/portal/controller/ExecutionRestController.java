@@ -15,6 +15,8 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.bdd.portal.service.ExecutionEngineService;
+
 import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
@@ -28,6 +30,7 @@ public class ExecutionRestController {
     private final ExecutionRepository executionRepository;
     private final EmailQueueRepository emailQueueRepository;
     private final EmailTemplateService emailTemplateService;
+    private final ExecutionEngineService executionEngineService;
 
     @PostMapping("/{id}/share")
     public ResponseEntity<?> shareExecutionViaEmail(@PathVariable Long id, @RequestBody Map<String, List<String>> request) {
@@ -65,6 +68,21 @@ public class ExecutionRestController {
         }
         
         return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/{id}/stop")
+    public ResponseEntity<?> stopExecution(@PathVariable Long id) {
+        Execution execution = executionRepository.findById(id).orElse(null);
+        if (execution == null) {
+            return ResponseEntity.notFound().build();
+        }
+        if (execution.getStatus() != com.bdd.portal.entity.ExecutionStatus.RUNNING && 
+            execution.getStatus() != com.bdd.portal.entity.ExecutionStatus.QUEUED) {
+            return ResponseEntity.badRequest().body("Execution is not in a stoppable state");
+        }
+        
+        executionEngineService.forceStopExecution(id);
+        return ResponseEntity.ok(Map.of("message", "Execution stopped successfully"));
     }
 
     @GetMapping("/emails/used")

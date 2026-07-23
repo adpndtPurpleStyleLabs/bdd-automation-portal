@@ -21,6 +21,8 @@ import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 @Service
 @RequiredArgsConstructor
@@ -31,6 +33,8 @@ public class ExecutionEngineService {
     private final ExecutionLogRepository executionLogRepository;
     private final WebSocketNotificationService notificationService;
     private final ApplicationEventPublisher eventPublisher;
+    
+    private final Map<Long, Thread> activeExecutions = new ConcurrentHashMap<>();
 
     @Value("${bdd.portal.features-path}")
     private String featuresPath;
@@ -56,6 +60,8 @@ public class ExecutionEngineService {
         eventPublisher.publishEvent(new com.bdd.portal.event.ExecutionStartedEvent(this, execution));
         logMessage(execution, "INFO", "Execution started for browser: " + execution.getBrowser());
 
+        activeExecutions.put(execution.getId(), Thread.currentThread());
+        
         try {
             // Setup Cucumber arguments
             List<String> cucumberArgs = new ArrayList<>();
@@ -180,15 +186,25 @@ public class ExecutionEngineService {
             logMessage(execution, "ERROR", "Exception during execution: " + e.getMessage());
             updateExecutionFinalState(execution.getId(), ExecutionStatus.FAILED, null);
         } finally {
+            activeExecutions.remove(execution.getId());
             System.clearProperty("current.execution.id");
             DriverManager.removeBrowserType();
         }
     }
 
+    public void forceStopExecution(Long executionId) {
+        Thread thread = activeExecutions.get(executionId);
+        if (thread != null) {
+            log.info("Force stopping execution {}", executionId);
+            thread.interrupt();
+        }
+        updateExecutionFinalState(executionId, ExecutionStatus.CANCELLED, null);
+    }
+
     private void updateExecutionFinalState(Long executionId, ExecutionStatus finalStatus, String allurePath) {
         try {
             Execution exec = executionRepository.findById(executionId).orElse(null);
-            if (exec != null) {
+            if (exec != null && exec.getStatus() != ExecutionStatus.CANCELLED) {
                 exec.setStatus(finalStatus);
                 exec.setEndTime(LocalDateTime.now());
                 if (exec.getStartTime() != null) {

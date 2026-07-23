@@ -166,7 +166,7 @@ body {
 #page-content-wrapper {
     min-width: 100vw;
     background-color: var(--bg-main);
-    height: 100vh;
+    height: 100%;
     overflow-y: hidden;
     display: flex;
     flex-direction: column;

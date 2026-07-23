@@ -159,6 +159,8 @@
     </div>
     
     <div layout:fragment="scripts">
+        <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/stompjs@2.3.3/lib/stomp.min.js"></script>
         <script th:inline="javascript">
             // UI Toggle Functions
             function toggleScenarios(headerElement, featureId) {
@@ -195,46 +197,158 @@
                     if (detailsList.style.display === 'none' || detailsList.style.display === '') {
                         detailsList.style.display = 'block';
                         
-                        // Parse step logs if present and not already parsed
-                        const rawLogDiv = detailsList.querySelector('.raw-step-log');
-                        const parsedLogDiv = detailsList.querySelector('.parsed-step-log');
-                        
-                        if (rawLogDiv && parsedLogDiv && parsedLogDiv.innerHTML.trim() === '') {
-                            const rawText = rawLogDiv.value || rawLogDiv.textContent;
-                            const lines = rawText.split('\n');
-                            let htmlContent = '';
-                            
-                            lines.forEach(line => {
-                                if (line.trim() === '') return;
-                                
-                                if (line.includes('[SCREENSHOT]')) {
-                                    const parts = line.split('[SCREENSHOT]');
-                                    const timestamp = parts[0].trim();
-                                    const imgPath = parts[1].trim();
-                                    
-                                    htmlContent += `
-                                        <div class="mt-3 mb-3 p-2 bg-white rounded border d-inline-block w-100 text-center">
-                                            <div class="text-muted small mb-1 text-start">${timestamp} <i class="bi bi-camera"></i> Evidence Captured</div>
-                                            <img src="${imgPath}" class="img-fluid border shadow-sm rounded" style="max-height: 450px; cursor: pointer;" onclick="window.open(this.src, '_blank')" title="Click to view full size" />
-                                        </div>
-                                    `;
-                                } else if (line.includes('[ERROR]') || line.includes('[FAILED]')) {
-                                    htmlContent += `<div class="text-danger fw-bold">${line}</div>`;
-                                } else if (line.includes('[WARN]')) {
-                                    htmlContent += `<div class="text-warning">${line}</div>`;
-                                } else {
-                                    htmlContent += `<div>${line}</div>`;
-                                }
-                            });
-                            
-                            parsedLogDiv.innerHTML = htmlContent;
-                        }
-                        
+                        parseStepLogs(detailsList);
                     } else {
                         detailsList.style.display = 'none';
                     }
                 }
             }
+
+            function parseStepLogs(detailsList) {
+                const rawLogDiv = detailsList.querySelector('.raw-step-log');
+                const parsedLogDiv = detailsList.querySelector('.parsed-step-log');
+                
+                if (rawLogDiv && parsedLogDiv && parsedLogDiv.innerHTML.trim() === '') {
+                    const rawText = rawLogDiv.value || rawLogDiv.textContent;
+                    const lines = rawText.split('\n');
+                    let htmlContent = '';
+                    
+                    lines.forEach(line => {
+                        if (line.trim() === '') return;
+                        
+                        if (line.includes('[SCREENSHOT]')) {
+                            const parts = line.split('[SCREENSHOT]');
+                            const timestamp = parts[0].trim();
+                            const imgPath = parts[1].trim();
+                            
+                            htmlContent += `
+                                <div class="mt-3 mb-3 p-2 bg-white rounded border d-inline-block w-100 text-center">
+                                    <div class="text-muted small mb-1 text-start">${timestamp} <i class="bi bi-camera"></i> Evidence Captured</div>
+                                    <img src="${imgPath}" class="img-fluid border shadow-sm rounded" style="max-height: 450px; cursor: pointer;" onclick="window.open(this.src, '_blank')" title="Click to view full size" />
+                                </div>
+                            `;
+                        } else if (line.includes('[ERROR]') || line.includes('[FAILED]')) {
+                            htmlContent += `<div class="text-danger fw-bold">${line}</div>`;
+                        } else if (line.includes('[WARN]')) {
+                            htmlContent += `<div class="text-warning">${line}</div>`;
+                        } else {
+                            htmlContent += `<div>${line}</div>`;
+                        }
+                    });
+                    
+                    parsedLogDiv.innerHTML = htmlContent;
+                }
+            }
+
+            (function() {
+                var executionId = [[${execution.id}]];
+                var status = /*[[${execution.status.name()}]]*/ 'UNKNOWN';
+                
+                if (status !== 'RUNNING' && status !== 'QUEUED') {
+                    return; // No need to connect websocket if it's already finished
+                }
+
+                var socket = new SockJS('/ws-stomp');
+                var stompClient = Stomp.over(socket);
+                stompClient.debug = null;
+
+                var updatePending = false;
+
+                function fetchAndUpdate() {
+                    var url = new URL(window.location.href);
+                    url.searchParams.set('_t', new Date().getTime());
+                    fetch(url.toString(), { cache: 'no-store' })
+                        .then(res => res.text())
+                        .then(html => {
+                            var parser = new DOMParser();
+                            var doc = parser.parseFromString(html, 'text/html');
+                            
+                            // Update header status badge and duration
+                            var currentHeader = document.querySelector('.report-header');
+                            var newHeader = doc.querySelector('.report-header');
+                            if (currentHeader && newHeader) {
+                                currentHeader.innerHTML = newHeader.innerHTML;
+                            }
+                            
+                            // Update counts
+                            var currentCounts = document.querySelector('.card-body');
+                            var newCounts = doc.querySelector('.card-body');
+                            if (currentCounts && newCounts) {
+                                currentCounts.innerHTML = newCounts.innerHTML;
+                            }
+                            
+                            // Capture expanded state
+                            var expandedScenarios = [];
+                            document.querySelectorAll('[id^="scenarios-"]').forEach(el => {
+                                if (el.style.display === 'block') expandedScenarios.push(el.id);
+                            });
+                            
+                            var expandedSteps = [];
+                            document.querySelectorAll('[id^="steps-"]').forEach(el => {
+                                if (el.style.display === 'block') expandedSteps.push(el.id);
+                            });
+                            
+                            var expandedDetails = [];
+                            document.querySelectorAll('[id^="step-details-"]').forEach(el => {
+                                if (el.style.display === 'block') expandedDetails.push(el.id);
+                            });
+                            
+                            // Update feature container
+                            var currentFeatureContainer = document.getElementById('feature-container');
+                            var newFeatureContainer = doc.getElementById('feature-container');
+                            if (currentFeatureContainer && newFeatureContainer) {
+                                currentFeatureContainer.innerHTML = newFeatureContainer.innerHTML;
+                            }
+                            
+                            // Restore expanded state
+                            expandedScenarios.forEach(id => {
+                                var el = document.getElementById(id);
+                                if (el) {
+                                    el.style.display = 'block';
+                                    var header = el.previousElementSibling;
+                                    if (header) header.classList.add('expanded');
+                                }
+                            });
+                            
+                            expandedSteps.forEach(id => {
+                                var el = document.getElementById(id);
+                                if (el) el.style.display = 'block';
+                            });
+                            
+                            expandedDetails.forEach(id => {
+                                var el = document.getElementById(id);
+                                if (el) {
+                                    el.style.display = 'block';
+                                    var stepItem = el.previousElementSibling;
+                                    if (stepItem) {
+                                        var icon = stepItem.querySelector('.toggle-icon');
+                                        if (icon) icon.style.transform = 'rotate(90deg)';
+                                    }
+                                    parseStepLogs(el);
+                                }
+                            });
+                            
+                            updatePending = false;
+                        });
+                }
+
+                stompClient.connect({}, function (frame) {
+                    stompClient.subscribe('/topic/execution/' + executionId + '/status', function (message) {
+                        if (!updatePending) {
+                            updatePending = true;
+                            setTimeout(fetchAndUpdate, 500); // Debounce updates
+                        }
+                    });
+                    
+                    stompClient.subscribe('/topic/executions', function (message) {
+                        var execution = JSON.parse(message.body);
+                        if (execution.id === executionId && !updatePending) {
+                            updatePending = true;
+                            setTimeout(fetchAndUpdate, 500);
+                        }
+                    });
+                });
+            })();
         </script>
     </div>
 </body>

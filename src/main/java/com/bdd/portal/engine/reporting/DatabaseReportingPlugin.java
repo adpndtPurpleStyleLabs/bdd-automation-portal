@@ -179,6 +179,19 @@ public class DatabaseReportingPlugin implements ConcurrentEventListener {
                     if (event.getResult().getError() != null) {
                         latestStep.setErrorMessage(event.getResult().getError().getMessage());
                     }
+                    
+                    // Bubble up failure immediately to Scenario and Feature
+                    ScenarioExecution parentScenario = latestStep.getScenarioExecution();
+                    if (parentScenario != null && parentScenario.getStatus() != ExecutionStatus.FAILED) {
+                        parentScenario.setStatus(ExecutionStatus.FAILED);
+                        scenarioExecutionRepository.save(parentScenario);
+                        
+                        FeatureExecution parentFeature = parentScenario.getFeatureExecution();
+                        if (parentFeature != null && parentFeature.getStatus() != ExecutionStatus.FAILED) {
+                            parentFeature.setStatus(ExecutionStatus.FAILED);
+                            featureExecutionRepository.save(parentFeature);
+                        }
+                    }
                     break;
                 case SKIPPED:
                     latestStep.setStatus(ExecutionStatus.SKIPPED);
@@ -220,6 +233,16 @@ public class DatabaseReportingPlugin implements ConcurrentEventListener {
             
             scenarioExecutionRepository.save(scenario);
             notificationService.sendExecutionStatusUpdate(currentExecutionId, "SCENARIO_FINISHED");
+            
+            // Immediately mark feature as failed if a scenario fails
+            if (scenario.getStatus() == ExecutionStatus.FAILED) {
+                FeatureExecution feature = scenario.getFeatureExecution();
+                if (feature != null && feature.getStatus() != ExecutionStatus.FAILED) {
+                    feature.setStatus(ExecutionStatus.FAILED);
+                    featureExecutionRepository.save(feature);
+                    notificationService.sendExecutionStatusUpdate(currentExecutionId, "FEATURE_FAILED");
+                }
+            }
             
             // Increment passed/failed counts on Execution
             Optional<Execution> executionOpt = executionRepository.findById(currentExecutionId);

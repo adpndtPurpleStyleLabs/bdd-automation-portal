@@ -209,6 +209,13 @@
                                                 <i class="bi bi-envelope me-2 text-info"></i>Send via Email
                                             </button>
                                         </li>
+                                        <li>
+                                            <button class="dropdown-item text-danger" 
+                                                    th:if="${execution.status.name() == 'RUNNING' || execution.status.name() == 'QUEUED'}"
+                                                    th:onclick="|stopExecution('${execution.id}')|">
+                                                <i class="bi bi-stop-circle me-2 text-danger"></i>Force Stop
+                                            </button>
+                                        </li>
                                     </ul>
                                 </div>
                             </td>
@@ -448,7 +455,7 @@
                     emailArray = emails.split(',');
                 }
 
-                const btn = document.querySelector('#emailShareModal .btn-primary');
+                const btn = document.getElementById('shareSubmitBtn');
                 const originalText = btn.innerHTML;
                 btn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status"></span> Sending...';
                 btn.disabled = true;
@@ -477,6 +484,36 @@
                     btn.innerHTML = originalText;
                     btn.disabled = false;
                 });
+            }
+        
+            function stopExecution(executionId) {
+                if (confirm("Are you sure you want to force stop this execution?")) {
+                    const csrfToken = document.querySelector("meta[name='_csrf']")?.getAttribute("content");
+                    const csrfHeader = document.querySelector("meta[name='_csrf_header']")?.getAttribute("content");
+                    const headers = { 'Content-Type': 'application/json' };
+                    if (csrfToken && csrfHeader) headers[csrfHeader] = csrfToken;
+
+                    fetch('/api/executions/' + executionId + '/stop', {
+                        method: 'POST',
+                        headers: headers
+                    }).then(response => {
+                        if (response.ok) {
+                            const toastEl = document.getElementById('successToast');
+                            if (toastEl) {
+                                toastEl.querySelector('.toast-body span').textContent = "Execution stopped successfully.";
+                                new bootstrap.Toast(toastEl).show();
+                            }
+                        } else {
+                            response.text().then(text => {
+                                alert(text + '\n\nThe execution may have already completed. Refreshing page...');
+                                window.location.reload();
+                            });
+                        }
+                    }).catch(err => {
+                        console.error(err);
+                        alert('Error stopping execution.');
+                    });
+                }
             }
 
             function openLiveFeed(btn, vncUrl, target, browser, status) {
@@ -516,7 +553,7 @@
                 iframe.classList.add('opacity-0');
             }
 
-            document.addEventListener("DOMContentLoaded", function () {
+            (function() {
                 initShareTagify();
                 
                 document.getElementById('liveFeedModal').addEventListener('hidden.bs.modal', function () {
@@ -584,6 +621,9 @@
                             }
                             actionsHtml += '<li><button class="dropdown-item" onclick="copyExecutionLink(\'' + execution.id + '\')"><i class="bi bi-link-45deg me-2 text-secondary"></i>Copy Link</button></li>';
                             actionsHtml += '<li><button class="dropdown-item" onclick="openEmailShareModal(\'' + execution.id + '\')"><i class="bi bi-envelope me-2 text-info"></i>Send via Email</button></li>';
+                            if (execution.status === 'RUNNING' || execution.status === 'QUEUED') {
+                                actionsHtml += '<li><button class="dropdown-item text-danger" onclick="stopExecution(\'' + execution.id + '\')"><i class="bi bi-stop-circle me-2 text-danger"></i>Force Stop</button></li>';
+                            }
                             actionsHtml += '</ul></div>';
                             actionsCell.innerHTML = actionsHtml;
 
@@ -658,6 +698,9 @@
                             }
                             actionsHtml += '<li><button class="dropdown-item" onclick="copyExecutionLink(\'' + execution.id + '\')"><i class="bi bi-link-45deg me-2 text-secondary"></i>Copy Link</button></li>';
                             actionsHtml += '<li><button class="dropdown-item" onclick="openEmailShareModal(\'' + execution.id + '\')"><i class="bi bi-envelope me-2 text-info"></i>Send via Email</button></li>';
+                            if (execution.status === 'RUNNING' || execution.status === 'QUEUED') {
+                                actionsHtml += '<li><button class="dropdown-item text-danger" onclick="stopExecution(\'' + execution.id + '\')"><i class="bi bi-stop-circle me-2 text-danger"></i>Force Stop</button></li>';
+                            }
                             actionsHtml += '</ul></div></td>';
                             html += actionsHtml;
 
@@ -669,13 +712,16 @@
                         }
                     });
                 });
-            });
+            })();
 
             function getBadgeClass(status) {
                 switch (status) {
                     case 'PASSED': return 'bg-success';
                     case 'FAILED': return 'bg-danger';
                     case 'RUNNING': return 'bg-primary';
+                    case 'QUEUED': return 'bg-warning text-dark';
+                    case 'CANCELLED': return 'bg-secondary';
+                    case 'SKIPPED': return 'bg-info text-dark';
                     default: return 'bg-secondary';
                 }
             }

@@ -46,7 +46,7 @@ public class ExecutionController {
             @RequestParam(defaultValue = "15") int size,
             Model model) {
         
-        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "startTime"));
+        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "id"));
         
         Specification<Execution> spec = (root, query, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
