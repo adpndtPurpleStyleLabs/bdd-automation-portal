@@ -52,18 +52,16 @@
                         <button class="btn btn-sm btn-outline-secondary">
                             <i class="bi bi-funnel"></i>
                         </button>
-
-                        <button type="button"
-                                id="mainRunBtn"
-                                class="btn btn-primary d-flex align-items-center gap-2 px-4"
-                                th:data-feature-url="'/executions/run/feature/' + ${feature.id}"
-                                th:data-scenarios-url="'/executions/run/feature/' + ${feature.id} + '/scenarios'">
-
-                            <i class="bi bi-play-fill"></i>
-                            <span id="mainRunBtnText">Run Feature</span>
-                        </button>
-
                     </div>
+                    <button type="button"
+                            id="mainRunBtn"
+                            class="btn btn-primary d-flex align-items-center gap-2 px-4"
+                            th:data-feature-url="'/executions/run/feature/' + ${feature.id}"
+                            th:data-scenarios-url="'/executions/run/feature/' + ${feature.id} + '/scenarios'">
+
+                        <i class="bi bi-play-fill"></i>
+                        <span id="mainRunBtnText">Run Feature</span>
+                    </button>
 
                 </div>
             </div>
