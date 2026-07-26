@@ -2,140 +2,70 @@ package com.bdd.portal.engine.reporting;
 
 import com.bdd.portal.config.SpringContext;
 import com.bdd.portal.entity.*;
-import com.bdd.portal.repository.ExecutionRepository;
-import com.bdd.portal.repository.FeatureExecutionRepository;
-import com.bdd.portal.repository.ScenarioExecutionRepository;
-import com.bdd.portal.repository.StepExecutionRepository;
+import com.bdd.portal.repository.*;
 import com.bdd.portal.service.WebSocketNotificationService;
 import io.cucumber.plugin.ConcurrentEventListener;
 import io.cucumber.plugin.event.*;
 import lombok.extern.slf4j.Slf4j;
 
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.time.LocalDateTime;
-import java.util.Map;
-import java.util.Optional;
-import java.util.concurrent.ConcurrentHashMap;
 
 @Slf4j
 public class DatabaseReportingPlugin implements ConcurrentEventListener {
 
-    private ExecutionRepository executionRepository;
-    private FeatureExecutionRepository featureExecutionRepository;
     private ScenarioExecutionRepository scenarioExecutionRepository;
     private StepExecutionRepository stepExecutionRepository;
     private WebSocketNotificationService notificationService;
 
-    // We store mappings using URIs and UUIDs from Cucumber events
-    private final Map<String, FeatureExecution> featureMap = new ConcurrentHashMap<>();
-    private final Map<String, ScenarioExecution> scenarioMap = new ConcurrentHashMap<>();
-    private final Map<String, StepExecution> stepMap = new ConcurrentHashMap<>();
+    private final String scenarioExecutionUuid;
+    private Long scenarioId;
+    
+    // Instance-level state tracking the currently running step
     public static final ThreadLocal<Long> currentStepId = new ThreadLocal<>();
 
-    private Long currentExecutionId;
-
-    public DatabaseReportingPlugin() {
-        // Initialization can't fetch beans yet because Spring might not be fully up if this runs too early,
-        // but since we invoke Main.run inside an Async method, SpringContext is definitely ready.
+    public DatabaseReportingPlugin(String scenarioExecutionUuid) {
+        this.scenarioExecutionUuid = scenarioExecutionUuid;
     }
 
     private void initBeans() {
-        if (executionRepository == null) {
-            executionRepository = SpringContext.getBean(ExecutionRepository.class);
-            featureExecutionRepository = SpringContext.getBean(FeatureExecutionRepository.class);
+        if (scenarioExecutionRepository == null) {
             scenarioExecutionRepository = SpringContext.getBean(ScenarioExecutionRepository.class);
             stepExecutionRepository = SpringContext.getBean(StepExecutionRepository.class);
             notificationService = SpringContext.getBean(WebSocketNotificationService.class);
-
-            // Get current execution ID from system properties or a thread local.
-            // For simplicity, we pass it via System Property in ExecutionEngineService
-            String execIdStr = System.getProperty("current.execution.id");
-            if (execIdStr != null) {
-                currentExecutionId = Long.parseLong(execIdStr);
-            }
+        }
+        
+        if (scenarioId == null) {
+            scenarioExecutionRepository.findByScenarioExecutionUuid(scenarioExecutionUuid)
+                .ifPresent(s -> scenarioId = s.getId());
         }
     }
 
     @Override
     public void setEventPublisher(EventPublisher publisher) {
         publisher.registerHandlerFor(TestRunStarted.class, this::handleTestRunStarted);
-        publisher.registerHandlerFor(TestSourceRead.class, this::handleTestSourceRead);
-        publisher.registerHandlerFor(TestCaseStarted.class, this::handleTestCaseStarted);
         publisher.registerHandlerFor(TestStepStarted.class, this::handleTestStepStarted);
         publisher.registerHandlerFor(TestStepFinished.class, this::handleTestStepFinished);
         publisher.registerHandlerFor(TestCaseFinished.class, this::handleTestCaseFinished);
-        publisher.registerHandlerFor(TestRunFinished.class, this::handleTestRunFinished);
+        publisher.registerHandlerFor(WriteEvent.class, this::handleWriteEvent);
+        publisher.registerHandlerFor(EmbedEvent.class, this::handleEmbedEvent);
     }
 
     private void handleTestRunStarted(TestRunStarted event) {
         initBeans();
-        log.info("Cucumber Test Run Started");
-    }
-
-    private void handleTestSourceRead(TestSourceRead event) {
-        initBeans();
-        // Here we know a feature file is being read. We can create a FeatureExecution in QUEUED state.
-        if (currentExecutionId == null) return;
-
-        Optional<Execution> executionOpt = executionRepository.findById(currentExecutionId);
-        if (executionOpt.isEmpty()) return;
-
-        String uri = event.getUri().toString();
-        // Get feature name by parsing or just using URI as name initially
-        String featureName = uri.substring(uri.lastIndexOf('/') + 1);
-
-        FeatureExecution featureExecution = new FeatureExecution();
-        featureExecution.setExecution(executionOpt.get());
-        featureExecution.setUri(uri);
-        featureExecution.setFeatureName(featureName);
-        featureExecution.setStatus(ExecutionStatus.QUEUED);
-
-        featureExecution = featureExecutionRepository.save(featureExecution);
-        featureMap.put(uri, featureExecution);
-        
-        notificationService.sendExecutionLog(currentExecutionId, "Feature loaded: " + featureName);
-        notificationService.sendExecutionStatusUpdate(currentExecutionId, "FEATURE_LOADED");
-    }
-
-    private void handleTestCaseStarted(TestCaseStarted event) {
-        initBeans();
-        if (currentExecutionId == null) return;
-        
-        String uri = event.getTestCase().getUri().toString();
-        FeatureExecution featureExecution = featureMap.get(uri);
-        
-        if (featureExecution != null) {
-            // If feature was queued, mark it running
-            if (featureExecution.getStatus() == ExecutionStatus.QUEUED) {
-                featureExecution.setStatus(ExecutionStatus.RUNNING);
-                featureExecution.setStartTime(LocalDateTime.now());
-                featureExecutionRepository.save(featureExecution);
-                notificationService.sendExecutionStatusUpdate(currentExecutionId, "FEATURE_RUNNING");
-            }
-            
-            ScenarioExecution scenario = new ScenarioExecution();
-            scenario.setFeatureExecution(featureExecution);
-            scenario.setScenarioName(event.getTestCase().getName());
-            scenario.setLineNumber(event.getTestCase().getLocation().getLine());
-            scenario.setStatus(ExecutionStatus.RUNNING);
-            scenario.setStartTime(LocalDateTime.now());
-            
-            scenario = scenarioExecutionRepository.save(scenario);
-            scenarioMap.put(event.getTestCase().getId().toString(), scenario);
-            
-            notificationService.sendExecutionStatusUpdate(currentExecutionId, "SCENARIO_RUNNING");
-        }
+        log.info("Cucumber Test Run Started for scenario UUID: {}", scenarioExecutionUuid);
     }
 
     private void handleTestStepStarted(TestStepStarted event) {
         initBeans();
-        if (currentExecutionId == null) return;
+        if (scenarioId == null) return;
         
-        String scenarioId = event.getTestCase().getId().toString();
-        ScenarioExecution scenario = scenarioMap.get(scenarioId);
-        
+        ScenarioExecution scenario = scenarioExecutionRepository.findById(scenarioId).orElse(null);
         if (scenario != null) {
             StepExecution step = new StepExecution();
             step.setScenarioExecution(scenario);
+            step.setStepUuid(java.util.UUID.randomUUID().toString());
             
             if (event.getTestStep() instanceof PickleStepTestStep) {
                 PickleStepTestStep pickleStep = (PickleStepTestStep) event.getTestStep();
@@ -148,138 +78,125 @@ public class DatabaseReportingPlugin implements ConcurrentEventListener {
                 step.setKeyword("Hook");
                 step.setLineNumber(0);
             } else {
-                return; // Unsupported step type
+                return;
             }
             
             step.setStatus(ExecutionStatus.RUNNING);
             
             step = stepExecutionRepository.save(step);
-            stepMap.put(event.getTestStep().getId().toString(), step);
             currentStepId.set(step.getId());
+            
+            // Broadcast live step start if you want real-time UI
+            notificationService.sendExecutionLog(scenario.getExecution().getId(), "Running step: " + step.getStepName());
         }
     }
 
     private void handleTestStepFinished(TestStepFinished event) {
         initBeans();
-        if (currentExecutionId == null) return;
-        
-        String stepId = event.getTestStep().getId().toString();
-        StepExecution step = stepMap.get(stepId);
-        
-        if (step != null) {
-            StepExecution latestStep = stepExecutionRepository.findById(step.getId()).orElse(step);
-            latestStep.setDurationMs(event.getResult().getDuration().toMillis());
+        Long stepId = currentStepId.get();
+        if (stepId != null) {
+            StepExecution step = stepExecutionRepository.findById(stepId).orElse(null);
             
-            switch (event.getResult().getStatus()) {
-                case PASSED:
-                    latestStep.setStatus(ExecutionStatus.PASSED);
-                    break;
-                case FAILED:
-                    latestStep.setStatus(ExecutionStatus.FAILED);
-                    if (event.getResult().getError() != null) {
-                        latestStep.setErrorMessage(event.getResult().getError().getMessage());
-                    }
-                    
-                    // Bubble up failure immediately to Scenario and Feature
-                    ScenarioExecution parentScenario = latestStep.getScenarioExecution();
-                    if (parentScenario != null && parentScenario.getStatus() != ExecutionStatus.FAILED) {
-                        parentScenario.setStatus(ExecutionStatus.FAILED);
-                        scenarioExecutionRepository.save(parentScenario);
-                        
-                        FeatureExecution parentFeature = parentScenario.getFeatureExecution();
-                        if (parentFeature != null && parentFeature.getStatus() != ExecutionStatus.FAILED) {
-                            parentFeature.setStatus(ExecutionStatus.FAILED);
-                            featureExecutionRepository.save(parentFeature);
+            if (step != null) {
+                if (event.getResult().getDuration() != null) {
+                    step.setDurationMs(event.getResult().getDuration().toMillis());
+                }
+                
+                switch (event.getResult().getStatus()) {
+                    case PASSED:
+                        step.setStatus(ExecutionStatus.PASSED);
+                        break;
+                    case FAILED:
+                        step.setStatus(ExecutionStatus.FAILED);
+                        if (event.getResult().getError() != null) {
+                            Throwable error = event.getResult().getError();
+                            String errMsg = error.getMessage() != null ? error.getMessage() : error.getClass().getName();
+                            
+                            StackTraceElement failingElement = null;
+                            for (StackTraceElement el : error.getStackTrace()) {
+                                if (el.getClassName().startsWith("com.bdd.portal") && !el.getClassName().contains("DatabaseReportingPlugin")) {
+                                    failingElement = el;
+                                    break;
+                                }
+                            }
+                            if (failingElement == null && error.getStackTrace().length > 0) {
+                                failingElement = error.getStackTrace()[0];
+                            }
+                            
+                            if (failingElement != null) {
+                                String failedLocation = "Location: " + failingElement.getClassName() + "." + failingElement.getMethodName() + 
+                                                      " (" + failingElement.getFileName() + ":" + failingElement.getLineNumber() + ")";
+                                errMsg = errMsg + "\n\n" + failedLocation;
+                            }
+                            
+                            // Strip non-ASCII characters to prevent DB encoding errors (e.g. Cucumber's ✽)
+                            errMsg = errMsg.replaceAll("[^\\x00-\\x7F]", "");
+                            step.setErrorMessage(errMsg);
+                            
+                            StringWriter sw = new StringWriter();
+                            PrintWriter pw = new PrintWriter(sw);
+                            error.printStackTrace(pw);
+                            
+                            String stackTraceString = sw.toString();
+                            // Strip non-ASCII characters to prevent DB encoding errors (e.g. Cucumber's ✽)
+                            stackTraceString = stackTraceString.replaceAll("[^\\x00-\\x7F]", "");
+                            
+                            if (stackTraceString.length() > 60000) {
+                                stackTraceString = stackTraceString.substring(0, 60000) + "... [TRUNCATED]";
+                            }
+                            step.setStackTrace(stackTraceString);
                         }
-                    }
-                    break;
-                case SKIPPED:
-                    latestStep.setStatus(ExecutionStatus.SKIPPED);
-                    break;
-                default:
-                    latestStep.setStatus(ExecutionStatus.FAILED);
+                        break;
+                    case SKIPPED:
+                        step.setStatus(ExecutionStatus.SKIPPED);
+                        break;
+                    default:
+                        step.setStatus(ExecutionStatus.FAILED);
+                }
+                
+                stepExecutionRepository.save(step);
             }
-            
-            stepExecutionRepository.save(latestStep);
-            notificationService.sendExecutionStatusUpdate(currentExecutionId, "STEP_FINISHED");
+            currentStepId.remove();
         }
-        currentStepId.remove();
     }
 
     private void handleTestCaseFinished(TestCaseFinished event) {
+        // Handled by ExecutorWorker directly (QueueService.markScenarioComplete) 
+        // to avoid duplicate DB calls, but we can capture additional info if needed.
+    }
+
+    private void handleWriteEvent(WriteEvent event) {
         initBeans();
-        if (currentExecutionId == null) return;
-        
-        String scenarioId = event.getTestCase().getId().toString();
-        ScenarioExecution scenario = scenarioMap.get(scenarioId);
-        
-        if (scenario != null) {
-            scenario.setEndTime(LocalDateTime.now());
-            scenario.setDurationMs(event.getResult().getDuration().toMillis());
-            
-            switch (event.getResult().getStatus()) {
-                case PASSED:
-                    scenario.setStatus(ExecutionStatus.PASSED);
-                    break;
-                case FAILED:
-                    scenario.setStatus(ExecutionStatus.FAILED);
-                    break;
-                case SKIPPED:
-                    scenario.setStatus(ExecutionStatus.SKIPPED);
-                    break;
-                default:
-                    scenario.setStatus(ExecutionStatus.FAILED);
-            }
-            
-            scenarioExecutionRepository.save(scenario);
-            notificationService.sendExecutionStatusUpdate(currentExecutionId, "SCENARIO_FINISHED");
-            
-            // Immediately mark feature as failed if a scenario fails
-            if (scenario.getStatus() == ExecutionStatus.FAILED) {
-                FeatureExecution feature = scenario.getFeatureExecution();
-                if (feature != null && feature.getStatus() != ExecutionStatus.FAILED) {
-                    feature.setStatus(ExecutionStatus.FAILED);
-                    featureExecutionRepository.save(feature);
-                    notificationService.sendExecutionStatusUpdate(currentExecutionId, "FEATURE_FAILED");
-                }
-            }
-            
-            // Increment passed/failed counts on Execution
-            Optional<Execution> executionOpt = executionRepository.findById(currentExecutionId);
-            if (executionOpt.isPresent()) {
-                Execution exec = executionOpt.get();
-                if (scenario.getStatus() == ExecutionStatus.PASSED) {
-                    exec.setPassedScenarios(exec.getPassedScenarios() + 1);
-                } else if (scenario.getStatus() == ExecutionStatus.FAILED) {
-                    exec.setFailedScenarios(exec.getFailedScenarios() + 1);
-                } else {
-                    exec.setSkippedScenarios(exec.getSkippedScenarios() + 1);
-                }
-                executionRepository.save(exec);
+        Long stepId = currentStepId.get();
+        if (stepId != null) {
+            StepExecution step = stepExecutionRepository.findById(stepId).orElse(null);
+            if (step != null) {
+                String existing = step.getStepLog() == null ? "" : step.getStepLog() + "\n";
+                step.setStepLog(existing + event.getText());
+                stepExecutionRepository.save(step);
             }
         }
     }
 
-    private void handleTestRunFinished(TestRunFinished event) {
+    private void handleEmbedEvent(EmbedEvent event) {
         initBeans();
-        if (currentExecutionId == null) return;
-        
-        // Finish any running features
-        for (FeatureExecution feature : featureMap.values()) {
-            if (feature.getStatus() == ExecutionStatus.RUNNING) {
-                // Determine status based on scenarios
-                boolean hasFailed = scenarioExecutionRepository.findByFeatureExecutionId(feature.getId())
-                        .stream().anyMatch(s -> s.getStatus() == ExecutionStatus.FAILED);
-                
-                feature.setStatus(hasFailed ? ExecutionStatus.FAILED : ExecutionStatus.PASSED);
-                feature.setEndTime(LocalDateTime.now());
-                if (feature.getStartTime() != null) {
-                    feature.setDurationMs(java.time.Duration.between(feature.getStartTime(), feature.getEndTime()).toMillis());
+        Long stepId = currentStepId.get();
+        if (stepId != null) {
+            StepExecution step = stepExecutionRepository.findById(stepId).orElse(null);
+            if (step != null) {
+                if (event.getMediaType().startsWith("image/")) {
+                    String base64 = java.util.Base64.getEncoder().encodeToString(event.getData());
+                    String imgTag = "\n[" + java.time.LocalDateTime.now().toString() + "] [SCREENSHOT] data:" + event.getMediaType() + ";base64," + base64 + "\n";
+                    String existing = step.getStepLog() == null ? "" : step.getStepLog();
+                    step.setStepLog(existing + imgTag);
+                    stepExecutionRepository.save(step);
+                } else if (event.getMediaType().startsWith("text/")) {
+                    String text = new String(event.getData(), java.nio.charset.StandardCharsets.UTF_8);
+                    String existing = step.getStepLog() == null ? "" : step.getStepLog() + "\n";
+                    step.setStepLog(existing + text);
+                    stepExecutionRepository.save(step);
                 }
-                featureExecutionRepository.save(feature);
             }
         }
-        
-        notificationService.sendExecutionStatusUpdate(currentExecutionId, "TEST_RUN_FINISHED");
     }
 }

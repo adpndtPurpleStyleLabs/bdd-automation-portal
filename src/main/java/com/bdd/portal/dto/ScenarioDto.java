@@ -18,7 +18,8 @@ public class ScenarioDto {
     private String type; // "Scenario" or "Scenario Outline"
     private List<String> tags;
     private Integer stepCount = 0;
-    private List<String> steps;
+    private List<StepDto> steps;
+    private List<ExampleDto> examples;
     private ExecutionStatus status;
     private ExecutionStatus previousStatus;
     private Long durationMs;

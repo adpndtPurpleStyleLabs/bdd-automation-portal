@@ -23,4 +23,6 @@ public interface ExecutionRepository extends JpaRepository<Execution, Long>, Jpa
     List<Execution> findTop30ByOrderByStartTimeDesc();
     List<Execution> findByStartTimeAfterOrderByStartTimeAsc(java.time.LocalDateTime startTime);
     Page<Execution> findAll(Pageable pageable);
+    
+    java.util.Optional<Execution> findByExecutionUuid(String executionUuid);
 }

@@ -14,6 +14,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import com.bdd.portal.service.ScenarioQueueService;
+import com.bdd.portal.service.ScenarioDiscoveryService;
+import jakarta.annotation.PostConstruct;
 
 import com.bdd.portal.service.ExecutionEngineService;
 
@@ -31,6 +34,16 @@ public class ExecutionRestController {
     private final EmailQueueRepository emailQueueRepository;
     private final EmailTemplateService emailTemplateService;
     private final ExecutionEngineService executionEngineService;
+    private final ScenarioQueueService scenarioQueueService;
+    private final ScenarioDiscoveryService scenarioDiscoveryService;
+
+    @PostConstruct
+    public void testDiscovery() {
+        System.out.println("TESTING DISCOVERY ON STARTUP");
+        executionRepository.findById(3L).ifPresent(e -> {
+            scenarioDiscoveryService.discoverAndQueueScenarios(e);
+        });
+    }
 
     @PostMapping("/{id}/share")
     public ResponseEntity<?> shareExecutionViaEmail(@PathVariable Long id, @RequestBody Map<String, List<String>> request) {
@@ -103,5 +116,20 @@ public class ExecutionRestController {
                 .collect(Collectors.toSet());
                 
         return ResponseEntity.ok(uniqueEmails.stream().sorted().collect(Collectors.toList()));
+    }
+    
+    @GetMapping("/debug-queue")
+    public ResponseEntity<?> debugQueue() {
+        try {
+            java.util.Optional<com.bdd.portal.entity.ScenarioExecution> scenario = scenarioQueueService.getNextScenario("debug-worker-1");
+            if (scenario.isPresent()) {
+                return ResponseEntity.ok("Claimed: " + scenario.get().getScenarioExecutionUuid());
+            }
+            return ResponseEntity.ok("No scenario claimed.");
+        } catch (Exception e) {
+            java.io.StringWriter sw = new java.io.StringWriter();
+            e.printStackTrace(new java.io.PrintWriter(sw));
+            return ResponseEntity.status(org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR).body(sw.toString());
+        }
     }
 }

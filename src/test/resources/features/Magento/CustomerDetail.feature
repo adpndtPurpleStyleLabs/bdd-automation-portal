@@ -1,4 +1,4 @@
-Feature: Order Creation check
+Feature: Order Creation check 2
 
   @sanity @CustomerDetailPage
   Scenario: Populate address for all customer types
@@ -9,7 +9,7 @@ Feature: Order Creation check
 
 
   @sanity @CustomerDetailPage
-  Scenario: Populate address for all customer types
+  Scenario: Populate address for all customer types 2
     Given User is on the Dashboard page
     Then Logged in user opens order creation
     Then User should be on customer details page

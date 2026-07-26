@@ -30,36 +30,10 @@ public class FeatureFile {
 
     private String folder;
 
-    @Column(length = 1000)
-    private String description;
-
-    private String tags;
-
-    private int scenarioCount;
-
-    private int stepCount;
-
-    private LocalDateTime lastModified;
-
-    private boolean enabled = true;
-
-    @ElementCollection(fetch = FetchType.EAGER)
-    @CollectionTable(name = "feature_scenarios", joinColumns = @JoinColumn(name = "feature_file_id"))
-    private List<FeatureScenario> scenarios = new ArrayList<>();
-
-    @Embeddable
-    @Getter
-    @Setter
-    public static class FeatureScenario {
-        private String name;
-        private int lineNumber;
-        private String slug;
-
-        public FeatureScenario() {}
-
-        public FeatureScenario(String name, int lineNumber) {
-            this.name = name;
-            this.lineNumber = lineNumber;
-        }
-    }
+    private Integer currentVersion = 1;
+    
+    // We will establish a OneToMany relationship to FeatureVersion if needed, 
+    // but usually querying versions by featureFile ID is sufficient.
+    @OneToMany(mappedBy = "featureFile", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<FeatureVersion> versions = new ArrayList<>();
 }

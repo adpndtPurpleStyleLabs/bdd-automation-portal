@@ -3,11 +3,8 @@
 <head>
     <title>Execution Details</title>
     <style>
-        .feature-card { border-radius: 4px; border: 1px solid #e2e8f0; margin-bottom: 8px; overflow: hidden; background: white; font-size: 0.9rem; }
-        .feature-header { background: #f8fafc; padding: 8px 15px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; transition: background 0.2s; }
-        .feature-header:hover { background: #edf2f7; }
-        .scenario-container { border-bottom: 1px solid #edf2f7; background: #fff; }
-        .scenario-item { padding: 6px 15px 6px 30px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; transition: background 0.2s; font-size: 0.85rem; }
+        .scenario-container { background: #fff; }
+        .scenario-item { padding: 8px 15px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; transition: background 0.2s; font-size: 0.85rem; }
         .scenario-item:hover { background: #f8fafc; }
         .step-list { list-style: none; padding: 0; margin: 0; display: none; background: #f8fafc; border-top: 1px solid #edf2f7; }
         .step-item { padding: 4px 15px 4px 45px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px dashed #e2e8f0; font-size: 0.8rem; }
@@ -73,28 +70,15 @@
 
         <div class="row">
             <div class="col-12">
+                <div class="mb-3">
+                    <input type="text" id="scenarioSearch" class="form-control" placeholder="Search scenarios or steps..." onkeyup="filterScenarios()">
+                </div>
                 <div id="feature-container">
-                    <!-- Iterate through Features -->
-                    <div th:each="feature : ${execution.featureExecutions}" class="feature-card">
-                        <div class="feature-header" th:onclick="'toggleScenarios(this, ' + ${feature.id} + ')'">
-                            <div class="d-flex align-items-center">
-                                <i class="bi bi-chevron-right toggle-icon me-2" style="font-size: 0.8rem;"></i>
-                                <div>
-                                    <h6 class="mb-0 fw-bold">[[${feature.featureName}]]</h6>
-                                    <small class="text-muted" style="font-size: 0.75rem;">Duration: [[${feature.durationMs != null ? feature.durationMs / 1000.0 : '-'}]]s</small>
-                                </div>
-                            </div>
-                            <span class="status-badge" th:classappend="'status-' + ${feature.status.name()}">
-                                <span th:if="${feature.status.name() == 'RUNNING'}" class="spinner-border spinner-border-sm me-1"></span>
-                                [[${feature.status}]]
-                            </span>
-                        </div>
-                        
-                        <!-- Scenarios Container (hidden by default) -->
-                        <div th:id="'scenarios-' + ${feature.id}" style="display: none;">
-                            <div th:each="scenario : ${feature.scenarios}" class="scenario-container">
-                                <div class="scenario-item" th:onclick="'toggleSteps(this, ' + ${scenario.id} + ')'">
-                                    <div class="d-flex align-items-center ms-4">
+                    <!-- Iterate through Features implicitly -->
+                    <th:block th:each="feature : ${execution.featureExecutions}">
+                        <div th:each="scenario : ${feature.scenarios}" class="scenario-container mb-2 border rounded shadow-sm">
+                            <div class="scenario-item" th:onclick="'toggleSteps(this, ' + ${scenario.id} + ')'">
+                                <div class="d-flex align-items-center ms-2">
                                         <i class="bi bi-list-task text-secondary me-2"></i>
                                         <div>
                                             <span class="fw-medium">[[${scenario.scenarioName}]]</span>
@@ -126,8 +110,18 @@
                                         <!-- Step Extended Details (Logs & Screenshot) -->
                                         <li class="step-extended-details bg-light border-start border-3" th:id="'step-details-' + ${step.id}" style="display: none; padding: 6px 12px; font-size: 0.8rem;" th:classappend="${step.status.name() == 'FAILED' ? 'border-danger' : 'border-primary'}">
                                             
-                                            <div th:if="${step.errorMessage != null}" class="text-danger mb-1">
-                                                <strong>Error:</strong> [[${step.errorMessage}]]
+                                            <div th:if="${step.errorMessage != null}" class="alert alert-danger p-2 mb-2 shadow-sm border-danger" style="font-size: 0.85rem;">
+                                                <div class="fw-bold mb-1 text-danger"><i class="bi bi-exclamation-triangle-fill me-1"></i>Error Message:</div>
+                                                <div style="white-space: pre-wrap; word-break: break-all;" class="text-dark" th:text="${step.errorMessage}"></div>
+                                                
+                                                <div th:if="${step.stackTrace != null}" class="mt-2 pt-2 border-top border-danger-subtle">
+                                                    <a class="text-danger text-decoration-none fw-medium" data-bs-toggle="collapse" th:href="'#stackTrace-' + ${step.id}" role="button" aria-expanded="false" style="font-size: 0.8rem;">
+                                                        <i class="bi bi-bug me-1"></i>View Full Stacktrace
+                                                    </a>
+                                                    <div class="collapse mt-2" th:id="'stackTrace-' + ${step.id}">
+                                                        <pre class="bg-dark text-light p-2 rounded shadow-inner" style="font-size: 0.75rem; max-height: 400px; overflow-y: auto; white-space: pre-wrap; word-break: break-all;" th:text="${step.stackTrace}"></pre>
+                                                    </div>
+                                                </div>
                                             </div>
                                             
                                             <div th:if="${step.stepLog != null and !step.stepLog.isEmpty()}" class="step-log-container">
@@ -145,9 +139,8 @@
                                         <span class="text-muted fst-italic">No steps recorded or execution pending...</span>
                                     </li>
                                 </ul>
-                            </div>
                         </div>
-                    </div>
+                    </th:block>
                     
                     <div th:if="${#lists.isEmpty(execution.featureExecutions)}" class="text-center py-5 text-muted">
                         <i class="bi bi-journal-x fs-1 d-block mb-3"></i>
@@ -163,14 +156,27 @@
         <script src="https://cdn.jsdelivr.net/npm/stompjs@2.3.3/lib/stomp.min.js"></script>
         <script th:inline="javascript">
             // UI Toggle Functions
-            function toggleScenarios(headerElement, featureId) {
-                headerElement.classList.toggle('expanded');
-                const scenariosDiv = document.getElementById('scenarios-' + featureId);
-                if (scenariosDiv.style.display === 'none') {
-                    scenariosDiv.style.display = 'block';
-                } else {
-                    scenariosDiv.style.display = 'none';
-                }
+            function filterScenarios() {
+                const query = document.getElementById('scenarioSearch').value.toLowerCase();
+                const scenarios = document.querySelectorAll('.scenario-container');
+                
+                scenarios.forEach(container => {
+                    const scenarioName = container.querySelector('.fw-medium').textContent.toLowerCase();
+                    const steps = container.querySelectorAll('.step-name');
+                    let stepMatches = false;
+                    
+                    steps.forEach(step => {
+                        if (step.textContent.toLowerCase().includes(query)) {
+                            stepMatches = true;
+                        }
+                    });
+                    
+                    if (scenarioName.includes(query) || stepMatches) {
+                        container.style.display = 'block';
+                    } else {
+                        container.style.display = 'none';
+                    }
+                });
             }
             
             function toggleSteps(itemElement, scenarioId) {
@@ -278,11 +284,6 @@
                             }
                             
                             // Capture expanded state
-                            var expandedScenarios = [];
-                            document.querySelectorAll('[id^="scenarios-"]').forEach(el => {
-                                if (el.style.display === 'block') expandedScenarios.push(el.id);
-                            });
-                            
                             var expandedSteps = [];
                             document.querySelectorAll('[id^="steps-"]').forEach(el => {
                                 if (el.style.display === 'block') expandedSteps.push(el.id);
@@ -301,15 +302,6 @@
                             }
                             
                             // Restore expanded state
-                            expandedScenarios.forEach(id => {
-                                var el = document.getElementById(id);
-                                if (el) {
-                                    el.style.display = 'block';
-                                    var header = el.previousElementSibling;
-                                    if (header) header.classList.add('expanded');
-                                }
-                            });
-                            
                             expandedSteps.forEach(id => {
                                 var el = document.getElementById(id);
                                 if (el) el.style.display = 'block';
@@ -328,6 +320,7 @@
                                 }
                             });
                             
+                            filterScenarios();
                             updatePending = false;
                         });
                 }

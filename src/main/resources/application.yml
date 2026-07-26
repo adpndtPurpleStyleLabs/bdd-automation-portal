@@ -34,6 +34,8 @@ bdd:
     reports-path: target/allure-results
     selenium-grid-url: ${GRID_URL:http://141.94.137.133:5503/wd/hub}
     screenshots-path: bdd-reports/screenshots
+    executor:
+      max-workers: 3
 
 vnc:
   public:

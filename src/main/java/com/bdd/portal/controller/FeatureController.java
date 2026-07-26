@@ -1,8 +1,12 @@
 package com.bdd.portal.controller;
 
-
 import com.bdd.portal.entity.FeatureFile;
+import com.bdd.portal.entity.FeatureVersion;
+import com.bdd.portal.entity.Scenario;
+import com.bdd.portal.entity.VersionStatus;
 import com.bdd.portal.repository.FeatureFileRepository;
+import com.bdd.portal.repository.FeatureVersionRepository;
+import com.bdd.portal.repository.ScenarioRepository;
 import com.bdd.portal.service.FeatureScannerService;
 import com.bdd.portal.service.TestEnvironmentService;
 import lombok.RequiredArgsConstructor;
@@ -18,7 +22,6 @@ import com.bdd.portal.entity.FeatureExecution;
 import com.bdd.portal.repository.FeatureExecutionRepository;
 import com.bdd.portal.repository.ScenarioExecutionRepository;
 import com.bdd.portal.entity.ScenarioExecution;
-import com.bdd.portal.util.FeatureParserUtil;
 
 import java.nio.file.Path;
 import org.springframework.data.domain.Page;
@@ -36,6 +39,8 @@ import org.springframework.beans.factory.annotation.Value;
 public class FeatureController {
 
     private final FeatureFileRepository featureFileRepository;
+    private final FeatureVersionRepository featureVersionRepository;
+    private final ScenarioRepository scenarioRepository;
     private final FeatureScannerService featureScannerService;
     private final FeatureExecutionRepository featureExecutionRepository;
     private final ScenarioExecutionRepository scenarioExecutionRepository;
@@ -46,11 +51,11 @@ public class FeatureController {
 
     @GetMapping
     public String listFeatures(Model model) {
-        List<FeatureFile> features = featureFileRepository.findAll();
+        List<FeatureVersion> activeVersions = featureVersionRepository.findByStatus(VersionStatus.ACTIVE);
         
-        // Group by folder for tree view
-        Map<String, List<FeatureFile>> grouped = features.stream()
-                .collect(Collectors.groupingBy(f -> f.getFolder() != null ? f.getFolder() : "Root"));
+        // Group by folder for tree view using the associated FeatureFile
+        Map<String, List<FeatureVersion>> grouped = activeVersions.stream()
+                .collect(Collectors.groupingBy(fv -> fv.getFeatureFile().getFolder() != null ? fv.getFeatureFile().getFolder() : "Root"));
         
         model.addAttribute("featuresByFolder", grouped);
         model.addAttribute("environments", testEnvironmentService.getAllEnvironmentNames());
@@ -63,12 +68,28 @@ public class FeatureController {
         if (feature == null) {
             return "redirect:/features";
         }
-        Path path = Paths.get(featuresPath, feature.getRelativePath());
-        List<ScenarioDto> scenarios = FeatureParserUtil.parseFeatureFile(path);
         
-        List<FeatureExecution> topExecutions = featureExecutionRepository.findTop5ByFeatureNameOrderByStartTimeDesc(path.getFileName().toString());
+        FeatureVersion activeVersion = featureVersionRepository.findByFeatureFileIdAndStatus(feature.getId(), VersionStatus.ACTIVE).orElse(null);
+        if (activeVersion == null) {
+            return "redirect:/features";
+        }
         
-        for (ScenarioDto dto : scenarios) {
+        List<Scenario> activeScenarios = scenarioRepository.findByFeatureVersionIdAndStatus(activeVersion.getId(), VersionStatus.ACTIVE);
+        
+        // We still need to construct DTOs for the UI if it relies on them, or just use the Scenario entity.
+        // The UI currently expects a list of ScenarioDto, or we can adapt it to expect Scenario entity.
+        // Let's create ScenarioDto list from activeScenarios to minimize UI changes.
+        List<ScenarioDto> dtos = activeScenarios.stream().map(s -> {
+            ScenarioDto dto = new ScenarioDto();
+            dto.setName(s.getScenarioName());
+            dto.setLine(s.getLineNumber());
+            dto.setSlug(s.getSlug());
+            return dto;
+        }).collect(Collectors.toList());
+        
+        List<FeatureExecution> topExecutions = featureExecutionRepository.findTop5ByFeatureNameOrderByStartTimeDesc(Path.of(feature.getRelativePath()).getFileName().toString());
+        
+        for (ScenarioDto dto : dtos) {
             List<ScenarioExecution> scenarioHistory = new java.util.ArrayList<>();
             for (FeatureExecution fe : topExecutions) {
                 if (fe.getScenarios() != null) {
@@ -91,7 +112,8 @@ public class FeatureController {
         }
         
         model.addAttribute("feature", feature);
-        model.addAttribute("scenarios", scenarios);
+        model.addAttribute("featureVersion", activeVersion);
+        model.addAttribute("scenarios", dtos);
         model.addAttribute("environments", testEnvironmentService.getAllEnvironmentNames());
         return "features/detail";
     }
@@ -103,24 +125,44 @@ public class FeatureController {
         if (feature == null) {
             return "redirect:/features";
         }
-        Path path = Paths.get(featuresPath, feature.getRelativePath());
-        List<ScenarioDto> scenarios = FeatureParserUtil.parseFeatureFile(path);
         
-        ScenarioDto scenario = scenarios.stream()
+        FeatureVersion activeVersion = featureVersionRepository.findByFeatureFileIdAndStatus(feature.getId(), VersionStatus.ACTIVE).orElse(null);
+        if (activeVersion == null) {
+            return "redirect:/features";
+        }
+
+        List<Scenario> activeScenarios = scenarioRepository.findByFeatureVersionIdAndStatus(activeVersion.getId(), VersionStatus.ACTIVE);
+        
+        Scenario scenarioEntity = activeScenarios.stream()
                 .filter(s -> scenarioSlug.equals(s.getSlug()))
                 .findFirst()
                 .orElse(null);
                 
-        if (scenario == null) {
+        if (scenarioEntity == null) {
             return "redirect:/features/" + moduleSlug + "/" + featureSlug;
+        }
+        
+        List<ScenarioDto> parsedScenarios = com.bdd.portal.util.FeatureParserUtil.parseFeatureContent(activeVersion.getContent(), feature.getRelativePath());
+        ScenarioDto scenario = parsedScenarios.stream()
+                .filter(s -> scenarioSlug.equals(s.getSlug()))
+                .findFirst()
+                .orElse(null);
+        
+        if (scenario == null) {
+            // fallback if slug mismatch
+            scenario = new ScenarioDto();
+            scenario.setName(scenarioEntity.getScenarioName());
+            scenario.setLine(scenarioEntity.getLineNumber());
+            scenario.setSlug(scenarioEntity.getSlug());
         }
 
         List<FeatureExecution> topExecutions = featureExecutionRepository.findTop5ByFeatureNameOrderByStartTimeDesc(Path.of(feature.getRelativePath()).getFileName().toString());
         List<ScenarioExecution> scenarioHistoryList = new java.util.ArrayList<>();
+        final String targetScenarioName = scenario.getName();
         for (FeatureExecution fe : topExecutions) {
             if (fe.getScenarios() != null) {
                 fe.getScenarios().stream()
-                    .filter(se -> se.getScenarioName().equals(scenario.getName()))
+                    .filter(se -> se.getScenarioName().equals(targetScenarioName))
                     .findFirst()
                     .ifPresent(scenarioHistoryList::add);
             }
@@ -140,6 +182,7 @@ public class FeatureController {
                 Path.of(feature.getRelativePath()).getFileName().toString(), scenario.getName(), PageRequest.of(page, size));
         
         model.addAttribute("feature", feature);
+        model.addAttribute("featureVersion", activeVersion);
         model.addAttribute("scenario", scenario);
         model.addAttribute("executionHistory", executionHistory);
         model.addAttribute("environments", testEnvironmentService.getAllEnvironmentNames());

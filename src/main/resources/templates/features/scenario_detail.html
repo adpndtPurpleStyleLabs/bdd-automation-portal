@@ -45,16 +45,57 @@
                 <!-- Scenario Steps -->
                 <div class="card border-0 shadow-sm mb-4">
                     <div class="card-header bg-white border-bottom fw-bold d-flex align-items-center gap-2">
-                        <i class="bi bi-card-text text-primary"></i> Girkin Scenario Steps
+                        <i class="bi bi-card-text text-primary"></i> Gherkin Scenario Steps
                     </div>
                     <div class="card-body p-0">
                         <ul class="list-group list-group-flush font-monospace" style="font-size: 0.9rem;">
                             <li class="list-group-item px-4 py-3 bg-light border-bottom-0 text-muted text-center" th:if="${#lists.isEmpty(scenario.steps)}">No steps found.</li>
-                            <li class="list-group-item px-4 py-2 border-bottom d-flex gap-2 align-items-start" th:each="step : ${scenario.steps}">
-                                <span class="fw-bold" style="color: #4f46e5; min-width: 50px;" th:text="${#strings.substringBefore(step, ' ')}">Given</span>
-                                <span class="text-dark" th:text="${#strings.substringAfter(step, ' ')}">some step</span>
+                            <li class="list-group-item px-4 py-3 border-bottom d-flex flex-column gap-2" th:each="step : ${scenario.steps}">
+                                <div class="d-flex align-items-start gap-2">
+                                    <span class="fw-bold" style="color: #4f46e5; min-width: 50px;" th:text="${step.keyword}">Given</span>
+                                    <span class="text-dark" th:text="${step.text}">some step</span>
+                                </div>
+                                
+                                <!-- DocString -->
+                                <div th:if="${step.docString != null}" class="ms-5 me-3 p-3 bg-light text-muted border rounded" style="font-size: 0.85rem; white-space: pre-wrap;" th:text="${step.docString}">
+                                </div>
+                                
+                                <!-- Data Table -->
+                                <div th:if="${step.dataTable != null and not #lists.isEmpty(step.dataTable)}" class="ms-5 me-3 mt-1 table-responsive">
+                                    <table class="table table-sm table-bordered mb-0" style="font-size: 0.85rem;">
+                                        <tbody>
+                                            <tr th:each="row : ${step.dataTable}">
+                                                <td th:each="cell : ${row}" th:text="${cell}" class="text-secondary bg-light"></td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
                             </li>
                         </ul>
+                    </div>
+                </div>
+                
+                <!-- Examples (if Scenario Outline) -->
+                <div th:if="${scenario.examples != null and not #lists.isEmpty(scenario.examples)}" class="card border-0 shadow-sm mb-4">
+                    <div class="card-header bg-white border-bottom fw-bold d-flex align-items-center gap-2">
+                        <i class="bi bi-table text-primary"></i> Examples
+                    </div>
+                    <div class="card-body p-0" th:each="ex : ${scenario.examples}">
+                        <div class="p-3 bg-light fw-medium border-bottom font-monospace" style="font-size: 0.85rem;" th:if="${ex.name != null and !ex.name.isEmpty()}" th:text="${ex.name}">Example Name</div>
+                        <div class="table-responsive p-3">
+                            <table class="table table-hover table-sm table-bordered mb-0 font-monospace" style="font-size: 0.85rem;">
+                                <thead class="table-light">
+                                    <tr th:if="${ex.headers != null}">
+                                        <th th:each="header : ${ex.headers}" th:text="${header}"></th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr th:each="row : ${ex.rows}">
+                                        <td th:each="cell : ${row}" th:text="${cell}" class="text-secondary"></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
                 

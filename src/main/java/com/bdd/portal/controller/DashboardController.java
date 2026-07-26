@@ -1,8 +1,9 @@
 package com.bdd.portal.controller;
 
 import com.bdd.portal.entity.Execution;
+import com.bdd.portal.entity.VersionStatus;
 import com.bdd.portal.repository.ExecutionRepository;
-import com.bdd.portal.repository.FeatureFileRepository;
+import com.bdd.portal.repository.FeatureVersionRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -17,14 +18,14 @@ import java.util.List;
 @RequiredArgsConstructor
 public class DashboardController {
 
-    private final FeatureFileRepository featureFileRepository;
+    private final FeatureVersionRepository featureVersionRepository;
     private final ExecutionRepository executionRepository;
 
     @GetMapping("/")
     public String dashboard(Model model, @RequestParam(defaultValue = "7") int days) {
-        long totalFeatures = featureFileRepository.count();
+        long totalFeatures = featureVersionRepository.countByStatus(VersionStatus.ACTIVE);
         long totalExecutions = executionRepository.count();
-        Long totalScenarios = featureFileRepository.getTotalScenarios();
+        Long totalScenarios = featureVersionRepository.getTotalScenarios();
         if (totalScenarios == null) totalScenarios = 0L;
 
         model.addAttribute("totalFeatures", totalFeatures);

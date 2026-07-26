@@ -15,6 +15,9 @@ public class StepExecution {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(nullable = false, unique = true, updatable = false)
+    private String stepUuid = java.util.UUID.randomUUID().toString();
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "scenario_execution_id", nullable = false)
     @JsonIgnore

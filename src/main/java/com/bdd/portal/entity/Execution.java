@@ -17,6 +17,9 @@ public class Execution {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(nullable = false, unique = true, updatable = false)
+    private String executionUuid = java.util.UUID.randomUUID().toString();
+
     @ManyToOne
     @JoinColumn(name = "feature_file_id")
     private FeatureFile featureFile;
@@ -71,9 +74,13 @@ public class Execution {
 
     private Long durationMs; // in milliseconds
 
+    private int totalScenarios;
+    private int queuedScenarios;
+    private int runningScenarios;
     private int passedScenarios;
     private int failedScenarios;
     private int skippedScenarios;
+    private int cancelledScenarios;
 
     private String allureReportPath;
 

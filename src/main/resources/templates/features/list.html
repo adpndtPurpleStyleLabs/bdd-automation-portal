@@ -114,7 +114,7 @@
                                          class="img-fluid">
                                 </div>
                                 <div>
-                                    <a th:href="@{/features/{moduleSlug}/{slug}(moduleSlug=${feature.moduleSlug}, slug=${feature.slug})}" class="text-decoration-none fw-medium text-dark feature-link" th:text="${feature.name}" style="font-size: 0.85rem;">feature_name.feature</a>
+                                    <a th:href="@{/features/{moduleSlug}/{slug}(moduleSlug=${feature.featureFile.moduleSlug}, slug=${feature.featureFile.slug})}" class="text-decoration-none fw-medium text-dark feature-link" th:text="${feature.featureFile.name}" style="font-size: 0.85rem;">feature_name.feature</a>
                                     <!-- Optional description if needed, removed for cleaner look -->
                                 </div>
                             </div>
@@ -133,11 +133,11 @@
                                 <button type="button"
                                         class="btn btn-sm btn-light border text-muted px-3 fw-medium"
                                         style="font-size: 0.8rem;"
-                                        th:onclick="|window.location.href='@{/features/{moduleSlug}/{slug}(moduleSlug=${feature.moduleSlug}, slug=${feature.slug})}'|">
+                                        th:onclick="|window.location.href='@{/features/{moduleSlug}/{slug}(moduleSlug=${feature.featureFile.moduleSlug}, slug=${feature.featureFile.slug})}'|">
                                     <i class="bi bi-info-circle"></i> View Details
                                 </button>
                                 <button type="button" class="btn btn-sm btn-outline-primary px-3 fw-medium" style="font-size: 0.8rem;"
-                                        th:data-url="'/executions/run/feature/' + ${feature.id}"
+                                        th:data-url="'/executions/run/feature/' + ${feature.featureFile.id}"
                                         onclick="openRunModal(this.getAttribute('data-url'), false, '')">
                                     <i class="bi bi-play-fill"></i> Run
                                 </button>

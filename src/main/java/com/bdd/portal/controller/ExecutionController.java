@@ -10,6 +10,8 @@ import com.bdd.portal.repository.TestEnvironmentRepository;
 import com.bdd.portal.entity.TestEnvironment;
 import com.bdd.portal.service.ExecutionEngineService;
 import lombok.RequiredArgsConstructor;
+import com.bdd.portal.service.ScenarioDiscoveryService;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -36,6 +38,7 @@ public class ExecutionController {
     private final ExecutionRepository executionRepository;
     private final FeatureFileRepository featureFileRepository;
     private final TestEnvironmentRepository testEnvironmentRepository;
+    private final ScenarioDiscoveryService scenarioDiscoveryService;
     private final ExecutionEngineService executionEngineService;
 
     @GetMapping
@@ -105,9 +108,9 @@ public class ExecutionController {
         execution.setExecutionType(ExecutionType.MANUAL);
         execution.setReason(reason);
         execution.setNotifyEmails(notifyEmails);
-        executionRepository.save(execution);
+        execution = executionRepository.save(execution);
         
-        // executionEngineService.runExecution(execution); // Removed: handled by ExecutionQueueManager
+        execution = scenarioDiscoveryService.discoverAndQueueScenarios(execution);
         
         com.bdd.portal.config.SpringContext.getBean(com.bdd.portal.service.WebSocketNotificationService.class).broadcastExecutionUpdate(execution);
         
@@ -154,7 +157,9 @@ public class ExecutionController {
         execution.setExecutionType(ExecutionType.MANUAL);
         execution.setReason(reason);
         execution.setNotifyEmails(notifyEmails);
-        executionRepository.save(execution);
+        execution = executionRepository.save(execution);
+        
+        execution = scenarioDiscoveryService.discoverAndQueueScenarios(execution);
         
         com.bdd.portal.config.SpringContext.getBean(com.bdd.portal.service.WebSocketNotificationService.class).broadcastExecutionUpdate(execution);
         
@@ -200,7 +205,9 @@ public class ExecutionController {
         execution.setExecutionType(ExecutionType.MANUAL);
         execution.setReason(reason);
         execution.setNotifyEmails(notifyEmails);
-        executionRepository.save(execution);
+        execution = executionRepository.save(execution);
+        
+        execution = scenarioDiscoveryService.discoverAndQueueScenarios(execution);
         
         com.bdd.portal.config.SpringContext.getBean(com.bdd.portal.service.WebSocketNotificationService.class).broadcastExecutionUpdate(execution);
         
@@ -224,9 +231,9 @@ public class ExecutionController {
         execution.setExecutionType(ExecutionType.MANUAL);
         execution.setReason(reason);
         execution.setNotifyEmails(notifyEmails);
-        executionRepository.save(execution);
+        execution = executionRepository.save(execution);
         
-        // executionEngineService.runExecution(execution); // Removed: handled by ExecutionQueueManager
+        execution = scenarioDiscoveryService.discoverAndQueueScenarios(execution);
         
         com.bdd.portal.config.SpringContext.getBean(com.bdd.portal.service.WebSocketNotificationService.class).broadcastExecutionUpdate(execution);
         

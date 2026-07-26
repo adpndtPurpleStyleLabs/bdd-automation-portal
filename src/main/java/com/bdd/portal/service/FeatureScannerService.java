@@ -1,7 +1,12 @@
 package com.bdd.portal.service;
 
 import com.bdd.portal.entity.FeatureFile;
+import com.bdd.portal.entity.FeatureVersion;
+import com.bdd.portal.entity.Scenario;
+import com.bdd.portal.entity.VersionStatus;
 import com.bdd.portal.repository.FeatureFileRepository;
+import com.bdd.portal.repository.FeatureVersionRepository;
+import com.bdd.portal.repository.ScenarioRepository;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -14,12 +19,13 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.attribute.BasicFileAttributes;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Stream;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -27,12 +33,14 @@ import java.util.stream.Collectors;
 public class FeatureScannerService {
 
     private final FeatureFileRepository featureFileRepository;
+    private final FeatureVersionRepository featureVersionRepository;
+    private final ScenarioRepository scenarioRepository;
     private final SimpMessagingTemplate messagingTemplate;
 
     @Value("${bdd.portal.features-path}")
     private String featuresPath;
 
-    // Store in-memory scan results keyed by scanId
+    // Store in-memory scan results keyed by scanId - Not heavily used anymore due to complex relations, but kept for compatibility
     private final Map<String, List<FeatureFile>> inMemoryScans = new ConcurrentHashMap<>();
 
     @PostConstruct
@@ -50,11 +58,9 @@ public class FeatureScannerService {
     }
 
     public void saveInMemoryScan(String scanId) {
-        List<FeatureFile> results = inMemoryScans.remove(scanId);
-        if (results != null) {
-            featureFileRepository.saveAll(results);
-            log.info("Saved in-memory scan {} to database.", scanId);
-        }
+        // With the new architecture, in-memory scans for preview are trickier to persist directly.
+        // Usually, users trigger a real scan. We will just trigger a real scan here.
+        doScan(scanId, true);
     }
 
     private void doScan(String scanId, boolean persist) {
@@ -68,9 +74,6 @@ public class FeatureScannerService {
                 return;
             }
         }
-
-        List<FeatureFile> existingFeatures = featureFileRepository.findAll();
-        existingFeatures.forEach(f -> f.setEnabled(false));
 
         List<Path> featurePaths = new ArrayList<>();
         try (Stream<Path> paths = Files.walk(rootPath)) {
@@ -95,11 +98,36 @@ public class FeatureScannerService {
         List<String> duplicateFeatures = new ArrayList<>();
         List<String> duplicateScenarios = new ArrayList<>();
         boolean allHealthy = true;
+        
+        Set<Long> processedFeatureIds = new HashSet<>();
 
         for (Path path : featurePaths) {
-            boolean healthy = processFeatureFile(path, rootPath, existingFeatures, usedFeatureSlugs, usedScenarioSlugs, seenFeatureNames, seenScenarioNames, duplicateFeatures, duplicateScenarios, scanId);
-            if (!healthy) {
+            Long featureId = processFeatureFile(path, rootPath, usedFeatureSlugs, usedScenarioSlugs, seenFeatureNames, seenScenarioNames, duplicateFeatures, duplicateScenarios, scanId, persist);
+            if (featureId == null) {
                 allHealthy = false;
+            } else {
+                processedFeatureIds.add(featureId);
+            }
+        }
+
+        // Handle deleted files: Archive active versions of features that were not processed
+        if (persist) {
+            List<FeatureFile> allFeatures = featureFileRepository.findAll();
+            for (FeatureFile feature : allFeatures) {
+                if (!processedFeatureIds.contains(feature.getId())) {
+                    // This feature is no longer on disk. Archive its active version.
+                    Optional<FeatureVersion> activeVersionOpt = featureVersionRepository.findByFeatureFileIdAndStatus(feature.getId(), VersionStatus.ACTIVE);
+                    if (activeVersionOpt.isPresent()) {
+                        FeatureVersion activeVersion = activeVersionOpt.get();
+                        activeVersion.setStatus(VersionStatus.INACTIVE);
+                        featureVersionRepository.save(activeVersion);
+                        
+                        List<Scenario> activeScenarios = scenarioRepository.findByFeatureVersionIdAndStatus(activeVersion.getId(), VersionStatus.ACTIVE);
+                        activeScenarios.forEach(s -> s.setStatus(VersionStatus.INACTIVE));
+                        scenarioRepository.saveAll(activeScenarios);
+                        log.info("Archived Feature: {} as it was removed from disk.", feature.getRelativePath());
+                    }
+                }
             }
         }
 
@@ -112,16 +140,10 @@ public class FeatureScannerService {
             ));
         }
 
-        if (persist) {
-            featureFileRepository.saveAll(existingFeatures);
-            log.info("Feature scan completed and persisted.");
-        } else if (scanId != null) {
-            inMemoryScans.put(scanId, existingFeatures);
-            log.info("Feature scan {} completed in-memory.", scanId);
-        }
+        log.info("Feature scan completed.");
     }
 
-    private boolean processFeatureFile(Path filePath, Path rootPath, List<FeatureFile> existingFeatures, Set<String> usedFeatureSlugs, Set<String> usedScenarioSlugs, Set<String> seenFeatureNames, Set<String> seenScenarioNames, List<String> duplicateFeatures, List<String> duplicateScenarios, String scanId) {
+    private Long processFeatureFile(Path filePath, Path rootPath, Set<String> usedFeatureSlugs, Set<String> usedScenarioSlugs, Set<String> seenFeatureNames, Set<String> seenScenarioNames, List<String> duplicateFeatures, List<String> duplicateScenarios, String scanId, boolean persist) {
         try {
             String relativePath = rootPath.relativize(filePath).toString();
             String folder = filePath.getParent() != null ? rootPath.relativize(filePath.getParent()).toString() : "";
@@ -133,46 +155,61 @@ public class FeatureScannerService {
             
             String moduleSlug = makeSlug(folder.split("/")[0], new HashSet<>());
 
-            BasicFileAttributes attr = Files.readAttributes(filePath, BasicFileAttributes.class);
-            LocalDateTime lastModified = LocalDateTime.ofInstant(attr.lastModifiedTime().toInstant(), ZoneId.systemDefault());
+            byte[] fileBytes = Files.readAllBytes(filePath);
+            String fileHash = calculateSHA256(fileBytes);
+            String content = new String(fileBytes);
 
-            FeatureFile featureFile = existingFeatures.stream()
-                    .filter(f -> f.getRelativePath().equals(relativePath))
-                    .findFirst()
+            FeatureFile featureFile = featureFileRepository.findByRelativePath(relativePath)
                     .orElse(new FeatureFile());
 
             featureFile.setRelativePath(relativePath);
             featureFile.setFolder(folder);
             featureFile.setModuleSlug(moduleSlug);
-            featureFile.setLastModified(lastModified);
-            featureFile.setEnabled(true);
             
-            String fileName = filePath.getFileName().toString();
-            
-            if (scanId != null) {
-                sendWebSocketEvent(scanId, Map.of(
-                    "type", "FEATURE_FOUND",
-                    "featureName", fileName,
-                    "path", relativePath
-                ));
+            if (featureFile.getCurrentVersion() == null) {
+                featureFile.setCurrentVersion(1);
             }
 
-            parseFeatureContent(filePath, featureFile, usedFeatureSlugs, usedScenarioSlugs, seenFeatureNames, seenScenarioNames, duplicateFeatures, duplicateScenarios, scanId);
+            if (persist) {
+                if (featureFile.getId() != null) {
+                    Optional<FeatureVersion> activeVersionOpt = featureVersionRepository.findByFeatureFileIdAndStatus(featureFile.getId(), VersionStatus.ACTIVE);
+                    if (activeVersionOpt.isPresent()) {
+                        FeatureVersion activeVersion = activeVersionOpt.get();
+                        if (activeVersion.getFileHash().equals(fileHash)) {
+                            // Unchanged. Skip processing.
+                            return featureFile.getId();
+                        } else {
+                            // Changed. Archive active version.
+                            activeVersion.setStatus(VersionStatus.INACTIVE);
+                            featureVersionRepository.save(activeVersion);
+                            
+                            List<Scenario> activeScenarios = scenarioRepository.findByFeatureVersionIdAndStatus(activeVersion.getId(), VersionStatus.ACTIVE);
+                            activeScenarios.forEach(s -> s.setStatus(VersionStatus.INACTIVE));
+                            scenarioRepository.saveAll(activeScenarios);
+                            
+                            featureFile.setCurrentVersion(featureFile.getCurrentVersion() + 1);
+                        }
+                    }
+                }
+                
+                // Create new version
+                FeatureVersion newVersion = new FeatureVersion();
+                newVersion.setFeatureFile(featureFile);
+                newVersion.setVersion(featureFile.getCurrentVersion());
+                newVersion.setFileHash(fileHash);
+                newVersion.setContent(content);
+                newVersion.setStatus(VersionStatus.ACTIVE);
+                
+                parseFeatureContent(content, filePath, featureFile, newVersion, usedFeatureSlugs, usedScenarioSlugs, seenFeatureNames, seenScenarioNames, duplicateFeatures, duplicateScenarios, scanId, persist);
+                
+                return featureFile.getId();
+            } else {
+                // Not persisting, just parse in-memory to validate and send progress to UI
+                FeatureVersion fakeVersion = new FeatureVersion();
+                parseFeatureContent(content, filePath, featureFile, fakeVersion, usedFeatureSlugs, usedScenarioSlugs, seenFeatureNames, seenScenarioNames, duplicateFeatures, duplicateScenarios, scanId, persist);
+                return -1L;
+            }
 
-            if (featureFile.getId() == null) {
-                existingFeatures.add(featureFile);
-            }
-            
-            if (scanId != null) {
-                sendWebSocketEvent(scanId, Map.of(
-                    "type", "FEATURE_COMPLETED",
-                    "featureName", fileName,
-                    "scenarioCount", featureFile.getScenarioCount(),
-                    "status", "SUCCESS"
-                ));
-            }
-            
-            return true;
         } catch (Exception e) {
             log.error("Error processing feature file: {}", filePath, e);
             if (scanId != null) {
@@ -182,17 +219,16 @@ public class FeatureScannerService {
                     "message", e.getMessage() != null ? e.getMessage() : "Unknown error"
                 ));
             }
-            return false;
+            return null;
         }
     }
 
-    private void parseFeatureContent(Path filePath, FeatureFile featureFile, Set<String> usedFeatureSlugs, Set<String> usedScenarioSlugs, Set<String> seenFeatureNames, Set<String> seenScenarioNames, List<String> duplicateFeatures, List<String> duplicateScenarios, String scanId) throws IOException {
-        List<String> lines = Files.readAllLines(filePath);
+    private void parseFeatureContent(String content, Path filePath, FeatureFile featureFile, FeatureVersion newVersion, Set<String> usedFeatureSlugs, Set<String> usedScenarioSlugs, Set<String> seenFeatureNames, Set<String> seenScenarioNames, List<String> duplicateFeatures, List<String> duplicateScenarios, String scanId, boolean persist) {
+        String[] lines = content.split("\\r?\\n");
         String name = filePath.getFileName().toString();
         List<String> tags = new ArrayList<>();
         
-        // Use a new list and replace it entirely to avoid Hibernate detached collection issues during update
-        List<FeatureFile.FeatureScenario> parsedScenarios = new ArrayList<>();
+        List<Scenario> parsedScenarios = new ArrayList<>();
         
         int stepCount = 0;
         StringBuilder description = new StringBuilder();
@@ -224,27 +260,15 @@ public class FeatureScannerService {
                     duplicateScenarios.add(scenarioName);
                 }
                 
-                if (scanId != null) {
-                    sendWebSocketEvent(scanId, Map.of(
-                        "type", "SCENARIO_FOUND",
-                        "featureName", filePath.getFileName().toString(),
-                        "scenario", scenarioName
-                    ));
-                }
-                
                 String scSlug = makeSlug(scenarioName, usedScenarioSlugs);
-                if (scanId != null) {
-                    sendWebSocketEvent(scanId, Map.of(
-                        "type", "SCENARIO_SLUG_CREATED",
-                        "featureName", filePath.getFileName().toString(),
-                        "scenarioName", scenarioName,
-                        "slug", scSlug
-                    ));
-                }
                 
-                FeatureFile.FeatureScenario fs = new FeatureFile.FeatureScenario(scenarioName, lineNumber);
-                fs.setSlug(scSlug);
-                parsedScenarios.add(fs);
+                Scenario scenario = new Scenario();
+                scenario.setFeatureVersion(newVersion);
+                scenario.setScenarioName(scenarioName);
+                scenario.setLineNumber(lineNumber);
+                scenario.setSlug(scSlug);
+                scenario.setStatus(VersionStatus.ACTIVE);
+                parsedScenarios.add(scenario);
                 pastDescription = true;
             } else if (trimmed.startsWith("Given ") || trimmed.startsWith("When ") || 
                        trimmed.startsWith("Then ") || trimmed.startsWith("And ") || 
@@ -263,28 +287,48 @@ public class FeatureScannerService {
         
         String featureSlug = makeSlug(featureFile.getName(), usedFeatureSlugs);
         featureFile.setSlug(featureSlug);
-        
-        if (scanId != null) {
-            sendWebSocketEvent(scanId, Map.of(
-                "type", "FEATURE_SLUG_CREATED",
-                "featureName", filePath.getFileName().toString(),
-                "slug", featureSlug
-            ));
-        }
 
-        featureFile.setTags(String.join(" ", tags));
-        featureFile.setScenarioCount(parsedScenarios.size());
-        
-        featureFile.getScenarios().clear();
-        featureFile.getScenarios().addAll(parsedScenarios);
-        
-        featureFile.setStepCount(stepCount);
+        newVersion.setTags(String.join(" ", tags));
+        newVersion.setScenarioCount(parsedScenarios.size());
+        newVersion.setStepCount(stepCount);
         
         String descStr = description.toString().trim();
         if (descStr.length() > 1000) {
             descStr = descStr.substring(0, 997) + "...";
         }
-        featureFile.setDescription(descStr);
+        newVersion.setDescription(descStr);
+
+        if (persist) {
+            featureFileRepository.save(featureFile);
+            FeatureVersion savedVersion = featureVersionRepository.save(newVersion);
+            for (Scenario s : parsedScenarios) {
+                s.setFeatureVersion(savedVersion);
+            }
+            scenarioRepository.saveAll(parsedScenarios);
+        }
+        
+        if (scanId != null) {
+            sendWebSocketEvent(scanId, Map.of(
+                "type", "FEATURE_COMPLETED",
+                "featureName", featureFile.getName(),
+                "scenarioCount", newVersion.getScenarioCount(),
+                "status", "SUCCESS"
+            ));
+        }
+    }
+    
+    private String calculateSHA256(byte[] data) throws NoSuchAlgorithmException {
+        MessageDigest digest = MessageDigest.getInstance("SHA-256");
+        byte[] hash = digest.digest(data);
+        StringBuilder hexString = new StringBuilder(2 * hash.length);
+        for (byte b : hash) {
+            String hex = Integer.toHexString(0xff & b);
+            if (hex.length() == 1) {
+                hexString.append('0');
+            }
+            hexString.append(hex);
+        }
+        return hexString.toString();
     }
     
     private String makeSlug(String input, Set<String> usedSlugs) {
