@@ -100,12 +100,12 @@ Feature: Order Creation check
       When User fills customer using "<CustomerType>" with "<AddressType>" address and clicks next
       Then User navigate to sales information Page
       When User fill sales information and click next
-        | leadBy     | Bindi Pandya |
-        | createdBy  | Bindi Pandya |
-        | source     | Mail         |
-        | orderType  | <OrderType>  |
-        | slipNumber | 888888       |
-      Then User navigate to Item Detail page
+        | leadBy     | Sachin Mahara |
+        | createdBy  | Sachin Mahara |
+        | source     | Mail          |
+        | orderType  | <OrderType>   |
+        | slipNumber | 888888        |
+    Then User navigate to Item Detail page
       When User fill item details using testData for Store User
       Then Product must be added to cart with correct price
       And Shipping charges must be added on basis of Cart value and AddressType
@@ -140,12 +140,12 @@ Feature: Order Creation check
       When User fills customer using "<CustomerType>" with "<AddressType>" address and clicks next
       Then User navigate to sales information Page
       When User fill sales information and click next
-        | leadBy     | Bindi Pandya |
-        | createdBy  | Bindi Pandya |
-        | source     | Mail         |
-        | orderType  | <OrderType>  |
-        | slipNumber | 888888       |
-      Then User navigate to Item Detail page
+        | leadBy     | Automation Testing |
+        | createdBy  | Automation Testing |
+        | source     | Mail               |
+        | orderType  | <OrderType>        |
+        | slipNumber | 888888             |
+    Then User navigate to Item Detail page
       When User fill item details using testData for Store User
       Then Product must be added to cart with correct price
       And Shipping charges must be added on basis of Cart value and AddressType
