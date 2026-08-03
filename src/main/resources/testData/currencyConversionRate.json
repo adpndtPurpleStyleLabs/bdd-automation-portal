@@ -4,8 +4,8 @@
     "rate": 1
   },
   "gbp": {
-    "multiplier": 1.2,
-    "rate": 0.0095
+    "multiplier": 1,
+    "rate": 0.00835
   },
   "aed": {
     "multiplier": 1,

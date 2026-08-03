@@ -28,7 +28,10 @@ public class CustomerDetailPage extends BasePage{
     private final By billingMobileNumber = By.id("billing_mobile_no");
     private final By billingAddressTextArea = By.id("billing_street");
     private final By addAddressDetailButton = By.id("add_address_collection");
-    By customerCredit = By.id("customerCredit");
+    private final By customerCredit = By.id("customerCredit");
+    private final By customerCountryDropdown = By.id("currency_code_popup");
+    private final By submit = By.id("submitButton");
+    private final By storeAddress = By.xpath("//span[@class='bold h6' and text()='Store Address']");
 
     public boolean isOncustomerDetailPage() {
       return isDisplayed(customerDetailtext);
@@ -38,6 +41,11 @@ public class CustomerDetailPage extends BasePage{
 
         waitForClickable(countryselectionPopUp);
         click(countryselectionPopUp);
+    }
+
+    public void selectCustomerCountry(String country) {
+        selectByValue(customerCountryDropdown, country);
+        click(submit);
     }
 
     public void fillCustomerEmail(String email) {
@@ -123,92 +131,219 @@ public class CustomerDetailPage extends BasePage{
         }
     }
 
-    private void fillRandomCustomer(CustomerData customer) {
+    private void fillRandomCustomer(CustomerData customer, String addressType) {
 
-        type(customerEmailTextBox, customer.getEmail());
-        dummyClick();
-        wait.until(ExpectedConditions.attributeContains(
-                customerCredit,
-                "style",
-                "display: none"));
-        type(mobileNumber, customer.getPhone());
-        type(firstName, customer.getFirstName());
-        type(lastName, customer.getLastName());
-        dummyClick();
+        switch(addressType) {
+            case "new-in", "new-international":
+                type(customerEmailTextBox, customer.getEmail());
+                dummyClick();
+                wait.until(ExpectedConditions.attributeContains(
+                        customerCredit,
+                        "style",
+                        "display: none"));
+                type(mobileNumber, customer.getPhone());
+                type(firstName, customer.getFirstName());
+                type(lastName, customer.getLastName());
+                dummyClick();
 
-        wait.until(ExpectedConditions.alertIsPresent());
-        acceptAlert();
-        scrollIntoView(addNewAddress);
-        waitForClickable(addNewAddress);
-        click(addNewAddress);
-        waitForClickable(billingPincode);
-        type(billingPincode, customer.getBillingPincode());
+                wait.until(ExpectedConditions.alertIsPresent());
+                acceptAlert();
+                scrollIntoView(addNewAddress);
+                waitForClickable(addNewAddress);
+                click(addNewAddress);
+                waitForClickable(billingPincode);
+                type(billingPincode, customer.getBillingPincode());
 
-        selectByVisibleText(countryDropdown, customer.getCountry());
-        waitForLoaderToDisappear();
-        selectState(customer.getState());
+                selectByVisibleText(countryDropdown, customer.getCountry());
+                waitForLoaderToDisappear();
+                selectState(customer.getState());
 
-        clear(cityTextBox);
-        type(cityTextBox, customer.getCity());
-        type(billingMobileNumber, customer.getPhone());
-        type(billingAddressTextArea, customer.getBillingAddress());
-        click(addAddressDetailButton);
-        wait.until(ExpectedConditions.alertIsPresent());
-        acceptAlert();
-        captureScreenshot();
-        clickNext();
+                clear(cityTextBox);
+                type(cityTextBox, customer.getCity());
+                type(billingMobileNumber, customer.getPhone());
+                type(billingAddressTextArea, customer.getBillingAddress());
+                click(addAddressDetailButton);
+                wait.until(ExpectedConditions.alertIsPresent());
+                acceptAlert();
+                captureScreenshot();
+                clickNext();
+                break;
+
+            case "store", "store-nyc", "store-london":
+                type(customerEmailTextBox, customer.getEmail());
+                dummyClick();
+                wait.until(ExpectedConditions.attributeContains(
+                        customerCredit,
+                        "style",
+                        "display: none"));
+                type(mobileNumber, customer.getPhone());
+                type(firstName, customer.getFirstName());
+                type(lastName, customer.getLastName());
+                dummyClick();
+
+                wait.until(ExpectedConditions.alertIsPresent());
+                acceptAlert();
+                captureScreenshot();
+                clickNext();
+                break;
+
+            default:
+                throw new RuntimeException("Unsupported customer address type while filling customer details:" + addressType);
+        }
     }
 
-    public void fillExistingCustomer(CustomerData customer) {
+    public void fillExistingCustomer(CustomerData customer, String addressType) {
 
-        type(customerEmailTextBox, customer.getEmail());
+        switch (addressType) {
+            case "existing":
+                type(customerEmailTextBox, customer.getEmail());
 
-        dummyClick();
+                dummyClick();
 
-        wait.until(ExpectedConditions.attributeContains(
-                customerCredit,
-                "style",
-                "display: none"));
-        captureScreenshot();
-        clickNext();
+                wait.until(ExpectedConditions.attributeContains(
+                        customerCredit,
+                        "style",
+                        "display: none"));
+                captureScreenshot();
+                clickNext();
+                break;
+
+            case "new-in", "new-international":
+                type(customerEmailTextBox, customer.getEmail());
+                dummyClick();
+                wait.until(ExpectedConditions.attributeContains(
+                        customerCredit,
+                        "style",
+                        "display: none"));
+//                clear(mobileNumber);
+//                type(mobileNumber, customer.getPhone());
+//                clear(firstName);
+//                type(firstName, customer.getFirstName());
+//                clear(lastName);
+//                type(lastName, customer.getLastName());
+//                dummyClick();
+//
+//                wait.until(ExpectedConditions.alertIsPresent());
+//                acceptAlert();
+                scrollIntoView(addNewAddress);
+                waitForClickable(addNewAddress);
+                click(addNewAddress);
+                waitForClickable(billingPincode);
+                type(billingPincode, customer.getBillingPincode());
+
+                selectByVisibleText(countryDropdown, customer.getCountry());
+                waitForLoaderToDisappear();
+                selectState(customer.getState());
+
+                clear(cityTextBox);
+                type(cityTextBox, customer.getCity());
+                type(billingMobileNumber, customer.getBillingPhone());
+                type(billingAddressTextArea, customer.getBillingAddress());
+                click(addAddressDetailButton);
+                wait.until(ExpectedConditions.alertIsPresent());
+                acceptAlert();
+                captureScreenshot();
+                clickNext();
+                break;
+
+            case "store", "store-nyc", "store-london":
+                type(customerEmailTextBox, customer.getEmail());
+                dummyClick();
+                wait.until(ExpectedConditions.attributeContains(
+                        customerCredit,
+                        "style",
+                        "display: none"));
+
+                waitForClickable(storeAddress);
+                click(storeAddress);
+                wait.until(ExpectedConditions.alertIsPresent());
+                acceptAlert();
+                captureScreenshot();
+                clickNext();
+                break;
+
+            default:
+                throw new RuntimeException("Unsupported customer address type while filling customer details:" + addressType);
+        }
     }
 
-    public void fillDummyCustomer() {
-        selectDummyCustomer();
-        wait.until(ExpectedConditions.attributeContains(
-                customerCredit,
-                "style",
-                "display: none"));
+    public void fillDummyCustomer(CustomerData customer, String addressType) {
+
         int randomInt = new Random().nextInt(100000);
-        type(firstName, "Dummy"+ randomInt);
-        type(lastName, "Automation" + randomInt);
-        dummyClick();
-        wait.until(ExpectedConditions.alertIsPresent());
-        acceptAlert();
-        captureScreenshot();
-        clickNext();
+        switch(addressType) {
+            case "store", "store-nyc", "store-london":
+                selectDummyCustomer();
+                wait.until(ExpectedConditions.attributeContains(
+                        customerCredit,
+                        "style",
+                        "display: none"));
+                type(firstName, "Dummy"+ randomInt);
+                type(lastName, "Automation" + randomInt);
+                dummyClick();
+                wait.until(ExpectedConditions.alertIsPresent());
+                acceptAlert();
+                captureScreenshot();
+                clickNext();
+                break;
+
+            case "new-in", "new-international":
+                selectDummyCustomer();
+                wait.until(ExpectedConditions.attributeContains(
+                        customerCredit,
+                        "style",
+                        "display: none"));
+                type(firstName, "Dummy"+ randomInt);
+                type(lastName, "Automation" + randomInt);
+                dummyClick();
+                wait.until(ExpectedConditions.alertIsPresent());
+                acceptAlert();
+
+                scrollIntoView(addNewAddress);
+                waitForClickable(addNewAddress);
+                click(addNewAddress);
+                waitForClickable(billingPincode);
+                type(billingPincode, customer.getBillingPincode());
+
+                selectByVisibleText(countryDropdown, customer.getCountry());
+                waitForLoaderToDisappear();
+                selectState(customer.getState());
+
+                clear(cityTextBox);
+                type(cityTextBox, customer.getCity());
+                type(billingMobileNumber, customer.getBillingPhone());
+                type(billingAddressTextArea, customer.getBillingAddress());
+                click(addAddressDetailButton);
+                wait.until(ExpectedConditions.alertIsPresent());
+                acceptAlert();
+                captureScreenshot();
+                clickNext();
+                break;
+            default:
+                throw new RuntimeException("Unsupported customer address type while filling customer details:" + addressType);
+        }
     }
 
     public void fillCustomer(String customerType,
+                             String addressType,
                              CustomerData customer) {
 
         switch (customerType.toLowerCase()) {
 
-            case "random", "random-nyc":
-                fillRandomCustomer(customer);
+            case "random", "random-nyc", "random-london":
+                fillRandomCustomer(customer, addressType);
                 break;
 
             case "existing":
-                fillExistingCustomer(customer);
+                fillExistingCustomer(customer, addressType);
                 break;
 
-            case "dummy", "dummy-nyc" :
-                fillDummyCustomer();
+            case "dummy", "dummy-nyc", "dummy-london":
+                fillDummyCustomer(customer, addressType);
                 break;
-
 
             default:
-                throw new IllegalArgumentException("Invalid customer type");
+                captureScreenshot();
+                throw new IllegalArgumentException("Invalid customer type" + customerType);
         }
     }
 }

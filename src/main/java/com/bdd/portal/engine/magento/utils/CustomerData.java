@@ -17,6 +17,7 @@ public class CustomerData {
     private String billingPincode;
 
     private String type;
+    private String addresstype;
 
     private String firstName;
     private String lastName;

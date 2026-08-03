@@ -55,6 +55,7 @@ public class RandomCustomerGenerator {
         customer.setState(address.getState());
         customer.setCity(address.getCity());
         customer.setBillingPincode(address.getPincode());
+        customer.setBillingPhone(randombilllingPhone());
 
         customer.setBillingAddress(random.nextInt(999) + " Test Street");
 
@@ -78,6 +79,10 @@ public class RandomCustomerGenerator {
     }
 
     private static String randomPhone() {
+        return String.valueOf(1000000000L + random.nextInt(900000000));
+    }
+
+    private static String randombilllingPhone() {
         return String.valueOf(1000000000L + random.nextInt(900000000));
     }
 }

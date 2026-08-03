@@ -39,8 +39,14 @@ public class BasePage {
         element.sendKeys(value);
     }
 
+    protected String getValue(By locator) {return driver.findElement(locator).getAttribute("value");}
+
     protected String getText(By locator) {
-        return waitForVisible(locator).getText();
+        return waitForVisible(locator).getText().trim();
+    }
+
+    protected String getAttribute(By locator, String attribute) {
+        return driver.findElement(locator).getAttribute(attribute);
     }
 
     protected boolean isDisplayed(By locator) {
@@ -108,6 +114,11 @@ public class BasePage {
     public void selectByVisibleText(By locator, String text) {
         WebElement element = wait.until(ExpectedConditions.visibilityOfElementLocated(locator));
         new Select(element).selectByVisibleText(text);
+    }
+
+    public void selectByValue(By locator, String value) {
+        WebElement element = wait.until(ExpectedConditions.visibilityOfElementLocated(locator));
+        new Select(element).selectByValue(value);
     }
 
     public void acceptAlert() {

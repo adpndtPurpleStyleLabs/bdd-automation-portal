@@ -20,4 +20,14 @@ public class OrderContext {
     private String orderId;
 
     private String orderType;
+
+    private String currencyCode;
+
+    private double shippingAmount;
+
+    private double expectedgrandTotal;
+
+    private double expectedSalesTax;
+
+    private double expectedVat;
 }

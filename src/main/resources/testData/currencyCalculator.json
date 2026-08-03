@@ -1,0 +1,46 @@
+{
+  "aed": {
+    "multiplier": 1,
+    "rate": 0.04086
+  },
+  "aud": {
+    "multiplier": 1,
+    "rate": 0.0159
+  },
+  "cad": {
+    "multiplier": 1,
+    "rate": 0.01556
+  },
+  "cny": {
+    "multiplier": 1,
+    "rate": 0.07717
+  },
+  "eur": {
+    "multiplier": 1,
+    "rate": 0.00959
+  },
+  "gbp": {
+    "multiplier": 1,
+    "rate": 0.00835
+  },
+  "hkd": {
+    "multiplier": 1,
+    "rate": 0.08853
+  },
+  "inr": {
+    "multiplier": 1,
+    "rate": 1.0000
+  },
+  "sgd": {
+    "multiplier": 1,
+    "rate": 0.01438
+  },
+  "usd": {
+    "multiplier": 1,
+    "rate": 0.0113
+  },
+  "zar": {
+    "multiplier": 1,
+    "rate": 0.18467
+  }
+}

@@ -17,11 +17,14 @@ public class OrderConfirmationPage extends BasePage{
     private final By email = By.xpath("//td[@class='value']//a[starts-with(@href,'mailto:')]/strong");
     private final By getStatus = By.xpath("//*[@id = 'order_status']");
     private final By skuList = By.xpath("//div[strong[normalize-space()='SKU:']]");
-    private By paymentGateway = By.xpath("//b[normalize-space()='Payment Gateway:']/ancestor::li[1]");
-    private By customerName = By.xpath("//td[normalize-space()='Customer Name']/following-sibling::td//strong");
+    private final By paymentGateway = By.xpath("//b[normalize-space()='Payment Gateway:']/ancestor::li[1]");
+    private final By customerName = By.xpath("//td[normalize-space()='Customer Name']/following-sibling::td//strong");
     private final By billingAddressBlock = By.xpath("//div[contains(@class,'box-left')]//address");
-    private final By subTotal =
-            By.xpath("//td[normalize-space()='Subtotal']/following-sibling::td//span[@class='price']");
+    private final By subTotal = By.xpath("//td[normalize-space()='Subtotal']/following-sibling::td//span[@class='price']");
+    private final By shipping = By.xpath("//td[normalize-space()='Shipping & Handling']/following-sibling::td//span[@class='price']");
+    private final By salesTax = By.xpath("//td[normalize-space()='Sales Tax']/following-sibling::td//span[@class='price']");
+    private final By vat = By.xpath("//td[normalize-space()='VAT']/following-sibling::td//span[@class='price']");
+    private final By grandTotal = By.xpath("//td[normalize-space()='Grand Total']/following-sibling::td//span[@class='price']");
 
     public boolean isOnOrderConfirmationPage () {
         captureScreenshot();
@@ -99,30 +102,67 @@ public class OrderConfirmationPage extends BasePage{
                 .trim();
     }
 
-    public double getSubTotal(String currencyCode) {
+    public double getPrice(By locator, String currencyCode) {
 
-        List<WebElement> prices = driver.findElements(subTotal);
+        List<WebElement> prices = driver.findElements(locator);
 
-        String subtotal;
+        if (prices.isEmpty()) {
+            throw new RuntimeException("No price found for locator: " + locator);
+        }
 
-        if ("usd".equalsIgnoreCase(currencyCode)) {
-            subtotal = prices.get(1).getText();   // $918.28
+        String price;
+
+        if ("inr".equalsIgnoreCase(currencyCode)) {
+            price = prices.get(0).getText();
         } else {
-            subtotal = prices.get(0).getText();   // ₹78,418.45
+            if (prices.size() == 1) {
+                // Item table: only one price (GBP/USD/AED)
+                price = prices.get(0).getText();
+            } else {
+                // Order totals: index 0 = INR, index 1 = website currency
+                price = prices.get(1).getText();
+            }
         }
 
         return Double.parseDouble(
-                subtotal.replace("₹", "")
+                price.replace("₹", "")
                         .replace("$", "")
+                        .replace("£", "")
                         .replace("[", "")
                         .replace("]", "")
                         .replace(",", "")
                         .trim());
     }
 
+    public double getSubTotal(String currencyCode) {
+        captureScreenshot();
+        return getPrice(subTotal, currencyCode);
+    }
+
+    public double getShipping(String currencyCode) {
+        captureScreenshot();
+        return getPrice(shipping, currencyCode);
+    }
+
+    public double getSalesTax(String currencyCode) {
+        captureScreenshot();
+        return getPrice(salesTax, currencyCode);
+    }
+
+    public double getVat(String currencyCode) {
+        captureScreenshot();
+        return getPrice(vat, currencyCode);
+    }
+
+    public double getGrandtotal(String currencyCode) {
+        captureScreenshot();
+        return getPrice(grandTotal, currencyCode);
+    }
+
     private boolean isDummyCustomer(CustomerData customer) {
         return "DummyCustomer".equalsIgnoreCase(customer.getType())
-                || "DummyCustomer-NYC".equalsIgnoreCase(customer.getType());
+                || "DummyCustomer-NYC".equalsIgnoreCase(customer.getType())
+                || "DummyCustomer-London".equalsIgnoreCase(customer.getType());
     }
 
     public void verifyCustomer(CustomerData customer) {
@@ -198,22 +238,51 @@ public class OrderConfirmationPage extends BasePage{
 
         String price;
 
-        if ("usd".equalsIgnoreCase(currencyCode)) {
-            price = prices.get(1).getText();   // [$167.39]
+        if ("inr".equalsIgnoreCase(currencyCode)) {
+            price = prices.get(0).getText();
         } else {
-            price = prices.get(0).getText();   // ₹14,294.50
+            if (prices.size() == 1) {
+                // Item table: only one price (GBP/USD/AED)
+                price = prices.get(0).getText();
+            } else {
+                // Order totals: index 0 = INR, index 1 = website currency
+                price = prices.get(1).getText();
+            }
         }
 
         return Double.parseDouble(
                 price.replace("₹", "")
                         .replace("$", "")
+                        .replace("£", "")
                         .replace("[", "")
                         .replace("]", "")
                         .replace(",", "")
                         .trim());
     }
 
-    public void verifyItems(List<ItemData> items, String currencyCode) {
+    private double getItemTax(String sku, int columnIndex) {
+
+        WebElement row = getItemRow(sku);
+
+        List<WebElement> prices = row.findElements(
+                By.xpath("./td[" + columnIndex + "]//span[@class='price']"));
+
+        String price = prices.size() == 1
+                ? prices.get(0).getText()
+                : prices.get(1).getText();
+
+        return Double.parseDouble(
+                price.replace("₹", "")
+                        .replace("$", "")
+                        .replace("£", "")
+                        .replace("[", "")
+                        .replace("]", "")
+                        .replace(",", "")
+                        .trim());
+    }
+
+    public void verifyItems(List<ItemData> items, String currencyCode,
+                            String orderType) {
 
         scrollIntoView(skuList);
         captureScreenshot();
@@ -229,6 +298,23 @@ public class OrderConfirmationPage extends BasePage{
                     getPrice(item.getSku(), currencyCode),
                     0.01,
                     "Price mismatch for SKU : " + item.getSku());
+
+            if ("ppus-nyc".equalsIgnoreCase(orderType)) {
+
+                Assertions.assertEquals(
+                        item.getExpectedSalesTax(),
+                        getItemTax(item.getSku(), 7),
+                        0.01,
+                        "Sales Tax mismatch for SKU : " + item.getSku());
+
+            } else if ("ppus-london".equalsIgnoreCase(orderType)) {
+
+                Assertions.assertEquals(
+                        item.getExpectedVat(),
+                        getItemTax(item.getSku(), 7),
+                        0.01,
+                        "VAT mismatch for SKU : " + item.getSku());
+            }
         }
     }
 }

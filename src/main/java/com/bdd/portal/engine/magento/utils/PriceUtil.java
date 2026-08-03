@@ -10,7 +10,7 @@ public class PriceUtil {
             return "usd";
         }
 
-        if (orderType.contains("london")) {
+        if (orderType.contains("ppus london")) {
             return "gbp";
         }
 

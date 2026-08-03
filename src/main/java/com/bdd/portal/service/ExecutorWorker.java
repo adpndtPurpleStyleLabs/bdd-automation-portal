@@ -24,7 +24,7 @@ public class ExecutorWorker {
     private final ScenarioQueueService scenarioQueueService;
     private final ExecutionEngineService executionEngineService;
     
-    @Value("${bdd.portal.max-workers:2}")
+    @Value("${bdd.portal.max-workers:1}")
     private int maxWorkers;
     
     private ExecutorService executorService;

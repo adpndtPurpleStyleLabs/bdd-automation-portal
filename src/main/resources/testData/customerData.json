@@ -43,11 +43,50 @@
       "firstName": null,
       "lastName": null,
       "billingName": null,
+      "billingAddress": "PURPLE STYLE LABS USA INC ,601-603 , Madison avenue, New York, 10022",
+      "city": "New York",
+      "state": "New york",
+      "country": "United States",
+      "billingPincode": "10022",
+      "billingPhone": null
+    },
+    {
+      "type": "DummyCustomer-London",
+      "email": null,
+      "firstName": null,
+      "lastName": null,
+      "billingName": null,
+      "billingAddress": "Purple Style Labs UK Limited11, Grosvenor Street",
+      "city": "London",
+      "state": "Mayfair",
+      "country": "United Kingdom",
+      "billingPincode": "W1K 4QB",
+      "billingPhone": null
+    },
+    {
+      "type": "Existing-NYC",
+      "email": null,
+      "firstName": null,
+      "lastName": null,
+      "billingName": null,
       "billingAddress": "PURPLE STYLE LABS USA INC, 601-603 Madison Avenue",
       "city": "New York",
       "state": "New York",
       "country": "US",
       "billingPincode": "10022",
+      "billingPhone": null
+    },
+    {
+      "type": "Existing-London",
+      "email": null,
+      "firstName": null,
+      "lastName": null,
+      "billingName": null,
+      "billingAddress": "Purple Style Labs UK Limited11, Grosvenor Street",
+      "city": "London",
+      "state": "Mayfair",
+      "country": "United Kingdom",
+      "billingPincode": "W1K 4QB",
       "billingPhone": null
     }
   ]

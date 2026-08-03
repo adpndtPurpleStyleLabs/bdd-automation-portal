@@ -12,6 +12,9 @@ public class ItemData {
     private String subCategory;
     private boolean deliveryAwaited;
     private double priceIn;
+    private double priceUs;
+    private double priceRow;
     private double expectedPrice;
-
+    private double expectedSalesTax = 0;
+    private double expectedVat = 0;
 }

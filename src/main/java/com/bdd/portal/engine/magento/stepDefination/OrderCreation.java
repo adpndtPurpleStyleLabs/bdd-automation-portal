@@ -2,17 +2,16 @@ package com.bdd.portal.engine.magento.stepDefination;
 
 import com.bdd.portal.config.SpringContext;
 import com.bdd.portal.engine.DriverManager;
+import com.bdd.portal.engine.magento.customer.service.CustomerService;
 import com.bdd.portal.engine.magento.pages.*;
 import com.bdd.portal.engine.magento.utils.*;
 import io.cucumber.java.en.And;
-import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
 import io.cucumber.datatable.DataTable;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Assertions;
 import com.bdd.portal.service.TestEnvironmentService;
-import org.openqa.selenium.WebDriver;
 import java.util.List;
 import java.util.Map;
 
@@ -30,6 +29,7 @@ public class OrderCreation {
     private final PaymentDetailPage paymentDetailPage = new PaymentDetailPage();
     private final OrderConfirmationPage orderConfirmationPage = new OrderConfirmationPage();
     private final OrderContext orderContext = new OrderContext();
+    private final CustomerService customerService = new CustomerService();
 
     @And("Logged in user opens order creation")
     public void logged_in_user_opens_order_creation() {
@@ -70,13 +70,6 @@ public class OrderCreation {
         }
     }
 
-//    @Then("User fill customer {string} and click next")
-//    public void userFillCustomerDetailsAndClickNext(String customerEmail) {
-////        expectedCustomerEmail = customerEmail;
-//        customerDetailPage.fillCustomerDetail(customerEmail);
-//        customerDetailPage.clickNext();
-//    }
-
     @Then("User navigate to sales information Page")
     public void userNavigateToSalesInformationPage() {
         Assertions.assertTrue(salesInformationPage.isOnSalesInformatioPage());
@@ -100,13 +93,14 @@ public class OrderCreation {
         itemDetailsPage.isOnItemDetailsPage();
     }
 
-    @When("User fill item details using testData")
-    public void userFillItemDetailsUsingTestData() throws Exception{
+    @When("User fill item details using testData for Store User")
+    public void userFillItemDetailsUsingTestDataforStoreUser() throws Exception{
 
         List<ItemData> items = TestDataReader.getAllItem();
         orderContext.setItems(items);
 
         String currencyCode = PriceUtil.getCurrencyCode(orderContext.getOrderType());
+        orderContext.setCurrencyCode(currencyCode);
         CurrencyData currencyData = TestDataReader.getCurrencyData(currencyCode);
 
         for (ItemData item : items) {
@@ -131,6 +125,14 @@ public class OrderCreation {
         orderContext.setExpectedSubTotal(expectedSubTotal);
     }
 
+    @When("User fill item details using testData for Online User")
+    public void userFillItemDetailsUsingTestDataForOnlineUser() throws Exception{
+
+        List<ItemData> items = TestDataReader.getAllItem();
+        orderContext.setItems(items);
+
+    }
+
     @Then("Product must be added to cart")
     public void productMustBeAddedToCart() {
         int actualItemCount = itemDetailsPage.getCartItemCount();
@@ -142,7 +144,7 @@ public class OrderCreation {
 
     private void validateCustomer(CustomerData customer) {
 
-        int billingCard = customer.getType().equals("ExistingCustomer") ? 1 : 1;
+        int billingCard = customer.getType().equals("ExistingCustomer") ? 1 : 2;
 
         if (customer.getExpectedPhone() != null) {
             Assertions.assertEquals(
@@ -218,8 +220,8 @@ public class OrderCreation {
             );
         }
 
-    @Then("Order must placed successfully with correct Payment Method")
-    public void orderMustPlacedSuccessfullyWithCorrectPaymentMethod() {
+    @Then("Order must placed successfully with correct Data")
+    public void orderMustPlacedSuccessfullyWithCorrectData() {
         Assertions.assertTrue(orderConfirmationPage.isOnOrderConfirmationPage());
         orderConfirmationPage.verifyCustomer(orderContext.getCustomer());
         Assertions.assertEquals(
@@ -229,60 +231,73 @@ public class OrderCreation {
         );
 
         String currencyCode = PriceUtil.getCurrencyCode(orderContext.getOrderType());
-        orderConfirmationPage.verifyItems(orderContext.getItems(), currencyCode);
+        orderConfirmationPage.verifyItems(orderContext.getItems(), currencyCode, orderContext.getOrderType());
         Assertions.assertEquals(
                 orderContext.getPayment().getType(),
                 orderConfirmationPage.getPaymentGateway(),
-                "Payment Gateway does not match."
+                "Payment Gateway does not match expected "+orderContext.getPayment().getType()
+                + "got " + orderConfirmationPage.getPaymentGateway()
         );
         Assertions.assertEquals(
                 orderContext.getExpectedSubTotal(),
                 orderConfirmationPage.getSubTotal(currencyCode),
                 0.01,
-                "Grand Total doesn't match."
+                "Sub Total doesn't match."
+        );
+
+        Assertions.assertEquals(
+                orderContext.getShippingAmount(),
+                orderConfirmationPage.getShipping(currencyCode),
+                0.01,
+                "Shipping doesn't match."
+        );
+
+        if ("ppus-nyc".equalsIgnoreCase(orderContext.getOrderType())) {
+
+            Assertions.assertEquals(
+                    orderContext.getExpectedSalesTax(),
+                    orderConfirmationPage.getSalesTax(currencyCode),
+                    0.01,
+                    "Sales Tax mismatched."
+            );
+
+        } else if ("ppus-london".equalsIgnoreCase(orderContext.getOrderType())) {
+
+            Assertions.assertEquals(
+                    orderContext.getExpectedVat(),
+                    orderConfirmationPage.getVat(currencyCode),
+                    0.01,
+                    "VAT mismatched."
+            );
+        }
+
+        Assertions.assertEquals(
+                orderContext.getExpectedgrandTotal(),
+                orderConfirmationPage.getGrandtotal(currencyCode),
+                0.01,
+                "Grand Total mismatched."
         );
     }
 
-    @When("User fills customer using {string} flow and clicks next")
-    public void userFillsCustomer(String customerType) throws Exception {
-        CustomerData customer;
+    @When("User fills customer using {string} with {string} address and clicks next")
 
-        switch (customerType.toLowerCase()) {
+    public void userFillsCustomer(
+            String customerType,
+            String addressType)
+            throws Exception {
 
-            case "existing":
-                customer =
-                        TestDataReader.getCustomerByType("ExistingCustomer");
-                break;
+        CustomerData customer =
+                customerService.createCustomer(
+                        customerType.toLowerCase(),
+                        addressType.toLowerCase());
 
-            case "dummy":
-                customer = TestDataReader.getCustomerByType("DummyCustomer");
-                break;
-
-            case "random":
-                customer =
-                        RandomCustomerGenerator.generateIndianCustomer();
-                customer.setBillingName(
-                        customer.getFirstName() + " " + customer.getLastName());
-                customer.setBillingPhone(customer.getPhone());
-                break;
-
-            case "random-nyc":
-                customer =
-                        RandomCustomerGenerator.generateInternationalCustomer();
-                customer.setBillingName(
-                        customer.getFirstName() + " " + customer.getLastName());
-                customer.setBillingPhone(customer.getPhone());
-                break;
-
-            case "dummy-nyc":
-                customer = TestDataReader.getCustomerByType("DummyCustomer-NYC");
-                break;
-
-            default:
-                throw new RuntimeException();
-        }
         orderContext.setCustomer(customer);
-        customerDetailPage.fillCustomer(customerType, customer);
+
+        customerDetailPage.fillCustomer(
+                customerType.toLowerCase(),
+                addressType.toLowerCase(),
+                customer);
+
     }
 
     @Then("Product must be added to cart with correct price")
@@ -290,5 +305,70 @@ public class OrderCreation {
         itemDetailsPage.verifyCart(orderContext.getItems());
     }
 
+    @And("User select customer {string}")
+    public void userSelectCustomer(String country) {
+        customerDetailPage.selectCustomerCountry(country);
+    }
 
+    @And("Shipping charges must be added on basis of Cart value and AddressType")
+    public void shippingChargesMustBeAddedOnBasisOfCartValueAndAddressType() throws Exception {
+
+        String orderType = orderContext.getOrderType();
+        CustomerData customer = orderContext.getCustomer();
+
+        if (orderType.equalsIgnoreCase("ppus nyc" )
+            || orderType.equalsIgnoreCase("ppus london")) {
+            switch(customer.getAddresstype()) {
+                case "new-international", "store-nyc", "store-london":
+                    double cartValue = orderContext.getExpectedSubTotal();
+                    String currency = orderContext.getCurrencyCode();
+                    CurrencyData currencyData = TestDataReader.getCurrencyData(currency);
+                    double shippingAmt = itemDetailsPage.calculateShipping(cartValue, currencyData);
+                    orderContext.setShippingAmount(shippingAmt);
+                    itemDetailsPage.verifyShippingAmount(shippingAmt);
+                    break;
+            }
+        } else if ((customer.getAddresstype()).equalsIgnoreCase("new-international") &&
+                !(orderType.equalsIgnoreCase("ppus nyc" )
+                        || orderType.equalsIgnoreCase("ppus london"))) {
+
+            double cartValue = orderContext.getExpectedSubTotal();
+            String currency = orderContext.getCurrencyCode();
+            CurrencyData currencyData = TestDataReader.getCurrencyCalculator(currency);
+            double shippingAmt = itemDetailsPage.calculateShipping(cartValue, currencyData);
+            orderContext.setShippingAmount(shippingAmt);
+            itemDetailsPage.verifyShippingAmount(shippingAmt);
+        }
+    }
+
+    @And("Grand total must be calculated correctly")
+    public void GrandTotalMustBeCalculatedCorrectly() {
+
+        double grandTotal = itemDetailsPage.calculateGrandTotal(orderContext.getExpectedSubTotal(),
+                orderContext.getShippingAmount(), orderContext.getExpectedSalesTax(),
+                orderContext.getExpectedVat());
+        orderContext.setExpectedgrandTotal(grandTotal);
+        itemDetailsPage.verifyGrandTotal(grandTotal);
+    }
+
+    @And("Sales tax must be calculated")
+    public void salesTaxMustBeCalculated() throws Exception {
+
+        List<ItemData> items = orderContext.getItems();
+        double salesTaxPercentage = 8.8750;
+        CurrencyData currencyData = TestDataReader.getCurrencyData(orderContext.getCurrencyCode());
+        double salesTax = itemDetailsPage.calculateSalesTax(items, salesTaxPercentage, currencyData);
+        orderContext.setExpectedSalesTax(salesTax);
+        itemDetailsPage.verifySalesTax(items);
+    }
+
+    @And("VAT must be calculated")
+    public void vatMustBeCalculated() throws  Exception {
+        List<ItemData> items = orderContext.getItems();
+        double vatPercentage = 20;
+        CurrencyData currencyData = TestDataReader.getCurrencyData(orderContext.getCurrencyCode());
+        double vat = itemDetailsPage.calculateVat(items, vatPercentage, currencyData);
+        orderContext.setExpectedVat(vat);
+        itemDetailsPage.verifyVat(items);
+    }
 }

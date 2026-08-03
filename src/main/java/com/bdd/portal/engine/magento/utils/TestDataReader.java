@@ -98,4 +98,17 @@ public class TestDataReader {
                 root.get(currency.toLowerCase()),
                 CurrencyData.class);
     }
+
+    public static CurrencyData getCurrencyCalculator(String currency) throws Exception {
+
+        InputStream inputStream = TestDataReader.class
+                .getClassLoader()
+                .getResourceAsStream("testData/currencyCalculator.json");
+
+        JsonNode root = mapper.readTree(inputStream);
+
+        return mapper.treeToValue(
+                root.get(currency.toLowerCase()),
+                CurrencyData.class);
+    }
 }
