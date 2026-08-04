@@ -9,4 +9,6 @@ import java.util.List;
 @Repository
 public interface StepExecutionRepository extends JpaRepository<StepExecution, Long> {
     List<StepExecution> findByScenarioExecutionId(Long scenarioExecutionId);
+    
+    java.util.Optional<StepExecution> findByStepUuid(String stepUuid);
 }

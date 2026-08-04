@@ -1,0 +1,27 @@
+package com.bdd.portal.engine.magento.customer.service;
+
+import com.bdd.portal.engine.magento.customer.factory.AddressFactory;
+import com.bdd.portal.engine.magento.customer.factory.CustomerFactory;
+import com.bdd.portal.engine.magento.utils.CustomerData;
+
+public class CustomerService {
+
+    public CustomerData createCustomer(
+            String customerType,
+            String addressType) throws Exception {
+
+        CustomerData customer =
+                CustomerFactory
+                        .getStrategy(customerType)
+                        .createCustomer();
+
+        AddressFactory
+                .getStrategy(addressType)
+                .apply(customer);
+
+        customer.setAddresstype(addressType);
+
+        return customer;
+    }
+
+}

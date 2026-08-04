@@ -1,0 +1,13 @@
+{
+  "Cash": {
+    "transactionId": "TXN1001"
+  },
+  "GPay": {
+    "transactionId": "TXN1003"
+  },
+  "Stripe Payment": {
+    "transactionId": "TXN1005",
+    "paymentLink": "https://test.com/pay",
+    "invoiceId": "INV1005"
+  }
+}

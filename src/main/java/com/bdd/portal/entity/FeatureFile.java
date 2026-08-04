@@ -5,6 +5,8 @@ import lombok.Getter;
 import lombok.Setter;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "feature_file")
@@ -21,18 +23,17 @@ public class FeatureFile {
     @Column(nullable = false, unique = true)
     private String relativePath;
 
+    @Column(unique = true)
+    private String slug;
+
+    private String moduleSlug;
+
     private String folder;
 
-    @Column(length = 1000)
-    private String description;
-
-    private String tags;
-
-    private int scenarioCount;
-
-    private int stepCount;
-
-    private LocalDateTime lastModified;
-
-    private boolean enabled = true;
+    private Integer currentVersion = 1;
+    
+    // We will establish a OneToMany relationship to FeatureVersion if needed, 
+    // but usually querying versions by featureFile ID is sufficient.
+    @OneToMany(mappedBy = "featureFile", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<FeatureVersion> versions = new ArrayList<>();
 }

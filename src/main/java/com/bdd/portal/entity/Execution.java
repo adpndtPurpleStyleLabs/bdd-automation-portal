@@ -17,6 +17,9 @@ public class Execution {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(nullable = false, unique = true, updatable = false)
+    private String executionUuid = java.util.UUID.randomUUID().toString();
+
     @ManyToOne
     @JoinColumn(name = "feature_file_id")
     private FeatureFile featureFile;
@@ -24,9 +27,30 @@ public class Execution {
     // Could be a folder path instead of a specific feature file
     private String targetFolder;
 
+    @ElementCollection(fetch = FetchType.EAGER)
+    @CollectionTable(name = "execution_target_scenarios", joinColumns = @JoinColumn(name = "execution_id"))
+    @Column(name = "scenario_path")
+    private List<String> targetScenarios = new ArrayList<>();
+
+    @ManyToOne
+    @JoinColumn(name = "scheduled_job_id")
+    private ScheduledJob scheduledJob;
+
     @ManyToOne
     @JoinColumn(name = "user_id")
     private User startedBy;
+
+    private String gridUrl;
+    private String seleniumSessionId;
+    private String vncUrl;
+
+    // New Grid metadata
+    private String gridNodeId;
+    private String gridNodeUri;
+    private String containerId;
+    private String noVncUrl;
+    private String browserVersion;
+    private String platform;
 
     private String browser;
     private String environment;
@@ -35,14 +59,28 @@ public class Execution {
     @Column(nullable = false)
     private ExecutionStatus status = ExecutionStatus.QUEUED;
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private ExecutionType executionType = ExecutionType.MANUAL;
+
+    @Column(columnDefinition = "TEXT")
+    private String reason;
+
+    @Column(columnDefinition = "TEXT")
+    private String notifyEmails;
+
     private LocalDateTime startTime;
     private LocalDateTime endTime;
 
     private Long durationMs; // in milliseconds
 
+    private int totalScenarios;
+    private int queuedScenarios;
+    private int runningScenarios;
     private int passedScenarios;
     private int failedScenarios;
     private int skippedScenarios;
+    private int cancelledScenarios;
 
     private String allureReportPath;
 

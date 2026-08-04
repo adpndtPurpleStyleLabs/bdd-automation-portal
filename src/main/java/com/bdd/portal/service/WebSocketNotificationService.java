@@ -17,4 +17,9 @@ public class WebSocketNotificationService {
     public void sendExecutionStatusUpdate(Long executionId, String status) {
         messagingTemplate.convertAndSend("/topic/execution/" + executionId + "/status", status);
     }
+
+    public void broadcastExecutionUpdate(com.bdd.portal.entity.Execution execution) {
+        com.bdd.portal.dto.ExecutionEventDto dto = com.bdd.portal.dto.ExecutionEventDto.fromExecution(execution);
+        messagingTemplate.convertAndSend("/topic/executions", dto);
+    }
 }

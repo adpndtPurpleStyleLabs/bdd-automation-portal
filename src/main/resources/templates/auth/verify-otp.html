@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Verify OTP - BDD Portal</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <style>
+        :root {
+            --primary-bg: #f3f4f6;
+            --card-bg: #ffffff;
+            --text-main: #1f2937;
+            --primary-color: #65519f;
+            --primary-hover: #503d82;
+        }
+
+        body { 
+            background-color: var(--primary-bg); 
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        }
+
+        .auth-card { 
+            background-color: var(--card-bg);
+            max-width: 450px;
+            width: 100%;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            border: 1px solid #e5e7eb;
+            margin: 1rem;
+        }
+
+        .otp-input-group {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin-bottom: 2rem;
+        }
+
+        .otp-input {
+            width: 50px;
+            height: 60px;
+            font-size: 24px;
+            font-weight: bold;
+            text-align: center;
+            border-radius: 8px;
+            border: 2px solid #e5e7eb;
+            background-color: transparent;
+            color: var(--text-main);
+            transition: all 0.2s;
+        }
+
+        .otp-input:focus {
+            border-color: var(--primary-color);
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(101, 81, 159, 0.15);
+        }
+
+        .btn-primary {
+            background-color: var(--primary-color);
+            border-color: var(--primary-color);
+            border-radius: 8px;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            transition: all 0.2s;
+        }
+        
+        .btn-primary:hover {
+            background-color: var(--primary-hover);
+            border-color: var(--primary-hover);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(101, 81, 159, 0.25);
+        }
+        
+        .btn-link {
+            color: var(--primary-color);
+        }
+        .btn-link:hover {
+            color: var(--primary-hover);
+        }
+
+        /* Hide number arrows */
+        input[type="number"]::-webkit-inner-spin-button, 
+        input[type="number"]::-webkit-outer-spin-button { 
+            -webkit-appearance: none; 
+            margin: 0; 
+        }
+
+        .btn-loading {
+            position: relative;
+            color: transparent !important;
+        }
+        .btn-loading::after {
+            content: "";
+            position: absolute;
+            width: 1.2rem;
+            height: 1.2rem;
+            top: 50%;
+            left: 50%;
+            margin-top: -0.6rem;
+            margin-left: -0.6rem;
+            border: 2px solid rgba(255, 255, 255, 0.5);
+            border-top-color: #fff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="card auth-card p-4 p-md-5">
+        <div class="text-center mb-4">
+            <i class="bi bi-shield-lock" style="font-size: 3rem; color: var(--primary-color);"></i>
+        </div>
+        <h3 class="mb-2 text-center fw-bold">Verify Email</h3>
+        <p class="text-muted text-center mb-5">Please enter the 6-digit code sent to <br><strong id="displayEmail">your email</strong>.</p>
+
+        <form id="verifyOtpForm">
+            <div id="alertMessage" class="alert d-none border-0"></div>
+
+            <div class="otp-input-group" id="otpGroup">
+                <input type="number" class="otp-input" maxlength="1" pattern="[0-9]" autofocus>
+                <input type="number" class="otp-input" maxlength="1" pattern="[0-9]">
+                <input type="number" class="otp-input" maxlength="1" pattern="[0-9]">
+                <input type="number" class="otp-input" maxlength="1" pattern="[0-9]">
+                <input type="number" class="otp-input" maxlength="1" pattern="[0-9]">
+                <input type="number" class="otp-input" maxlength="1" pattern="[0-9]">
+            </div>
+
+            <button class="btn btn-primary w-100 py-2 mb-4" type="submit" id="submitBtn">Verify Code</button>
+            
+            <div class="text-center text-muted">
+                Didn't receive the code? <br>
+                <span id="countdown" class="fw-bold">09:59</span> remaining<br>
+                <button type="button" class="btn btn-link p-0 mt-2 text-decoration-none" id="resendBtn" disabled>Resend Code</button>
+            </div>
+        </form>
+    </div>
+
+    <script>
+        const email = sessionStorage.getItem('resetEmail');
+        if (!email) {
+            window.location.href = '/forgot-password';
+        }
+        document.getElementById('displayEmail').innerText = email;
+
+        // OTP Input Logic
+        const inputs = document.querySelectorAll('.otp-input');
+        
+        inputs.forEach((input, index) => {
+            // Auto move to next input
+            input.addEventListener('input', (e) => {
+                if (e.target.value.length === 1 && index < inputs.length - 1) {
+                    inputs[index + 1].focus();
+                }
+            });
+
+            // Handle backspace
+            input.addEventListener('keydown', (e) => {
+                if (e.key === 'Backspace' && !e.target.value && index > 0) {
+                    inputs[index - 1].focus();
+                }
+            });
+
+            // Handle paste
+            input.addEventListener('paste', (e) => {
+                e.preventDefault();
+                const pastedData = e.clipboardData.getData('text').slice(0, 6).replace(/[^0-9]/g, '');
+                if (pastedData) {
+                    for (let i = 0; i < pastedData.length; i++) {
+                        if (inputs[index + i]) {
+                            inputs[index + i].value = pastedData[i];
+                            if (index + i < inputs.length - 1) {
+                                inputs[index + i + 1].focus();
+                            }
+                        }
+                    }
+                }
+            });
+        });
+
+        // Submit form
+        document.getElementById('verifyOtpForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            let otp = '';
+            inputs.forEach(input => otp += input.value);
+            
+            if (otp.length !== 6) {
+                const alertMsg = document.getElementById('alertMessage');
+                alertMsg.className = 'alert alert-danger d-flex align-items-center mb-4';
+                alertMsg.innerHTML = `<i class="bi bi-exclamation-triangle-fill me-2"></i> <div>Please enter the full 6-digit code.</div>`;
+                return;
+            }
+
+            const btn = document.getElementById('submitBtn');
+            btn.classList.add('btn-loading');
+            btn.disabled = true;
+            
+            fetch('/api/auth/verify-otp', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email: email, otp: otp })
+            })
+            .then(res => res.json().then(data => ({status: res.status, body: data})))
+            .then(res => {
+                if (res.status === 200) {
+                    sessionStorage.setItem('verifiedOtp', otp);
+                    window.location.href = '/reset-password';
+                } else {
+                    const alertMsg = document.getElementById('alertMessage');
+                    alertMsg.className = 'alert alert-danger d-flex align-items-center mb-4';
+                    alertMsg.innerHTML = `<i class="bi bi-exclamation-triangle-fill me-2"></i> <div>${res.body.error || 'Invalid OTP'}</div>`;
+                    btn.classList.remove('btn-loading');
+                    btn.disabled = false;
+                    inputs.forEach(input => input.value = '');
+                    inputs[0].focus();
+                }
+            });
+        });
+
+        // Countdown Timer
+        let timeLeft = 600; // 10 minutes
+        const countdownEl = document.getElementById('countdown');
+        const resendBtn = document.getElementById('resendBtn');
+        
+        const timerId = setInterval(() => {
+            if (timeLeft <= 0) {
+                clearInterval(timerId);
+                countdownEl.innerText = "00:00";
+                resendBtn.disabled = false;
+            } else {
+                let m = Math.floor(timeLeft / 60);
+                let s = timeLeft % 60;
+                countdownEl.innerText = `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+                timeLeft -= 1;
+            }
+        }, 1000);
+
+        // Resend
+        resendBtn.addEventListener('click', () => {
+            window.location.href = '/forgot-password'; // Simple fallback to resend
+        });
+    </script>
+</body>
+</html>

@@ -19,10 +19,27 @@ public class ScenarioExecution {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(nullable = false, unique = true, updatable = false)
+    private String scenarioExecutionUuid = java.util.UUID.randomUUID().toString();
+
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "feature_execution_id", nullable = false)
+    @JoinColumn(name = "execution_id")
+    @JsonIgnore
+    private Execution execution;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "feature_execution_id")
     @JsonIgnore
     private FeatureExecution featureExecution;
+    
+    // Explicit feature info for isolation
+    private String featureName;
+    private String featureUri;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "scenario_id")
+    @JsonIgnore
+    private Scenario scenario;
 
     @Column(nullable = false)
     private String scenarioName;
@@ -36,6 +53,14 @@ public class ScenarioExecution {
     private LocalDateTime startTime;
     private LocalDateTime endTime;
     private Long durationMs;
+    
+    // Worker fields
+    private String workerId;
+    private String nodeUrl;
+    private String sessionId;
+    private String browser;
+    private LocalDateTime queuedAt;
+    private int retryCount = 0;
 
     @OneToMany(mappedBy = "scenarioExecution", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<StepExecution> steps = new ArrayList<>();
