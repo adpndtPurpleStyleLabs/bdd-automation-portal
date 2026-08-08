@@ -45,6 +45,7 @@ public class CustomerDetailPage extends BasePage{
 
     public void selectCustomerCountry(String country) {
         selectByValue(customerCountryDropdown, country);
+        captureScreenshot();
         click(submit);
     }
 
@@ -169,7 +170,7 @@ public class CustomerDetailPage extends BasePage{
                 clickNext();
                 break;
 
-            case "store", "store-nyc", "store-london":
+            case "store", "store-nyc", "store-london", "store-online":
                 type(customerEmailTextBox, customer.getEmail());
                 dummyClick();
                 wait.until(ExpectedConditions.attributeContains(
@@ -188,7 +189,7 @@ public class CustomerDetailPage extends BasePage{
                 break;
 
             default:
-                throw new RuntimeException("Unsupported customer address type while filling customer details:" + addressType);
+                throw new IllegalArgumentException("Unsupported customer address type while filling customer details:" + addressType);
         }
     }
 
@@ -215,16 +216,7 @@ public class CustomerDetailPage extends BasePage{
                         customerCredit,
                         "style",
                         "display: none"));
-//                clear(mobileNumber);
-//                type(mobileNumber, customer.getPhone());
-//                clear(firstName);
-//                type(firstName, customer.getFirstName());
-//                clear(lastName);
-//                type(lastName, customer.getLastName());
-//                dummyClick();
-//
-//                wait.until(ExpectedConditions.alertIsPresent());
-//                acceptAlert();
+
                 scrollIntoView(addNewAddress);
                 waitForClickable(addNewAddress);
                 click(addNewAddress);
@@ -246,7 +238,7 @@ public class CustomerDetailPage extends BasePage{
                 clickNext();
                 break;
 
-            case "store", "store-nyc", "store-london":
+            case "store", "store-nyc", "store-london", "store-online":
                 type(customerEmailTextBox, customer.getEmail());
                 dummyClick();
                 wait.until(ExpectedConditions.attributeContains(
@@ -263,7 +255,7 @@ public class CustomerDetailPage extends BasePage{
                 break;
 
             default:
-                throw new RuntimeException("Unsupported customer address type while filling customer details:" + addressType);
+                throw new IllegalArgumentException("Unsupported customer address type while filling customer details:" + addressType);
         }
     }
 
@@ -271,7 +263,7 @@ public class CustomerDetailPage extends BasePage{
 
         int randomInt = new Random().nextInt(100000);
         switch(addressType) {
-            case "store", "store-nyc", "store-london":
+            case "store", "store-nyc", "store-london", "store-online":
                 selectDummyCustomer();
                 wait.until(ExpectedConditions.attributeContains(
                         customerCredit,
@@ -319,7 +311,7 @@ public class CustomerDetailPage extends BasePage{
                 clickNext();
                 break;
             default:
-                throw new RuntimeException("Unsupported customer address type while filling customer details:" + addressType);
+                throw new IllegalArgumentException("Unsupported customer address type while filling customer details:" + addressType);
         }
     }
 

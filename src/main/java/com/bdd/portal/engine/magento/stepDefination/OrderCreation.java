@@ -305,11 +305,6 @@ public class OrderCreation {
         itemDetailsPage.verifyCart(orderContext.getItems());
     }
 
-    @And("User select customer {string}")
-    public void userSelectCustomer(String country) {
-        customerDetailPage.selectCustomerCountry(country);
-    }
-
     @And("Shipping charges must be added on basis of Cart value and AddressType")
     public void shippingChargesMustBeAddedOnBasisOfCartValueAndAddressType() throws Exception {
 
@@ -370,5 +365,43 @@ public class OrderCreation {
         double vat = itemDetailsPage.calculateVat(items, vatPercentage, currencyData);
         orderContext.setExpectedVat(vat);
         itemDetailsPage.verifyVat(items);
+    }
+
+    @When("User select client location {string}")
+    public void userSelectClientLocation(String countryCode) {
+        customerDetailPage.selectCustomerCountry(countryCode);
+        orderContext.setClientLocation(countryCode);
+    }
+
+    @Then("Product must be added to cart with correct price on the basis of client location")
+    public void productMustBeAddedToCartWithCorrectPriceOnTheBasisOfClientLocation() {
+        List<ItemData> items = orderContext.getItems();
+        String clientLocation = orderContext.getClientLocation();
+
+        for(ItemData item : items) {
+            switch(clientLocation) {
+                case "US":
+                    item.setExpectedPrice(item.getPriceUs());
+                    break;
+
+                case "ROW":
+                    item.setExpectedPrice(item.getPriceRow());
+                    break;
+
+                case "IN":
+                    item.setExpectedPrice(item.getPriceIn());
+                    break;
+
+                default:
+                    throw new RuntimeException("Client Location is Not specified " + clientLocation);
+            }
+        }
+        double expectedSubTotal = items.stream()
+                .mapToDouble(ItemData::getExpectedPrice)
+                .sum();
+
+        orderContext.setExpectedSubTotal(expectedSubTotal);
+
+        itemDetailsPage.verifyCart(orderContext.getItems());
     }
 }

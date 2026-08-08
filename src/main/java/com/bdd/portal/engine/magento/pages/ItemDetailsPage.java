@@ -127,7 +127,8 @@ public class ItemDetailsPage extends BasePage{
         Assertions.assertEquals(
                 expectedItems.size(),
                 cartItems.size(),
-                "Cart item count mismatch");
+                "Cart item count mismatch expected "+expectedItems.size() +
+                "actual " + cartItems.size());
 
         for (ItemData expected : expectedItems) {
 
@@ -197,7 +198,7 @@ public class ItemDetailsPage extends BasePage{
         Assertions.assertEquals(grandTotal,
                 actualGrandTotal,
                 0.01,
-                "Grand Total mismatched on cart page actual "+ actualGrandTotal + "expected" + grandTotal);
+                "Grand Total mismatched on cart page");
     }
 
     public double calculateGrandTotal(double subTotal, double shipping, double salesTax, double vat) {

@@ -56,14 +56,14 @@ Feature: Order Creation check
   @IndianStoreOrder @orderCreation
   Scenario Outline: Order creation check for Indian store user
     Given User is on the login page
-    When User enters valid "gaurav.dubey@purplestylelabs.com" and "1qaz1qaz"
+    When User enters valid "ppusdefcol" and "1qaz2wsx"
     Then User should be redirected to the homepage
     And Logged in user opens order creation
     When User fills customer using "<CustomerType>" with "<AddressType>" address and clicks next
     Then User navigate to sales information Page
     When User fill sales information and click next
-      | leadBy     | Gaurav Dubey |
-      | createdBy  | Gaurav Dubey |
+      | leadBy     | gaurav dubey |
+      | createdBy  | gaurav dubey |
       | source     | Mail         |
       | orderType  | <OrderType>  |
       | slipNumber | 888888       |
@@ -168,4 +168,65 @@ Feature: Order Creation check
       | Dummy-London  | New-IN            | GPay          | PPUS London |
       | Dummy-London  | New-International | GPay          | PPUS London |
       | Dummy-London  | Store-London      | GPay          | PPUS London |
+
+
+
+  @OnlineOrder @orderCreation
+  Scenario Outline: Order creation check for Online Order user
+    Given User is on the login page
+    When User enters valid "gaurav.dubey@purplestylelabs.com" and "1qaz1qaz"
+    Then User should be redirected to the homepage
+    And Logged in user opens order creation
+    When User select client location "<ClientLocation>"
+    Then User should be on customer details page
+    When User fills customer using "<CustomerType>" with "<AddressType>" address and clicks next
+    Then User navigate to sales information Page
+    When User fill sales information and click next
+      | leadBy     | gaurav dubey |
+      | createdBy  | gaurav dubey |
+      | source     | Mail         |
+      | orderType  | <OrderType>  |
+      | slipNumber | 888888       |
+    Then User navigate to Item Detail page
+    When User fill item details using testData for Store User
+    Then Product must be added to cart with correct price on the basis of client location
+    And Shipping charges must be added on basis of Cart value and AddressType
+    And Grand total must be calculated correctly
+    When User navigate to Payment Detail page
+    Then User must be on Payment Detail Page
+    When User makes payment using "<PaymentMethod>"
+    Then Order must placed successfully with correct Data
+
+    Examples:
+      | CustomerType  | AddressType       | PaymentMethod | OrderType    | ClientLocation |
+      | Random        | New-International | GPay          | Online Order | IN             |
+      | Random        | New-IN            | GPay          | Online Order | IN             |
+      | Random        | Store-Online      | GPay          | Online Order | IN             |
+      | Existing      | New-IN            | GPay          | Online Order | IN             |
+      | Existing      | New-International | GPay          | Online Order | IN             |
+#      | Existing      | Store-Online      | GPay          | Online Order | IN             |
+      | Existing      | Existing          | GPay          | Online Order | IN             |
+      | Dummy         | New-IN            | GPay          | Online Order | IN             |
+      | Dummy         | New-International | GPay          | Online Order | IN             |
+      | Dummy         | Store-Online      | GPay          | Online Order | IN             |
+      | Random        | New-International | GPay          | Online Order | US             |
+      | Random        | New-IN            | GPay          | Online Order | US             |
+      | Random        | Store-Online      | GPay          | Online Order | US             |
+      | Existing      | New-IN            | GPay          | Online Order | US             |
+      | Existing      | New-International | GPay          | Online Order | US             |
+#      | Existing      | Store-Online      | GPay          | Online Order | US             |
+      | Existing      | Existing          | GPay          | Online Order | US             |
+      | Dummy         | New-IN            | GPay          | Online Order | US             |
+      | Dummy         | New-International | GPay          | Online Order | US             |
+      | Dummy         | Store-Online      | GPay          | Online Order | US             |
+      | Random        | New-International | GPay          | Online Order | ROW            |
+      | Random        | New-IN            | GPay          | Online Order | ROW            |
+      | Random        | Store-Online      | GPay          | Online Order | ROW            |
+      | Existing      | New-IN            | GPay          | Online Order | ROW            |
+      | Existing      | New-International | GPay          | Online Order | ROW            |
+#      | Existing      | Store-Online      | GPay          | Online Order | ROW            |
+      | Existing      | Existing          | GPay          | Online Order | ROW            |
+      | Dummy         | New-IN            | GPay          | Online Order | ROW            |
+      | Dummy         | New-International | GPay          | Online Order | ROW            |
+      | Dummy         | Store-Online      | GPay          | Online Order | ROW            |
 

@@ -28,7 +28,7 @@ public class RandomCustomerGenerator {
             new Address("United States", "California", "Los Angeles", "90001"),
             new Address("United Kingdom", "England", "London", "SW1A1AA"),
             new Address("Australia", "New South Wales", "Sydney", "2000"),
-            new Address("Canada", "Ontario", "Toronto", "M5H2N2"),
+//            new Address("Canada", "Ontario", "Toronto", "M5H2N2"),
             new Address("Singapore", "Singapore", "Singapore", "018989")
     };
 
