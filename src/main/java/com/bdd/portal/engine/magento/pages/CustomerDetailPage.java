@@ -32,6 +32,7 @@ public class CustomerDetailPage extends BasePage{
     private final By customerCountryDropdown = By.id("currency_code_popup");
     private final By submit = By.id("submitButton");
     private final By storeAddress = By.xpath("//span[@class='bold h6' and text()='Store Address']");
+    private final By Storeadd= By.xpath("(//div[contains(@class,'addressList') and @data-address-type='billing'])[1]");
 
     public boolean isOncustomerDetailPage() {
       return isDisplayed(customerDetailtext);
@@ -182,6 +183,11 @@ public class CustomerDetailPage extends BasePage{
                 type(lastName, customer.getLastName());
                 dummyClick();
 
+                wait.until(ExpectedConditions.alertIsPresent());
+                acceptAlert();
+
+                waitForClickable(Storeadd);
+                click(Storeadd);
                 wait.until(ExpectedConditions.alertIsPresent());
                 acceptAlert();
                 captureScreenshot();

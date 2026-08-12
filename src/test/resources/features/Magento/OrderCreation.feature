@@ -100,8 +100,8 @@ Feature: Order Creation check
       When User fills customer using "<CustomerType>" with "<AddressType>" address and clicks next
       Then User navigate to sales information Page
       When User fill sales information and click next
-        | leadBy     | Sachin Mahara |
-        | createdBy  | Sachin Mahara |
+        | leadBy     | Priyanka Rana |
+        | createdBy  | Priyanka Rana |
         | source     | Mail          |
         | orderType  | <OrderType>   |
         | slipNumber | 888888        |
@@ -140,8 +140,8 @@ Feature: Order Creation check
       When User fills customer using "<CustomerType>" with "<AddressType>" address and clicks next
       Then User navigate to sales information Page
       When User fill sales information and click next
-        | leadBy     | Automation Testing |
-        | createdBy  | Automation Testing |
+        | leadBy     | Grace Roy          |
+        | createdBy  | Grace Roy          |
         | source     | Mail               |
         | orderType  | <OrderType>        |
         | slipNumber | 888888             |

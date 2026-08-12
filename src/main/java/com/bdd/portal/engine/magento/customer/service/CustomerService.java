@@ -21,6 +21,14 @@ public class CustomerService {
 
         customer.setAddresstype(addressType);
 
+        if (("random-nyc".equals(customerType)) && ("store-nyc".equals(addressType))){
+            customer.setBillingPhone("9871643707");
+        }
+
+        if (("random-london".equals(customerType)) && ("store-london".equals(addressType))) {
+          customer.setBillingPhone("7847848484");
+        }
+
         return customer;
     }
 
