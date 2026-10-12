@@ -88,6 +88,19 @@
       "country": "United Kingdom",
       "billingPincode": "W1K 4QB",
       "billingPhone": null
+    },
+    {
+      "type": "DummyCustomer-Online",
+      "email": null,
+      "firstName": null,
+      "lastName": null,
+      "billingName": null,
+      "billingAddress": "PSL RETAIL PRIVATE LIMITED, Basement 1, Flora Marmo,WE Highway, Next to Shaman cars, Vile Parle E",
+      "city": "Mumbai",
+      "state": "Maharashtra",
+      "country": "India",
+      "billingPincode": "400057",
+      "billingPhone": null
     }
   ]
 }

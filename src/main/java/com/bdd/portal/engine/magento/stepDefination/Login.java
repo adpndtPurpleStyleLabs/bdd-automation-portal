@@ -2,6 +2,8 @@ package com.bdd.portal.engine.magento.stepDefination;
 
 import com.bdd.portal.engine.magento.pages.DashboardPage;
 import com.bdd.portal.engine.magento.pages.LoginPage;
+import com.bdd.portal.engine.magento.utils.TestDataReader;
+import com.bdd.portal.engine.magento.utils.UserInfo;
 import io.cucumber.java.en.Given;
 import org.junit.jupiter.api.Assertions;
 import com.bdd.portal.engine.DriverManager;
@@ -34,8 +36,15 @@ public class Login {
 
     @When("User enters valid {string} and {string}")
     public void theUserEntersValidUsernameAndPassword(String userName, String password) {
-        this.userName = userName;
+        //this.userName = userName;
         loginPage.login(userName, password);
+    }
+
+    @When("User enters valid credentials for {string}")
+    public void UserEntersValidCredentials(String store) throws Exception {
+        UserInfo userInfo = TestDataReader.getUserByStore(store);
+        this.userName = userInfo.getUserId();
+        loginPage.login(userName, userInfo.getUserPassword());
     }
 
     @Then("User should be redirected to the homepage")

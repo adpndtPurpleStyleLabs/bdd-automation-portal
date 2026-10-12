@@ -30,4 +30,6 @@ public class OrderContext {
     private double expectedSalesTax;
 
     private double expectedVat;
+
+    private String clientLocation;
 }

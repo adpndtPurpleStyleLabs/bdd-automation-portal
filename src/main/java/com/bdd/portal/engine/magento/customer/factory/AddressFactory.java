@@ -27,6 +27,9 @@ public class AddressFactory {
             case "store-london" ->
                 new StoreLondonStategy();
 
+            case "store-online" ->
+                new StoreOnlineStrategy();
+
             default ->
                     throw new RuntimeException();
 

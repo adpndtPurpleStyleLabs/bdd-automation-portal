@@ -3,6 +3,9 @@ package com.bdd.portal.engine.magento.utils;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.InputStream;
 import java.util.List;
 
@@ -10,41 +13,49 @@ public class TestDataReader {
 
     private static final ObjectMapper mapper = new ObjectMapper();
 
-    public static CustomerData getCustomerData(String key) throws Exception {
-
-        InputStream inputStream = TestDataReader.class
-                .getClassLoader()
-                .getResourceAsStream("testData/customerData.json");
-
-        if (inputStream == null) {
-            throw new RuntimeException("customerData.json not found in resources/testData");
+    public static InputStream getTestDataInputStream(String relativePath) throws Exception {
+        // 1. Check primary source directory
+        File srcFile = new File("src/main/resources/" + relativePath);
+        if (srcFile.exists() && srcFile.isFile()) {
+            return new FileInputStream(srcFile);
         }
 
-        JsonNode root = mapper.readTree(inputStream);
+        // 2. Check target/classes build directory
+        File targetFile = new File("target/classes/" + relativePath);
+        if (targetFile.exists() && targetFile.isFile()) {
+            return new FileInputStream(targetFile);
+        }
 
-        return mapper.treeToValue(root.get(key), CustomerData.class);
+        // 3. Fallback to classpath
+        InputStream inputStream = TestDataReader.class
+                .getClassLoader()
+                .getResourceAsStream(relativePath);
+
+        if (inputStream != null) {
+            return inputStream;
+        }
+
+        throw new RuntimeException("Test data file not found: " + relativePath);
+    }
+
+    public static CustomerData getCustomerData(String key) throws Exception {
+        try (InputStream inputStream = getTestDataInputStream("testData/customerData.json")) {
+            JsonNode root = mapper.readTree(inputStream);
+            return mapper.treeToValue(root.get(key), CustomerData.class);
+        }
     }
 
     public static List<CustomerData> getAllCustomers() throws Exception {
-
-        InputStream inputStream = TestDataReader.class
-                .getClassLoader()
-                .getResourceAsStream("testData/customerData.json");
-
-        if (inputStream == null) {
-            throw new RuntimeException("customerData.json not found");
+        try (InputStream inputStream = getTestDataInputStream("testData/customerData.json")) {
+            JsonNode root = mapper.readTree(inputStream);
+            return mapper.convertValue(
+                    root.get("customers"),
+                    new TypeReference<List<CustomerData>>() {}
+            );
         }
-
-        JsonNode root = mapper.readTree(inputStream);
-
-        return mapper.convertValue(
-                root.get("customers"),
-                new TypeReference<List<CustomerData>>() {}
-        );
     }
 
     public static CustomerData getCustomerByType(String type) throws Exception {
-
         return getAllCustomers()
                 .stream()
                 .filter(customer -> customer.getType().equalsIgnoreCase(type))
@@ -53,62 +64,54 @@ public class TestDataReader {
                         new RuntimeException("Customer type not found: " + type));
     }
 
-    public static List<ItemData> getAllItem() throws Exception {
-
-        InputStream inputStream = TestDataReader.class
-                .getClassLoader()
-                .getResourceAsStream("testData/itemData.json");
-
-        if (inputStream == null) {
-            throw new RuntimeException("itemData.json not found");
+    public static UserInfo getUserByStore(String store) throws Exception{
+        try(InputStream inputStream = getTestDataInputStream("testData/userInfo.json")) {
+            JsonNode root = mapper.readTree((inputStream));
+            JsonNode storeNode = root.get(store);
+            if (storeNode == null) {
+                throw new RuntimeException(
+                        "No user information found for store: " + store
+                );
+            }
+            return mapper.convertValue(
+                    storeNode,
+                    new TypeReference<UserInfo>() {}
+            );
         }
+    }
 
-        JsonNode root = mapper.readTree(inputStream);
-
-        return mapper.convertValue(
-                root.get("ItemData"),
-                new TypeReference<List<ItemData>>() {}
-        );
+    public static List<ItemData> getAllItem() throws Exception {
+        try (InputStream inputStream = getTestDataInputStream("testData/itemData.json")) {
+            JsonNode root = mapper.readTree(inputStream);
+            return mapper.convertValue(
+                    root.get("ItemData"),
+                    new TypeReference<List<ItemData>>() {}
+            );
+        }
     }
 
     public static PaymentData getPaymentData(String key) throws Exception {
-
-        InputStream inputStream = TestDataReader.class
-                .getClassLoader()
-                .getResourceAsStream("testData/paymentType.json");
-
-        if (inputStream == null) {
-            throw new RuntimeException("paymentData.json not found");
+        try (InputStream inputStream = getTestDataInputStream("testData/paymentType.json")) {
+            JsonNode root = mapper.readTree(inputStream);
+            return mapper.treeToValue(root.get(key), PaymentData.class);
         }
-
-        JsonNode root = mapper.readTree(inputStream);
-
-        return mapper.treeToValue(root.get(key), PaymentData.class);
     }
 
     public static CurrencyData getCurrencyData(String currency) throws Exception {
-
-        InputStream inputStream = TestDataReader.class
-                .getClassLoader()
-                .getResourceAsStream("testData/currencyConversionRate.json");
-
-        JsonNode root = mapper.readTree(inputStream);
-
-        return mapper.treeToValue(
-                root.get(currency.toLowerCase()),
-                CurrencyData.class);
+        try (InputStream inputStream = getTestDataInputStream("testData/currencyConversionRate.json")) {
+            JsonNode root = mapper.readTree(inputStream);
+            return mapper.treeToValue(
+                    root.get(currency.toLowerCase()),
+                    CurrencyData.class);
+        }
     }
 
     public static CurrencyData getCurrencyCalculator(String currency) throws Exception {
-
-        InputStream inputStream = TestDataReader.class
-                .getClassLoader()
-                .getResourceAsStream("testData/currencyCalculator.json");
-
-        JsonNode root = mapper.readTree(inputStream);
-
-        return mapper.treeToValue(
-                root.get(currency.toLowerCase()),
-                CurrencyData.class);
+        try (InputStream inputStream = getTestDataInputStream("testData/currencyCalculator.json")) {
+            JsonNode root = mapper.readTree(inputStream);
+            return mapper.treeToValue(
+                    root.get(currency.toLowerCase()),
+                    CurrencyData.class);
+        }
     }
 }

@@ -1,0 +1,2141 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout" layout:decorate="~{layout/base}">
+<head>
+    <title>Test Data Management</title>
+    <style>
+        .testdata-card {
+            transition: all 0.2s ease;
+            cursor: pointer;
+            border-left: 4px solid transparent !important;
+        }
+        .testdata-card:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.06);
+        }
+        .testdata-card.active {
+            border-left-color: var(--primary) !important;
+            background-color: #f5f3ff !important;
+        }
+        .json-editor-textarea {
+            font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+            font-size: 0.88rem;
+            line-height: 1.5;
+            background-color: #1e293b;
+            color: #e2e8f0;
+            border: 1px solid #334155;
+            border-radius: 6px;
+            tab-size: 2;
+            resize: vertical;
+            height: 70vh;
+            min-height: 600px;
+            max-height: 80vh;
+        }
+        .json-editor-textarea:focus {
+            background-color: #0f172a;
+            color: #f8fafc;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(101, 81, 159, 0.25);
+        }
+        .badge-core {
+            background-color: #e0e7ff;
+            color: #3730a3;
+            font-weight: 600;
+        }
+        .badge-custom {
+            background-color: #fef3c7;
+            color: #92400e;
+            font-weight: 600;
+        }
+        .table-vcenter td, .table-vcenter th {
+            vertical-align: middle;
+        }
+    </style>
+</head>
+<body>
+    <div layout:fragment="content" id="testDataContainer" th:data-active-file="${activeFile}">
+        <!-- Page Header -->
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <div>
+                <h3 class="fw-bold mb-1 text-primary-dark">
+                    <i class="bi bi-filetype-json text-primary me-2"></i>Test Data Management
+                </h3>
+                <p class="text-muted mb-0" style="font-size: 0.9rem;">
+                    Manage, edit, and dynamically update test datasets for BDD automation runs without modifying code.
+                </p>
+            </div>
+            <div class="d-flex gap-2">
+                <button type="button" class="btn btn-outline-secondary btn-sm d-flex align-items-center gap-1 shadow-sm" onclick="openUploadModal()">
+                    <i class="bi bi-cloud-arrow-up"></i> Upload JSON
+                </button>
+                <button type="button" class="btn btn-outline-primary btn-sm d-flex align-items-center gap-1 shadow-sm" onclick="openNewFileModal()">
+                    <i class="bi bi-plus-circle"></i> New JSON File
+                </button>
+                <button type="button" class="btn btn-primary btn-sm d-flex align-items-center gap-1 shadow-sm px-3 fw-bold" id="btnGlobalSave" onclick="saveActiveDataset()">
+                    <i class="bi bi-check2-circle"></i> Save Changes
+                </button>
+            </div>
+        </div>
+
+        <!-- Alert Notification Bar -->
+        <div id="statusAlert" class="alert alert-dismissible fade show d-none mb-3 py-2 px-3 small" role="alert">
+            <span id="statusAlertMessage"></span>
+            <button type="button" class="btn-close py-2" onclick="hideStatusAlert()"></button>
+        </div>
+
+        <div class="row g-3">
+            <!-- Left Sidebar: Dataset Files Explorer -->
+            <div class="col-lg-3 col-md-4">
+                <div class="card shadow-sm border-0 h-100">
+                    <div class="card-header bg-white py-2 px-3 d-flex justify-content-between align-items-center border-bottom">
+                        <span class="fw-bold text-dark small text-uppercase" style="letter-spacing: 0.05em;">
+                            <i class="bi bi-folder2-open me-1 text-primary"></i> Datasets (<span id="fileCountBadge" th:text="${#lists.size(files)}">0</span>)
+                        </span>
+                        <button class="btn btn-link btn-sm p-0 text-muted" title="Refresh files" onclick="loadFilesList()">
+                            <i class="bi bi-arrow-clockwise"></i>
+                        </button>
+                    </div>
+                    
+                    <div class="p-2 border-bottom bg-light">
+                        <div class="input-group input-group-sm">
+                            <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
+                            <input type="text" class="form-control border-start-0 ps-0" id="datasetSearchInput"
+                                   placeholder="Filter datasets..." oninput="filterDatasetsList()">
+                        </div>
+                    </div>
+
+                    <div class="card-body p-2" style="max-height: 650px; overflow-y: auto;" id="datasetsListContainer">
+                        <div th:each="file : ${files}" 
+                             th:classappend="${file.filename == activeFile ? 'active' : ''}"
+                             th:data-filename="${file.filename}"
+                             class="card testdata-card border mb-2 p-2"
+                             onclick="selectDataset(this.getAttribute('data-filename'))">
+                            <div class="d-flex justify-content-between align-items-start mb-1">
+                                <div class="fw-bold text-truncate text-dark small" style="max-width: 170px;" th:text="${file.displayName}">
+                                    Dataset Name
+                                </div>
+                                <span th:if="${file.coreFile}" class="badge badge-core text-uppercase" style="font-size: 0.65rem;">Core</span>
+                                <span th:unless="${file.coreFile}" class="badge badge-custom text-uppercase" style="font-size: 0.65rem;">Custom</span>
+                            </div>
+                            <div class="d-flex align-items-center text-muted small mb-1" style="font-size: 0.75rem;">
+                                <i class="bi bi-file-code me-1 text-primary"></i>
+                                <span class="font-monospace text-truncate" th:text="${file.filename}">file.json</span>
+                            </div>
+                            <div class="d-flex justify-content-between align-items-center text-muted" style="font-size: 0.7rem;">
+                                <span class="badge bg-light text-dark border">
+                                    <span th:text="${file.recordCount}">0</span> <span th:text="${file.recordLabel}">Records</span>
+                                </span>
+                                <span th:text="${file.lastModified}">Date</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Area: Dataset Editor Workspace -->
+            <div class="col-lg-9 col-md-8">
+                <div class="card shadow-sm border-0">
+                    <!-- Workspace Header -->
+                    <div class="card-header bg-white py-2 px-3 border-bottom d-flex flex-wrap justify-content-between align-items-center gap-2">
+                        <div class="d-flex align-items-center gap-2">
+                            <div class="bg-primary-soft text-primary rounded p-2 d-flex align-items-center justify-content-center" style="width: 32px; height: 32px;">
+                                <i class="bi bi-file-earmark-code fs-6"></i>
+                            </div>
+                            <div>
+                                <h6 class="mb-0 fw-bold text-dark" id="activeFileTitle" th:text="${activeFile}">customerData.json</h6>
+                                <small class="text-muted" id="activeFileSubtitle">Loading metadata...</small>
+                            </div>
+                        </div>
+
+                        <!-- Mode Switcher & Utilities -->
+                        <div class="d-flex align-items-center gap-2">
+                            <div class="btn-group btn-group-sm" role="group">
+                                <button type="button" class="btn btn-outline-primary active" id="btnVisualMode" onclick="switchViewMode('visual')">
+                                    <i class="bi bi-table me-1"></i> Visual Table & Form
+                                </button>
+                                <button type="button" class="btn btn-outline-primary" id="btnRawMode" onclick="switchViewMode('raw')">
+                                    <i class="bi bi-code-slash me-1"></i> Raw JSON Code
+                                </button>
+                            </div>
+
+                            <button type="button" class="btn btn-sm btn-outline-secondary" title="Download JSON file" onclick="downloadActiveFile()">
+                                <i class="bi bi-download"></i>
+                            </button>
+                            <button type="button" class="btn btn-sm btn-outline-danger d-none" id="btnDeleteActiveFile" title="Delete custom file" onclick="deleteActiveFile()">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="card-body p-3">
+                        <!-- VIEW 1: Visual Mode -->
+                        <div id="visualModeContainer">
+                            <!-- Visual Sub-Toolbar -->
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <div class="input-group input-group-sm" style="max-width: 280px;">
+                                    <span class="input-group-text bg-white"><i class="bi bi-search text-muted"></i></span>
+                                    <input type="text" class="form-control" id="visualSearchInput" placeholder="Search records..." oninput="filterVisualRecords()">
+                                </div>
+                                <div>
+                                    <button type="button" class="btn btn-success btn-sm shadow-sm fw-medium d-flex align-items-center gap-1" id="btnAddRecordBtn" onclick="openAddRecordModal()">
+                                        <i class="bi bi-plus-lg"></i> Add New Record
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Dynamic Visual Table Container -->
+                            <div class="table-responsive rounded border bg-white" style="min-height: 440px; max-height: 600px; overflow-y: auto;">
+                                <div id="visualContentArea">
+                                    <div class="text-center py-5 text-muted">
+                                        <div class="spinner-border spinner-border-sm text-primary mb-2" role="status"></div>
+                                        <div>Loading dataset visual view...</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- VIEW 2: Raw JSON Mode -->
+                        <div id="rawModeContainer" class="d-none">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <div class="d-flex align-items-center gap-2">
+                                    <span class="badge bg-secondary font-monospace" id="rawJsonStatusBadge">JSON (Pretty)</span>
+                                    <span class="text-muted small" id="rawJsonStatsText">0 lines</span>
+                                </div>
+                                <div class="d-flex gap-2">
+                                    <button type="button" class="btn btn-sm btn-outline-secondary" onclick="formatRawJson()">
+                                        <i class="bi bi-magic me-1"></i> Prettify JSON
+                                    </button>
+                                    <button type="button" class="btn btn-sm btn-outline-secondary" onclick="validateRawJson()">
+                                        <i class="bi bi-check-all me-1"></i> Validate Syntax
+                                    </button>
+                                </div>
+                            </div>
+                            <textarea id="rawJsonTextarea" class="form-control json-editor-textarea w-100 p-3" spellcheck="false"
+                                      oninput="onRawJsonChanged()"></textarea>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ==================== MODALS ==================== -->
+
+        <!-- 1. Customer Modal (Add / Edit) -->
+        <div class="modal fade" id="customerModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="customerModalTitle"><i class="bi bi-person-gear me-2 text-primary"></i>Edit Customer Profile</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <form id="customerForm">
+                            <input type="hidden" id="customerRecordIndex" value="-1">
+                            
+                            <h6 class="fw-bold text-primary mb-2 border-bottom pb-1">1. Customer Identification & Type</h6>
+                            <div class="row g-2 mb-3">
+                                <div class="col-md-6">
+                                    <label class="form-label small fw-bold">Customer Type / Key <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control form-control-sm font-monospace" id="custType" required placeholder="e.g. ExistingCustomer, DummyCustomer">
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label small fw-bold">Email Address</label>
+                                    <input type="email" class="form-control form-control-sm" id="custEmail" placeholder="e.g. testuser@example.com">
+                                </div>
+                            </div>
+
+                            <h6 class="fw-bold text-primary mb-2 border-bottom pb-1">2. Personal Information</h6>
+                            <div class="row g-2 mb-3">
+                                <div class="col-md-4">
+                                    <label class="form-label small fw-bold">First Name</label>
+                                    <input type="text" class="form-control form-control-sm" id="custFirstName">
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label small fw-bold">Last Name</label>
+                                    <input type="text" class="form-control form-control-sm" id="custLastName">
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label small fw-bold">Phone Number</label>
+                                    <input type="text" class="form-control form-control-sm" id="custPhone">
+                                </div>
+                            </div>
+
+                            <h6 class="fw-bold text-primary mb-2 border-bottom pb-1">3. Billing & Shipping Information</h6>
+                            <div class="row g-2 mb-2">
+                                <div class="col-md-6">
+                                    <label class="form-label small fw-bold">Billing / Contact Name</label>
+                                    <input type="text" class="form-control form-control-sm" id="custBillingName">
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label small fw-bold">Billing Phone</label>
+                                    <input type="text" class="form-control form-control-sm" id="custBillingPhone">
+                                </div>
+                                <div class="col-12">
+                                    <label class="form-label small fw-bold">Billing Street Address</label>
+                                    <textarea class="form-control form-control-sm" id="custBillingAddress" rows="2"></textarea>
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label small fw-bold">City</label>
+                                    <input type="text" class="form-control form-control-sm" id="custCity">
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label small fw-bold">State / Province</label>
+                                    <input type="text" class="form-control form-control-sm" id="custState">
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label small fw-bold">Country</label>
+                                    <input type="text" class="form-control form-control-sm" id="custCountry">
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label small fw-bold">Pincode / Postal Code</label>
+                                    <input type="text" class="form-control form-control-sm" id="custBillingPincode">
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-light border btn-sm" data-bs-dismiss="modal">Cancel</button>
+                        <button type="button" class="btn btn-primary btn-sm fw-bold" onclick="saveCustomerModalRecord()">Save Customer Record</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 2. Item / Product Modal (Add / Edit) -->
+        <div class="modal fade" id="itemModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-md">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="itemModalTitle"><i class="bi bi-box-seam me-2 text-primary"></i>Edit Product Item</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <form id="itemForm">
+                            <input type="hidden" id="itemRecordIndex" value="-1">
+                            <div class="mb-2">
+                                <label class="form-label small fw-bold">SKU Code <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control form-control-sm font-monospace" id="itemSku" required placeholder="e.g. SDBM06231793-BO-S">
+                            </div>
+                            <div class="row g-2 mb-2">
+                                <div class="col-md-6">
+                                    <label class="form-label small fw-bold">Category</label>
+                                    <input type="text" class="form-control form-control-sm" id="itemCategory" placeholder="e.g. Menswear">
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label small fw-bold">SubCategory</label>
+                                    <input type="text" class="form-control form-control-sm" id="itemSubCategory" placeholder="e.g. Shirt">
+                                </div>
+                            </div>
+                            <div class="row g-2 mb-2">
+                                <div class="col-md-4">
+                                    <label class="form-label small fw-bold">Price IN (₹)</label>
+                                    <input type="number" step="0.01" class="form-control form-control-sm" id="itemPriceIn" value="0.00">
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label small fw-bold">Price US ($)</label>
+                                    <input type="number" step="0.01" class="form-control form-control-sm" id="itemPriceUs" value="0.00">
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label small fw-bold">Price ROW ($)</label>
+                                    <input type="number" step="0.01" class="form-control form-control-sm" id="itemPriceRow" value="0.00">
+                                </div>
+                            </div>
+                            <div class="form-check form-switch mt-3">
+                                <input class="form-check-input" type="checkbox" id="itemDeliveryAwaited">
+                                <label class="form-check-label small fw-bold" for="itemDeliveryAwaited">Delivery Awaited</label>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-light border btn-sm" data-bs-dismiss="modal">Cancel</button>
+                        <button type="button" class="btn btn-primary btn-sm fw-bold" onclick="saveItemModalRecord()">Save Product Item</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 3. Payment Method Modal -->
+        <div class="modal fade" id="paymentModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-md">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="paymentModalTitle"><i class="bi bi-credit-card me-2 text-primary"></i>Edit Payment Method</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <form id="paymentForm">
+                            <input type="hidden" id="paymentOriginalKey" value="">
+                            <div class="mb-2">
+                                <label class="form-label small fw-bold">Payment Method Name / Key <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control form-control-sm font-monospace" id="paymentKey" required placeholder="e.g. Cash, GPay, Stripe Payment">
+                            </div>
+                            <div class="mb-2">
+                                <label class="form-label small fw-bold">Transaction ID</label>
+                                <input type="text" class="form-control form-control-sm font-monospace" id="paymentTxnId" placeholder="e.g. TXN1001">
+                            </div>
+                            <div class="mb-2">
+                                <label class="form-label small fw-bold">Payment Link</label>
+                                <input type="url" class="form-control form-control-sm" id="paymentLink" placeholder="https://test.com/pay">
+                            </div>
+                            <div class="mb-2">
+                                <label class="form-label small fw-bold">Invoice ID</label>
+                                <input type="text" class="form-control form-control-sm font-monospace" id="paymentInvoiceId" placeholder="e.g. INV1001">
+                            </div>
+                        </form>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-light border btn-sm" data-bs-dismiss="modal">Cancel</button>
+                        <button type="button" class="btn btn-primary btn-sm fw-bold" onclick="savePaymentModalRecord()">Save Payment Method</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 4. Currency Rate Modal -->
+        <div class="modal fade" id="currencyModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-sm">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="currencyModalTitle"><i class="bi bi-currency-exchange me-2 text-primary"></i>Edit Currency</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <form id="currencyForm">
+                            <input type="hidden" id="currencyOriginalKey" value="">
+                            <div class="mb-2">
+                                <label class="form-label small fw-bold">Currency Code <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control form-control-sm text-uppercase font-monospace" id="currencyKey" required placeholder="e.g. USD, EUR, INR">
+                            </div>
+                            <div class="mb-2">
+                                <label class="form-label small fw-bold">Multiplier</label>
+                                <input type="number" step="0.01" class="form-control form-control-sm" id="currencyMultiplier" value="1">
+                            </div>
+                            <div class="mb-2">
+                                <label class="form-label small fw-bold">Exchange Rate</label>
+                                <input type="number" step="0.000001" class="form-control form-control-sm" id="currencyRate" value="1.0">
+                            </div>
+                        </form>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-light border btn-sm" data-bs-dismiss="modal">Cancel</button>
+                        <button type="button" class="btn btn-primary btn-sm fw-bold" onclick="saveCurrencyModalRecord()">Save Currency</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 5. User Store Credentials Modal (Add / Edit) -->
+        <div class="modal fade" id="userInfoModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-md">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="userInfoModalTitle"><i class="bi bi-person-badge me-2 text-primary"></i>Edit Store User Account</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <form id="userInfoForm">
+                            <input type="hidden" id="userInfoOriginalKey" value="">
+                            <div class="mb-3">
+                                <label class="form-label small fw-bold">Store / Region Name <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control form-control-sm font-monospace" id="userStoreKey" required placeholder="e.g. India, NYC, London, Online">
+                                <div class="form-text">Store identifier matching your automation scenarios.</div>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label small fw-bold">User ID / Username / Email <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control form-control-sm font-monospace" id="userStoreUserId" required placeholder="e.g. user@purplestylelabs.com or ppusdefcol">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label small fw-bold">User Password <span class="text-danger">*</span></label>
+                                <div class="input-group input-group-sm">
+                                    <input type="password" class="form-control font-monospace" id="userStorePassword" required placeholder="Enter password">
+                                    <button class="btn btn-outline-secondary" type="button" onclick="togglePasswordVisibility('userStorePassword', this)" title="Show/Hide Password">
+                                        <i class="bi bi-eye"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-light border btn-sm" data-bs-dismiss="modal">Cancel</button>
+                        <button type="button" class="btn btn-primary btn-sm fw-bold" onclick="saveUserInfoModalRecord()">Save User Account</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 6. Generic Key-Value Object Modal (Add / Edit any value) -->
+        <div class="modal fade" id="genericObjectModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-md">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="genericObjectModalTitle"><i class="bi bi-pencil-square me-2 text-primary"></i>Edit Field Value</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <form id="genericObjectForm">
+                            <input type="hidden" id="genericObjectOriginalKey" value="">
+                            <div class="mb-3">
+                                <label class="form-label small fw-bold">Key / Field Name <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control form-control-sm font-monospace" id="genericObjectKey" required placeholder="e.g. settingName">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label small fw-bold">Value Type</label>
+                                <select class="form-select form-select-sm" id="genericObjectTypeSelect" onchange="onGenericObjectTypeChange()">
+                                    <option value="string">String / Text</option>
+                                    <option value="number">Number</option>
+                                    <option value="boolean">Boolean (true / false)</option>
+                                    <option value="json">JSON Object / Array</option>
+                                </select>
+                            </div>
+                            <div class="mb-3" id="genericObjectStringGroup">
+                                <label class="form-label small fw-bold">Value</label>
+                                <textarea class="form-control form-control-sm font-monospace" id="genericObjectValue" rows="4" placeholder="Enter value"></textarea>
+                            </div>
+                            <div class="mb-3 d-none" id="genericObjectBooleanGroup">
+                                <label class="form-label small fw-bold">Select Boolean Value</label>
+                                <select class="form-select form-select-sm" id="genericObjectBoolValue">
+                                    <option value="true">true</option>
+                                    <option value="false">false</option>
+                                </select>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-light border btn-sm" data-bs-dismiss="modal">Cancel</button>
+                        <button type="button" class="btn btn-primary btn-sm fw-bold" onclick="saveGenericObjectModalRecord()">Save Field</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 7. Generic Array Record Modal (Add / Edit any row) -->
+        <div class="modal fade" id="genericArrayModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="genericArrayModalTitle"><i class="bi bi-pencil-square me-2 text-primary"></i>Edit Record</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <form id="genericArrayForm">
+                            <input type="hidden" id="genericArrayRecordIndex" value="-1">
+                            <div id="genericArrayDynamicFields">
+                                <!-- Dynamic form inputs generated from object keys or single value -->
+                            </div>
+                        </form>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-light border btn-sm" data-bs-dismiss="modal">Cancel</button>
+                        <button type="button" class="btn btn-primary btn-sm fw-bold" onclick="saveGenericArrayModalRecord()">Save Record</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 8. Create New JSON File Modal -->
+        <div class="modal fade" id="newFileModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title"><i class="bi bi-plus-circle me-2 text-primary"></i>Create New Test Data File</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold">File Name <span class="text-danger">*</span></label>
+                            <div class="input-group input-group-sm">
+                                <input type="text" class="form-control font-monospace" id="newFilenameInput" placeholder="e.g. orderData">
+                                <span class="input-group-text">.json</span>
+                            </div>
+                            <div class="form-text">File will be saved under resources/testData/</div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold">Initial Template</label>
+                            <select class="form-select form-select-sm" id="newFileTemplateSelect">
+                                <option value="empty_object">Empty Object { }</option>
+                                <option value="empty_array">Empty Array [ ]</option>
+                                <option value="user_template">Store Users Template (userInfo.json format)</option>
+                                <option value="customer_template">Customer Template</option>
+                                <option value="item_template">Item / Product Template</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-light border btn-sm" data-bs-dismiss="modal">Cancel</button>
+                        <button type="button" class="btn btn-primary btn-sm fw-bold" onclick="submitCreateNewFile()">Create File</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 6. Upload JSON File Modal -->
+        <div class="modal fade" id="uploadModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title"><i class="bi bi-cloud-arrow-up me-2 text-primary"></i>Upload Test Data JSON</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold">Select JSON File <span class="text-danger">*</span></label>
+                            <input type="file" class="form-control form-control-sm" id="uploadFileInput" accept=".json">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold">Target File Name (Optional)</label>
+                            <input type="text" class="form-control form-control-sm font-monospace" id="uploadCustomFilename" placeholder="Leave empty to use original filename">
+                            <div class="form-text">If a file with the same name exists, it will be updated with the uploaded content.</div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-light border btn-sm" data-bs-dismiss="modal">Cancel</button>
+                        <button type="button" class="btn btn-primary btn-sm fw-bold" onclick="submitUploadFile()">Upload & Save</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Scripts Fragment -->
+    <th:block layout:fragment="scripts">
+        <script>
+            // Global State
+            let currentFilename = 'customerData.json';
+            let currentParsedData = null;
+            let currentViewMode = 'visual'; // 'visual' or 'raw'
+            let isDirty = false;
+            let allFilesCache = [];
+
+            document.addEventListener('DOMContentLoaded', function () {
+                initTestDataPage();
+            });
+
+            document.addEventListener('turbo:load', function () {
+                initTestDataPage();
+            });
+
+            function initTestDataPage() {
+                const container = document.getElementById('testDataContainer');
+                if (container) {
+                    const activeAttr = container.getAttribute('data-active-file');
+                    if (activeAttr) {
+                        currentFilename = activeAttr;
+                    }
+                }
+
+                loadFilesList(function() {
+                    if (currentFilename) {
+                        selectDataset(currentFilename, false);
+                    }
+                });
+            }
+
+            function getCsrfHeaders() {
+                const token = document.querySelector("meta[name='_csrf']")?.getAttribute("content");
+                const header = document.querySelector("meta[name='_csrf_header']")?.getAttribute("content");
+                const headers = { 'Content-Type': 'application/json' };
+                if (token && header) {
+                    headers[header] = token;
+                }
+                return headers;
+            }
+
+            function showStatusAlert(message, isError) {
+                const alertEl = document.getElementById('statusAlert');
+                const msgEl = document.getElementById('statusAlertMessage');
+                if (!alertEl || !msgEl) return;
+
+                alertEl.className = isError 
+                    ? 'alert alert-danger alert-dismissible fade show mb-3 py-2 px-3 small'
+                    : 'alert alert-success alert-dismissible fade show mb-3 py-2 px-3 small';
+                msgEl.innerHTML = (isError ? '<i class="bi bi-exclamation-triangle-fill me-2"></i>' : '<i class="bi bi-check-circle-fill me-2"></i>') + message;
+                alertEl.classList.remove('d-none');
+
+                setTimeout(function() {
+                    hideStatusAlert();
+                }, 5000);
+            }
+
+            function hideStatusAlert() {
+                const alertEl = document.getElementById('statusAlert');
+                if (alertEl) alertEl.classList.add('d-none');
+            }
+
+            function loadFilesList(callback) {
+                fetch('/api/test-data/files')
+                    .then(function(res) { return res.json(); })
+                    .then(function(files) {
+                        allFilesCache = files;
+                        renderFilesSidebar(files);
+                        if (callback) callback();
+                    })
+                    .catch(function(err) {
+                        console.error('Failed to load files:', err);
+                    });
+            }
+
+            function renderFilesSidebar(files) {
+                const container = document.getElementById('datasetsListContainer');
+                const badge = document.getElementById('fileCountBadge');
+                if (badge) badge.innerText = files.length;
+                if (!container) return;
+
+                container.innerHTML = '';
+                files.forEach(function(file) {
+                    const card = document.createElement('div');
+                    card.className = 'card testdata-card border mb-2 p-2 ' + (file.filename === currentFilename ? 'active' : '');
+                    card.setAttribute('data-filename', file.filename);
+                    card.onclick = function() { selectDataset(file.filename); };
+
+                    const badgeHtml = file.coreFile 
+                        ? '<span class="badge badge-core text-uppercase" style="font-size: 0.65rem;">Core</span>'
+                        : '<span class="badge badge-custom text-uppercase" style="font-size: 0.65rem;">Custom</span>';
+
+                    card.innerHTML = 
+                        '<div class="d-flex justify-content-between align-items-start mb-1">' +
+                            '<div class="fw-bold text-truncate text-dark small" style="max-width: 170px;">' + escapeHtml(file.displayName) + '</div>' +
+                            badgeHtml +
+                        '</div>' +
+                        '<div class="d-flex align-items-center text-muted small mb-1" style="font-size: 0.75rem;">' +
+                            '<i class="bi bi-file-code me-1 text-primary"></i>' +
+                            '<span class="font-monospace text-truncate">' + escapeHtml(file.filename) + '</span>' +
+                        '</div>' +
+                        '<div class="d-flex justify-content-between align-items-center text-muted" style="font-size: 0.7rem;">' +
+                            '<span class="badge bg-light text-dark border">' +
+                                '<span>' + file.recordCount + '</span> <span>' + escapeHtml(file.recordLabel) + '</span>' +
+                            '</span>' +
+                            '<span>' + escapeHtml(file.lastModified) + '</span>' +
+                        '</div>';
+                    container.appendChild(card);
+                });
+            }
+
+            function filterDatasetsList() {
+                const q = (document.getElementById('datasetSearchInput')?.value || '').toLowerCase();
+                const cards = document.querySelectorAll('#datasetsListContainer .testdata-card');
+                cards.forEach(function(card) {
+                    const text = card.innerText.toLowerCase();
+                    card.style.display = text.indexOf(q) !== -1 ? 'block' : 'none';
+                });
+            }
+
+            function selectDataset(filename, promptIfDirty) {
+                if (promptIfDirty !== false && isDirty) {
+                    if (!confirm('You have unsaved changes in the current dataset. Switch anyway?')) {
+                        return;
+                    }
+                }
+
+                currentFilename = filename;
+                isDirty = false;
+
+                // Update active state in sidebar
+                document.querySelectorAll('#datasetsListContainer .testdata-card').forEach(function(card) {
+                    if (card.getAttribute('data-filename') === filename) {
+                        card.classList.add('active');
+                    } else {
+                        card.classList.remove('active');
+                    }
+                });
+
+                // Update header info
+                const titleEl = document.getElementById('activeFileTitle');
+                const subEl = document.getElementById('activeFileSubtitle');
+                if (titleEl) titleEl.innerText = filename;
+
+                const fileInfo = allFilesCache.find(function(f) { return f.filename === filename; });
+                if (subEl && fileInfo) {
+                    subEl.innerHTML = escapeHtml(fileInfo.displayName) + ' &bull; ' + (fileInfo.sizeBytes / 1024).toFixed(1) + ' KB &bull; Last modified: ' + escapeHtml(fileInfo.lastModified);
+                }
+
+                const delBtn = document.getElementById('btnDeleteActiveFile');
+                if (delBtn) {
+                    if (fileInfo && !fileInfo.coreFile) {
+                        delBtn.classList.remove('d-none');
+                    } else {
+                        delBtn.classList.add('d-none');
+                    }
+                }
+
+                // Fetch content
+                fetch('/api/test-data/file/' + encodeURIComponent(filename))
+                    .then(function(res) {
+                        if (!res.ok) throw new Error('File not found or failed to load');
+                        return res.json();
+                    })
+                    .then(function(data) {
+                        const rawTextarea = document.getElementById('rawJsonTextarea');
+                        if (rawTextarea) {
+                            rawTextarea.value = data.content;
+                            updateRawStats();
+                        }
+                        try {
+                            currentParsedData = JSON.parse(data.content);
+                        } catch (e) {
+                            currentParsedData = null;
+                        }
+                        renderVisualMode(currentFilename, currentParsedData);
+                    })
+                    .catch(function(err) {
+                        showStatusAlert('Failed to load dataset: ' + err.message, true);
+                    });
+            }
+
+            function switchViewMode(mode) {
+                currentViewMode = mode;
+                const visualBtn = document.getElementById('btnVisualMode');
+                const rawBtn = document.getElementById('btnRawMode');
+                const visualCont = document.getElementById('visualModeContainer');
+                const rawCont = document.getElementById('rawModeContainer');
+
+                if (mode === 'visual') {
+                    try {
+                        const rawVal = document.getElementById('rawJsonTextarea').value;
+                        currentParsedData = JSON.parse(rawVal);
+                        renderVisualMode(currentFilename, currentParsedData);
+                    } catch (e) {
+                        showStatusAlert('Warning: Raw JSON contains syntax errors. Fix them before switching to Visual mode.', true);
+                        return;
+                    }
+                    visualBtn.classList.add('active');
+                    rawBtn.classList.remove('active');
+                    visualCont.classList.remove('d-none');
+                    rawCont.classList.add('d-none');
+                } else {
+                    const rawTextarea = document.getElementById('rawJsonTextarea');
+                    if (rawTextarea && currentParsedData) {
+                        rawTextarea.value = JSON.stringify(currentParsedData, null, 2);
+                        updateRawStats();
+                    }
+                    rawBtn.classList.add('active');
+                    visualBtn.classList.remove('active');
+                    rawCont.classList.remove('d-none');
+                    visualCont.classList.add('d-none');
+                }
+            }            // ==================== RENDERING VISUAL MODE ====================
+
+            function isUserInfoData(data) {
+                if (!data || typeof data !== 'object' || Array.isArray(data)) return false;
+                const keys = Object.keys(data);
+                if (keys.length === 0) return false;
+                return keys.some(function(k) {
+                    const item = data[k];
+                    return item && typeof item === 'object' && ('userId' in item || 'userPassword' in item);
+                });
+            }
+
+            function renderVisualMode(filename, data) {
+                const container = document.getElementById('visualContentArea');
+                const addBtn = document.getElementById('btnAddRecordBtn');
+                if (!container) return;
+
+                if (!data) {
+                    container.innerHTML = '<div class="p-4 text-center text-muted">No data in file.</div>';
+                    return;
+                }
+
+                if (filename === 'customerData.json') {
+                    renderCustomersTable(container, data);
+                    if (addBtn) addBtn.innerText = '+ Add Customer';
+                } else if (filename === 'itemData.json') {
+                    renderItemsTable(container, data);
+                    if (addBtn) addBtn.innerText = '+ Add Product Item';
+                } else if (filename === 'userInfo.json' || isUserInfoData(data)) {
+                    renderUserInfoTable(container, data);
+                    if (addBtn) addBtn.innerText = '+ Add Store User';
+                } else if (filename === 'paymentType.json') {
+                    renderPaymentMethodsTable(container, data);
+                    if (addBtn) addBtn.innerText = '+ Add Payment Method';
+                } else if (filename.toLowerCase().indexOf('currency') !== -1) {
+                    renderCurrencyRatesTable(container, data);
+                    if (addBtn) addBtn.innerText = '+ Add Currency Rate';
+                } else if (Array.isArray(data)) {
+                    renderGenericArrayTable(container, data);
+                    if (addBtn) addBtn.innerText = '+ Add Record';
+                } else if (typeof data === 'object') {
+                    renderGenericObjectTable(container, data);
+                    if (addBtn) addBtn.innerText = '+ Add Key-Value';
+                }
+            }
+
+            // 1. Customers Table
+            function renderCustomersTable(container, data) {
+                const customers = data.customers || [];
+                let rows = '';
+
+                customers.forEach(function(c, idx) {
+                    const typeBadge = '<span class="badge bg-primary-soft text-primary font-monospace">' + escapeHtml(c.type || 'Custom') + '</span>';
+                    const name = escapeHtml(c.billingName || ((c.firstName || '') + ' ' + (c.lastName || '')).trim() || '-');
+                    const email = escapeHtml(c.email || '-');
+                    const addressParts = [c.billingAddress, c.city, c.state, c.country, c.billingPincode].filter(Boolean);
+                    const address = escapeHtml(addressParts.join(', ') || '-');
+                    const phone = escapeHtml(c.billingPhone || c.phone || '-');
+
+                    rows += 
+                        '<tr class="visual-row" data-search="' + (c.type + ' ' + name + ' ' + email + ' ' + address).toLowerCase() + '">' +
+                            '<td class="ps-3">' + typeBadge + '</td>' +
+                            '<td class="small fw-medium">' + email + '</td>' +
+                            '<td class="small fw-semibold text-dark">' + name + '</td>' +
+                            '<td class="small text-muted" style="max-width: 250px;">' +
+                                '<div class="text-truncate" title="' + address + '">' + address + '</div>' +
+                            '</td>' +
+                            '<td class="small font-monospace">' + phone + '</td>' +
+                            '<td class="text-end pe-3">' +
+                                '<button class="btn btn-sm btn-outline-secondary me-1 py-0 px-2" onclick="openEditCustomerModal(' + idx + ')" title="Edit customer">' +
+                                    '<i class="bi bi-pencil small"></i>' +
+                                '</button>' +
+                                '<button class="btn btn-sm btn-outline-danger py-0 px-2" onclick="deleteCustomerRecord(' + idx + ')" title="Delete customer">' +
+                                    '<i class="bi bi-trash small"></i>' +
+                                '</button>' +
+                            '</td>' +
+                        '</tr>';
+                });
+
+                if (customers.length === 0) {
+                    rows = '<tr><td colspan="6" class="text-center py-4 text-muted">No customer profiles defined. Click "+ Add Customer" to create one.</td></tr>';
+                }
+
+                container.innerHTML = 
+                    '<table class="table table-hover table-vcenter mb-0">' +
+                        '<thead class="table-light text-muted small text-uppercase">' +
+                            '<tr>' +
+                                '<th class="ps-3">Type</th>' +
+                                '<th>Email</th>' +
+                                '<th>Billing Name</th>' +
+                                '<th>Address & Location</th>' +
+                                '<th>Phone</th>' +
+                                '<th class="text-end pe-3">Actions</th>' +
+                            '</tr>' +
+                        '</thead>' +
+                        '<tbody>' + rows + '</tbody>' +
+                    '</table>';
+            }
+
+            // 2. Items Table
+            function renderItemsTable(container, data) {
+                const items = data.ItemData || [];
+                let rows = '';
+
+                items.forEach(function(item, idx) {
+                    const sku = escapeHtml(item.sku || '-');
+                    const cat = escapeHtml(item.category || '-');
+                    const subCat = escapeHtml(item.subCategory || '-');
+                    const priceIn = item.priceIn !== undefined ? '₹' + Number(item.priceIn).toFixed(2) : '-';
+                    const priceUs = item.priceUs !== undefined ? '$' + Number(item.priceUs).toFixed(2) : '-';
+                    const priceRow = item.priceRow !== undefined ? '$' + Number(item.priceRow).toFixed(2) : '-';
+                    const awaitedBadge = item.deliveryAwaited 
+                        ? '<span class="badge bg-warning text-dark">Awaited</span>'
+                        : '<span class="badge bg-light text-muted border">No</span>';
+
+                    rows += 
+                        '<tr class="visual-row" data-search="' + (sku + ' ' + cat + ' ' + subCat).toLowerCase() + '">' +
+                            '<td class="ps-3 font-monospace fw-bold text-primary">' + sku + '</td>' +
+                            '<td class="small">' + cat + ' / ' + subCat + '</td>' +
+                            '<td class="small fw-medium font-monospace">' + priceIn + '</td>' +
+                            '<td class="small fw-medium font-monospace">' + priceUs + '</td>' +
+                            '<td class="small fw-medium font-monospace">' + priceRow + '</td>' +
+                            '<td class="small">' + awaitedBadge + '</td>' +
+                            '<td class="text-end pe-3">' +
+                                '<button class="btn btn-sm btn-outline-secondary me-1 py-0 px-2" onclick="openEditItemModal(' + idx + ')" title="Edit item">' +
+                                    '<i class="bi bi-pencil small"></i>' +
+                                '</button>' +
+                                '<button class="btn btn-sm btn-outline-danger py-0 px-2" onclick="deleteItemRecord(' + idx + ')" title="Delete item">' +
+                                    '<i class="bi bi-trash small"></i>' +
+                                '</button>' +
+                            '</td>' +
+                        '</tr>';
+                });
+
+                if (items.length === 0) {
+                    rows = '<tr><td colspan="7" class="text-center py-4 text-muted">No items configured. Click "+ Add Product Item" to create one.</td></tr>';
+                }
+
+                container.innerHTML = 
+                    '<table class="table table-hover table-vcenter mb-0">' +
+                        '<thead class="table-light text-muted small text-uppercase">' +
+                            '<tr>' +
+                                '<th class="ps-3">SKU</th>' +
+                                '<th>Category / SubCategory</th>' +
+                                '<th>Price (IN)</th>' +
+                                '<th>Price (US)</th>' +
+                                '<th>Price (ROW)</th>' +
+                                '<th>Delivery Awaited</th>' +
+                                '<th class="text-end pe-3">Actions</th>' +
+                            '</tr>' +
+                        '</thead>' +
+                        '<tbody>' + rows + '</tbody>' +
+                    '</table>';
+            }
+
+            // 3. Store User Credentials Table (userInfo.json)
+            function renderUserInfoTable(container, data) {
+                const keys = Object.keys(data);
+                let rows = '';
+
+                keys.forEach(function(k) {
+                    const val = data[k] || {};
+                    const userId = escapeHtml(val.userId || '-');
+                    const userPassword = val.userPassword || '';
+                    const escapedPassword = escapeHtml(userPassword);
+                    const storeKey = escapeHtml(k);
+
+                    rows += 
+                        '<tr class="visual-row" data-search="' + (k + ' ' + userId).toLowerCase() + '">' +
+                            '<td class="ps-3">' +
+                                '<span class="badge bg-primary-soft text-primary font-monospace fw-bold px-2 py-1" style="font-size: 0.85rem;">' +
+                                    '<i class="bi bi-shop me-1"></i>' + storeKey +
+                                '</span>' +
+                            '</td>' +
+                            '<td class="small font-monospace fw-semibold text-dark">' +
+                                '<i class="bi bi-person me-1 text-muted"></i>' + userId +
+                            '</td>' +
+                            '<td class="small font-monospace">' +
+                                '<div class="d-flex align-items-center gap-2">' +
+                                    '<span class="user-pwd-text text-muted" data-raw-pwd="' + escapedPassword + '">••••••••</span>' +
+                                    '<button type="button" class="btn btn-sm btn-link p-0 text-muted" onclick="toggleRowPassword(this)" title="Show/Hide password">' +
+                                        '<i class="bi bi-eye small"></i>' +
+                                    '</button>' +
+                                '</div>' +
+                            '</td>' +
+                            '<td class="text-end pe-3">' +
+                                '<button class="btn btn-sm btn-outline-secondary me-1 py-0 px-2" onclick="openEditUserInfoModal(\'' + escapeJsString(k) + '\')" title="Edit store user credentials">' +
+                                    '<i class="bi bi-pencil small"></i>' +
+                                '</button>' +
+                                '<button class="btn btn-sm btn-outline-danger py-0 px-2" onclick="deleteUserInfoRecord(\'' + escapeJsString(k) + '\')" title="Delete store user credentials">' +
+                                    '<i class="bi bi-trash small"></i>' +
+                                '</button>' +
+                            '</td>' +
+                        '</tr>';
+                });
+
+                if (keys.length === 0) {
+                    rows = '<tr><td colspan="4" class="text-center py-4 text-muted">No store user accounts configured. Click "+ Add Store User" to create one.</td></tr>';
+                }
+
+                container.innerHTML = 
+                    '<table class="table table-hover table-vcenter mb-0">' +
+                        '<thead class="table-light text-muted small text-uppercase">' +
+                            '<tr>' +
+                                '<th class="ps-3">Store / Region</th>' +
+                                '<th>User ID / Username</th>' +
+                                '<th>User Password</th>' +
+                                '<th class="text-end pe-3">Actions</th>' +
+                            '</tr>' +
+                        '</thead>' +
+                        '<tbody>' + rows + '</tbody>' +
+                    '</table>';
+            }
+
+            // 4. Payment Methods Table
+            function renderPaymentMethodsTable(container, data) {
+                const keys = Object.keys(data);
+                let rows = '';
+
+                keys.forEach(function(k) {
+                    const val = data[k] || {};
+                    const txnId = escapeHtml(val.transactionId || '-');
+                    const link = val.paymentLink ? '<a href="' + escapeHtml(val.paymentLink) + '" target="_blank" class="text-truncate d-inline-block small" style="max-width: 200px;">' + escapeHtml(val.paymentLink) + '</a>' : '-';
+                    const invId = escapeHtml(val.invoiceId || '-');
+
+                    rows += 
+                        '<tr class="visual-row" data-search="' + (k + ' ' + txnId + ' ' + invId).toLowerCase() + '">' +
+                            '<td class="ps-3 font-monospace fw-bold text-dark">' + escapeHtml(k) + '</td>' +
+                            '<td class="small font-monospace">' + txnId + '</td>' +
+                            '<td class="small">' + link + '</td>' +
+                            '<td class="small font-monospace">' + invId + '</td>' +
+                            '<td class="text-end pe-3">' +
+                                '<button class="btn btn-sm btn-outline-secondary me-1 py-0 px-2" onclick="openEditPaymentModal(\'' + escapeJsString(k) + '\')" title="Edit payment">' +
+                                    '<i class="bi bi-pencil small"></i>' +
+                                '</button>' +
+                                '<button class="btn btn-sm btn-outline-danger py-0 px-2" onclick="deletePaymentRecord(\'' + escapeJsString(k) + '\')" title="Delete payment">' +
+                                    '<i class="bi bi-trash small"></i>' +
+                                '</button>' +
+                            '</td>' +
+                        '</tr>';
+                });
+
+                if (keys.length === 0) {
+                    rows = '<tr><td colspan="5" class="text-center py-4 text-muted">No payment methods configured.</td></tr>';
+                }
+
+                container.innerHTML = 
+                    '<table class="table table-hover table-vcenter mb-0">' +
+                        '<thead class="table-light text-muted small text-uppercase">' +
+                            '<tr>' +
+                                '<th class="ps-3">Payment Method</th>' +
+                                '<th>Transaction ID</th>' +
+                                '<th>Payment Link</th>' +
+                                '<th>Invoice ID</th>' +
+                                '<th class="text-end pe-3">Actions</th>' +
+                            '</tr>' +
+                        '</thead>' +
+                        '<tbody>' + rows + '</tbody>' +
+                    '</table>';
+            }
+
+            // 5. Currency Rates Table
+            function renderCurrencyRatesTable(container, data) {
+                const keys = Object.keys(data);
+                let rows = '';
+
+                keys.forEach(function(k) {
+                    const val = data[k] || {};
+                    const multiplier = (val.multiplier !== undefined && val.multiplier !== null) ? val.multiplier : 1;
+                    const rate = (val.rate !== undefined && val.rate !== null) ? val.rate : 1.0;
+
+                    rows += 
+                        '<tr class="visual-row" data-search="' + (k + ' ' + multiplier + ' ' + rate).toLowerCase() + '">' +
+                            '<td class="ps-3 font-monospace fw-bold text-primary text-uppercase">' + escapeHtml(k) + '</td>' +
+                            '<td class="small font-monospace">' + multiplier + '</td>' +
+                            '<td class="small font-monospace fw-bold">' + rate + '</td>' +
+                            '<td class="text-end pe-3">' +
+                                '<button class="btn btn-sm btn-outline-secondary me-1 py-0 px-2" onclick="openEditCurrencyModal(\'' + escapeJsString(k) + '\', ' + multiplier + ', ' + rate + ')" title="Edit currency">' +
+                                    '<i class="bi bi-pencil small"></i>' +
+                                '</button>' +
+                                '<button class="btn btn-sm btn-outline-danger py-0 px-2" onclick="deleteCurrencyRecord(\'' + escapeJsString(k) + '\')" title="Delete currency">' +
+                                    '<i class="bi bi-trash small"></i>' +
+                                '</button>' +
+                            '</td>' +
+                        '</tr>';
+                });
+
+                if (keys.length === 0) {
+                    rows = '<tr><td colspan="4" class="text-center py-4 text-muted">No currency rates defined.</td></tr>';
+                }
+
+                container.innerHTML = 
+                    '<table class="table table-hover table-vcenter mb-0">' +
+                        '<thead class="table-light text-muted small text-uppercase">' +
+                            '<tr>' +
+                                '<th class="ps-3">Currency Code</th>' +
+                                '<th>Multiplier</th>' +
+                                '<th>Exchange Rate</th>' +
+                                '<th class="text-end pe-3">Actions</th>' +
+                            '</tr>' +
+                        '</thead>' +
+                        '<tbody>' + rows + '</tbody>' +
+                    '</table>';
+            }
+
+            // 6. Generic Array Table with Full Row Edit (Pencil button)
+            function renderGenericArrayTable(container, list) {
+                if (list.length === 0) {
+                    container.innerHTML = '<div class="p-4 text-center text-muted">Empty list. Click "+ Add Record" to add an item.</div>';
+                    return;
+                }
+                const sample = list[0];
+                const isObjectArray = typeof sample === 'object' && sample !== null && !Array.isArray(sample);
+                const headers = isObjectArray ? Object.keys(sample) : ['Value'];
+
+                let headerHtml = headers.map(function(h) { return '<th>' + escapeHtml(h) + '</th>'; }).join('');
+                let rowsHtml = '';
+
+                list.forEach(function(item, idx) {
+                    let colsHtml = '';
+                    if (isObjectArray) {
+                        headers.forEach(function(h) {
+                            const val = item[h] !== undefined ? (typeof item[h] === 'object' ? JSON.stringify(item[h]) : String(item[h])) : '';
+                            colsHtml += '<td class="small text-truncate" style="max-width: 220px;" title="' + escapeHtml(val) + '">' + escapeHtml(val) + '</td>';
+                        });
+                    } else {
+                        colsHtml += '<td class="small font-monospace">' + escapeHtml(typeof item === 'object' ? JSON.stringify(item) : String(item)) + '</td>';
+                    }
+
+                    rowsHtml += 
+                        '<tr class="visual-row">' +
+                            '<td class="ps-3 font-monospace text-muted small">#' + (idx + 1) + '</td>' +
+                            colsHtml +
+                            '<td class="text-end pe-3">' +
+                                '<button class="btn btn-sm btn-outline-secondary me-1 py-0 px-2" onclick="openEditGenericArrayModal(' + idx + ')" title="Edit record">' +
+                                    '<i class="bi bi-pencil small"></i>' +
+                                '</button>' +
+                                '<button class="btn btn-sm btn-outline-danger py-0 px-2" onclick="deleteGenericArrayItem(' + idx + ')" title="Delete record">' +
+                                    '<i class="bi bi-trash small"></i>' +
+                                '</button>' +
+                            '</td>' +
+                        '</tr>';
+                });
+
+                container.innerHTML = 
+                    '<table class="table table-hover table-vcenter mb-0">' +
+                        '<thead class="table-light text-muted small text-uppercase">' +
+                            '<tr>' +
+                                '<th class="ps-3" style="width: 60px;">#</th>' +
+                                headerHtml +
+                                '<th class="text-end pe-3">Actions</th>' +
+                            '</tr>' +
+                        '</thead>' +
+                        '<tbody>' + rowsHtml + '</tbody>' +
+                    '</table>';
+            }
+
+            // 7. Generic Object Table with Full Key & Value Edit (Pencil button)
+            function renderGenericObjectTable(container, obj) {
+                const keys = Object.keys(obj);
+                let rows = '';
+
+                keys.forEach(function(k) {
+                    const valRaw = obj[k];
+                    let valDisplay = '';
+                    let typeBadge = '';
+
+                    if (valRaw === null) {
+                        typeBadge = '<span class="badge bg-light text-muted border">null</span>';
+                        valDisplay = '<span class="text-muted fst-italic">null</span>';
+                    } else if (typeof valRaw === 'boolean') {
+                        typeBadge = '<span class="badge bg-info-soft text-info">boolean</span>';
+                        valDisplay = valRaw ? '<span class="badge bg-success">true</span>' : '<span class="badge bg-secondary">false</span>';
+                    } else if (typeof valRaw === 'number') {
+                        typeBadge = '<span class="badge bg-warning-soft text-warning">number</span>';
+                        valDisplay = '<span class="font-monospace text-primary fw-medium">' + valRaw + '</span>';
+                    } else if (typeof valRaw === 'string') {
+                        typeBadge = '<span class="badge bg-secondary-soft text-secondary">string</span>';
+                        valDisplay = '<span class="font-monospace text-dark">' + escapeHtml(valRaw) + '</span>';
+                    } else if (Array.isArray(valRaw)) {
+                        typeBadge = '<span class="badge bg-primary-soft text-primary">array [' + valRaw.length + ']</span>';
+                        valDisplay = '<code class="small text-muted">' + escapeHtml(JSON.stringify(valRaw)) + '</code>';
+                    } else if (typeof valRaw === 'object') {
+                        typeBadge = '<span class="badge bg-purple-soft text-purple">object</span>';
+                        valDisplay = '<code class="small text-muted">' + escapeHtml(JSON.stringify(valRaw)) + '</code>';
+                    }
+
+                    rows += 
+                        '<tr class="visual-row" data-search="' + (k + ' ' + JSON.stringify(valRaw)).toLowerCase() + '">' +
+                            '<td class="ps-3 font-monospace fw-bold text-dark">' + escapeHtml(k) + '</td>' +
+                            '<td style="width: 100px;">' + typeBadge + '</td>' +
+                            '<td class="small" style="max-width: 400px;"><div class="text-truncate">' + valDisplay + '</div></td>' +
+                            '<td class="text-end pe-3">' +
+                                '<button class="btn btn-sm btn-outline-secondary me-1 py-0 px-2" onclick="openEditGenericObjectModal(\'' + escapeJsString(k) + '\')" title="Edit field value">' +
+                                    '<i class="bi bi-pencil small"></i>' +
+                                '</button>' +
+                                '<button class="btn btn-sm btn-outline-danger py-0 px-2" onclick="deleteGenericObjectKey(\'' + escapeJsString(k) + '\')" title="Delete field">' +
+                                    '<i class="bi bi-trash small"></i>' +
+                                '</button>' +
+                            '</td>' +
+                        '</tr>';
+                });
+
+                if (keys.length === 0) {
+                    rows = '<tr><td colspan="4" class="text-center py-4 text-muted">Empty object. Click "+ Add Key-Value" to add fields.</td></tr>';
+                }
+
+                container.innerHTML = 
+                    '<table class="table table-hover table-vcenter mb-0">' +
+                        '<thead class="table-light text-muted small text-uppercase">' +
+                            '<tr>' +
+                                '<th class="ps-3">Key / Field</th>' +
+                                '<th>Type</th>' +
+                                '<th>Value</th>' +
+                                '<th class="text-end pe-3">Actions</th>' +
+                            '</tr>' +
+                        '</thead>' +
+                        '<tbody>' + rows + '</tbody>' +
+                    '</table>';
+            }
+
+            function filterVisualRecords() {
+                const query = (document.getElementById('visualSearchInput')?.value || '').toLowerCase();
+                const rows = document.querySelectorAll('#visualContentArea .visual-row');
+                rows.forEach(function(r) {
+                    const text = r.getAttribute('data-search') || r.innerText.toLowerCase();
+                    r.style.display = text.indexOf(query) !== -1 ? '' : 'none';
+                });
+            }
+
+            // ==================== MODAL ACTIONS ====================
+
+            function openAddRecordModal() {
+                if (currentFilename === 'customerData.json') {
+                    document.getElementById('customerForm').reset();
+                    document.getElementById('customerRecordIndex').value = '-1';
+                    document.getElementById('customerModalTitle').innerHTML = '<i class="bi bi-person-plus me-2 text-primary"></i>Add New Customer Profile';
+                    new bootstrap.Modal(document.getElementById('customerModal')).show();
+                } else if (currentFilename === 'itemData.json') {
+                    document.getElementById('itemForm').reset();
+                    document.getElementById('itemRecordIndex').value = '-1';
+                    document.getElementById('itemModalTitle').innerHTML = '<i class="bi bi-box-seam me-2 text-primary"></i>Add New Product Item';
+                    new bootstrap.Modal(document.getElementById('itemModal')).show();
+                } else if (currentFilename === 'userInfo.json' || isUserInfoData(currentParsedData)) {
+                    document.getElementById('userInfoForm').reset();
+                    document.getElementById('userInfoOriginalKey').value = '';
+                    document.getElementById('userInfoModalTitle').innerHTML = '<i class="bi bi-person-plus me-2 text-primary"></i>Add Store User Account';
+                    new bootstrap.Modal(document.getElementById('userInfoModal')).show();
+                } else if (currentFilename === 'paymentType.json') {
+                    document.getElementById('paymentForm').reset();
+                    document.getElementById('paymentOriginalKey').value = '';
+                    document.getElementById('paymentModalTitle').innerHTML = '<i class="bi bi-credit-card me-2 text-primary"></i>Add Payment Method';
+                    new bootstrap.Modal(document.getElementById('paymentModal')).show();
+                } else if (currentFilename.toLowerCase().indexOf('currency') !== -1) {
+                    document.getElementById('currencyForm').reset();
+                    document.getElementById('currencyOriginalKey').value = '';
+                    document.getElementById('currencyModalTitle').innerHTML = '<i class="bi bi-currency-exchange me-2 text-primary"></i>Add Currency Rate';
+                    new bootstrap.Modal(document.getElementById('currencyModal')).show();
+                } else if (Array.isArray(currentParsedData)) {
+                    openAddGenericArrayModal();
+                } else if (typeof currentParsedData === 'object' && currentParsedData !== null) {
+                    openAddGenericObjectModal();
+                } else {
+                    switchViewMode('raw');
+                    showStatusAlert('For this dataset format, add records directly in the JSON Code Editor.');
+                }
+            }
+
+            // Customer Modal Save & Edit
+            function openEditCustomerModal(index) {
+                if (!currentParsedData || !currentParsedData.customers || !currentParsedData.customers[index]) return;
+                const c = currentParsedData.customers[index];
+
+                document.getElementById('customerRecordIndex').value = index;
+                document.getElementById('custType').value = c.type || '';
+                document.getElementById('custEmail').value = c.email || '';
+                document.getElementById('custFirstName').value = c.firstName || '';
+                document.getElementById('custLastName').value = c.lastName || '';
+                document.getElementById('custPhone').value = c.phone || '';
+                document.getElementById('custBillingName').value = c.billingName || '';
+                document.getElementById('custBillingAddress').value = c.billingAddress || '';
+                document.getElementById('custBillingPhone').value = c.billingPhone || '';
+                document.getElementById('custCity').value = c.city || '';
+                document.getElementById('custState').value = c.state || '';
+                document.getElementById('custCountry').value = c.country || '';
+                document.getElementById('custBillingPincode').value = c.billingPincode || '';
+
+                document.getElementById('customerModalTitle').innerHTML = '<i class="bi bi-person-gear me-2 text-primary"></i>Edit Customer: ' + escapeHtml(c.type);
+                new bootstrap.Modal(document.getElementById('customerModal')).show();
+            }
+
+            function saveCustomerModalRecord() {
+                const type = document.getElementById('custType').value.trim();
+                if (!type) {
+                    alert('Customer Type is required');
+                    return;
+                }
+
+                if (!currentParsedData) currentParsedData = {};
+                if (!currentParsedData.customers) currentParsedData.customers = [];
+
+                const record = {
+                    type: type,
+                    email: document.getElementById('custEmail').value.trim() || null,
+                    firstName: document.getElementById('custFirstName').value.trim() || null,
+                    lastName: document.getElementById('custLastName').value.trim() || null,
+                    billingName: document.getElementById('custBillingName').value.trim() || null,
+                    billingAddress: document.getElementById('custBillingAddress').value.trim() || null,
+                    city: document.getElementById('custCity').value.trim() || null,
+                    state: document.getElementById('custState').value.trim() || null,
+                    country: document.getElementById('custCountry').value.trim() || null,
+                    billingPincode: document.getElementById('custBillingPincode').value.trim() || null,
+                    billingPhone: document.getElementById('custBillingPhone').value.trim() || null
+                };
+
+                const index = parseInt(document.getElementById('customerRecordIndex').value);
+                if (index >= 0 && index < currentParsedData.customers.length) {
+                    currentParsedData.customers[index] = Object.assign(currentParsedData.customers[index], record);
+                } else {
+                    currentParsedData.customers.push(record);
+                }
+
+                bootstrap.Modal.getInstance(document.getElementById('customerModal')).hide();
+                renderVisualMode(currentFilename, currentParsedData);
+                syncParsedToRaw();
+                saveActiveDataset();
+            }
+
+            function deleteCustomerRecord(index) {
+                if (!confirm('Are you sure you want to remove this customer record?')) return;
+                currentParsedData.customers.splice(index, 1);
+                renderVisualMode(currentFilename, currentParsedData);
+                syncParsedToRaw();
+                saveActiveDataset();
+            }
+
+            // Item Modal Save & Edit
+            function openEditItemModal(index) {
+                if (!currentParsedData || !currentParsedData.ItemData || !currentParsedData.ItemData[index]) return;
+                const item = currentParsedData.ItemData[index];
+
+                document.getElementById('itemRecordIndex').value = index;
+                document.getElementById('itemSku').value = item.sku || '';
+                document.getElementById('itemCategory').value = item.category || '';
+                document.getElementById('itemSubCategory').value = item.subCategory || '';
+                document.getElementById('itemPriceIn').value = item.priceIn !== undefined ? item.priceIn : 0;
+                document.getElementById('itemPriceUs').value = item.priceUs !== undefined ? item.priceUs : 0;
+                document.getElementById('itemPriceRow').value = item.priceRow !== undefined ? item.priceRow : 0;
+                document.getElementById('itemDeliveryAwaited').checked = !!item.deliveryAwaited;
+
+                document.getElementById('itemModalTitle').innerHTML = '<i class="bi bi-box-seam me-2 text-primary"></i>Edit Item: ' + escapeHtml(item.sku);
+                new bootstrap.Modal(document.getElementById('itemModal')).show();
+            }
+
+            function saveItemModalRecord() {
+                const sku = document.getElementById('itemSku').value.trim();
+                if (!sku) {
+                    alert('SKU code is required');
+                    return;
+                }
+
+                if (!currentParsedData) currentParsedData = {};
+                if (!currentParsedData.ItemData) currentParsedData.ItemData = [];
+
+                const record = {
+                    sku: sku,
+                    priceIn: parseFloat(document.getElementById('itemPriceIn').value) || 0.0,
+                    priceUs: parseFloat(document.getElementById('itemPriceUs').value) || 0.0,
+                    priceRow: parseFloat(document.getElementById('itemPriceRow').value) || 0.0,
+                    category: document.getElementById('itemCategory').value.trim(),
+                    subCategory: document.getElementById('itemSubCategory').value.trim(),
+                    deliveryAwaited: document.getElementById('itemDeliveryAwaited').checked
+                };
+
+                const index = parseInt(document.getElementById('itemRecordIndex').value);
+                if (index >= 0 && index < currentParsedData.ItemData.length) {
+                    currentParsedData.ItemData[index] = Object.assign(currentParsedData.ItemData[index], record);
+                } else {
+                    currentParsedData.ItemData.push(record);
+                }
+
+                bootstrap.Modal.getInstance(document.getElementById('itemModal')).hide();
+                renderVisualMode(currentFilename, currentParsedData);
+                syncParsedToRaw();
+                saveActiveDataset();
+            }
+
+            function deleteItemRecord(index) {
+                if (!confirm('Are you sure you want to remove this product item?')) return;
+                currentParsedData.ItemData.splice(index, 1);
+                renderVisualMode(currentFilename, currentParsedData);
+                syncParsedToRaw();
+                saveActiveDataset();
+            }
+
+            // Payment Modal Save & Edit
+            function openEditPaymentModal(key) {
+                if (!currentParsedData || !currentParsedData[key]) return;
+                const p = currentParsedData[key];
+
+                document.getElementById('paymentOriginalKey').value = key;
+                document.getElementById('paymentKey').value = key;
+                document.getElementById('paymentTxnId').value = p.transactionId || '';
+                document.getElementById('paymentLink').value = p.paymentLink || '';
+                document.getElementById('paymentInvoiceId').value = p.invoiceId || '';
+
+                document.getElementById('paymentModalTitle').innerHTML = '<i class="bi bi-credit-card me-2 text-primary"></i>Edit Payment: ' + escapeHtml(key);
+                new bootstrap.Modal(document.getElementById('paymentModal')).show();
+            }
+
+            function savePaymentModalRecord() {
+                const key = document.getElementById('paymentKey').value.trim();
+                const origKey = document.getElementById('paymentOriginalKey').value.trim();
+                if (!key) {
+                    alert('Payment Method name is required');
+                    return;
+                }
+
+                if (!currentParsedData) currentParsedData = {};
+
+                if (origKey && origKey !== key) {
+                    delete currentParsedData[origKey];
+                }
+
+                const record = {
+                    transactionId: document.getElementById('paymentTxnId').value.trim() || undefined,
+                    paymentLink: document.getElementById('paymentLink').value.trim() || undefined,
+                    invoiceId: document.getElementById('paymentInvoiceId').value.trim() || undefined
+                };
+
+                currentParsedData[key] = record;
+
+                bootstrap.Modal.getInstance(document.getElementById('paymentModal')).hide();
+                renderVisualMode(currentFilename, currentParsedData);
+                syncParsedToRaw();
+                saveActiveDataset();
+            }
+
+            function deletePaymentRecord(key) {
+                if (!confirm("Are you sure you want to delete payment method '" + key + "'?")) return;
+                delete currentParsedData[key];
+                renderVisualMode(currentFilename, currentParsedData);
+                syncParsedToRaw();
+                saveActiveDataset();
+            }
+
+            // Currency Modal Save & Edit
+            function openEditCurrencyModal(key, multiplier, rate) {
+                document.getElementById('currencyOriginalKey').value = key;
+                document.getElementById('currencyKey').value = key;
+                document.getElementById('currencyMultiplier').value = multiplier !== undefined ? multiplier : 1;
+                document.getElementById('currencyRate').value = rate !== undefined ? rate : 1.0;
+
+                document.getElementById('currencyModalTitle').innerHTML = '<i class="bi bi-currency-exchange me-2 text-primary"></i>Edit Currency: ' + escapeHtml(key.toUpperCase());
+                new bootstrap.Modal(document.getElementById('currencyModal')).show();
+            }
+
+            function saveCurrencyModalRecord() {
+                const key = document.getElementById('currencyKey').value.trim().toLowerCase();
+                const origKey = document.getElementById('currencyOriginalKey').value.trim().toLowerCase();
+                if (!key) {
+                    alert('Currency Code is required');
+                    return;
+                }
+
+                if (!currentParsedData) currentParsedData = {};
+
+                if (origKey && origKey !== key) {
+                    delete currentParsedData[origKey];
+                }
+
+                currentParsedData[key] = {
+                    multiplier: parseFloat(document.getElementById('currencyMultiplier').value) || 1,
+                    rate: parseFloat(document.getElementById('currencyRate').value) || 1.0
+                };
+
+                bootstrap.Modal.getInstance(document.getElementById('currencyModal')).hide();
+                renderVisualMode(currentFilename, currentParsedData);
+                syncParsedToRaw();
+                saveActiveDataset();
+            }
+
+            function deleteCurrencyRecord(key) {
+                if (!confirm("Are you sure you want to delete currency rate for '" + key.toUpperCase() + "'?")) return;
+                delete currentParsedData[key];
+                renderVisualMode(currentFilename, currentParsedData);
+                syncParsedToRaw();
+                saveActiveDataset();
+            }
+
+            // User Info Modal Save & Edit & Helpers
+            function toggleRowPassword(btn) {
+                const pwdSpan = btn.parentElement.querySelector('.user-pwd-text');
+                const icon = btn.querySelector('i');
+                if (!pwdSpan || !icon) return;
+                const raw = pwdSpan.getAttribute('data-raw-pwd') || '';
+                if (pwdSpan.innerText === '••••••••') {
+                    pwdSpan.innerText = raw;
+                    pwdSpan.classList.remove('text-muted');
+                    pwdSpan.classList.add('text-dark', 'fw-medium');
+                    icon.className = 'bi bi-eye-slash small';
+                } else {
+                    pwdSpan.innerText = '••••••••';
+                    pwdSpan.classList.add('text-muted');
+                    pwdSpan.classList.remove('text-dark', 'fw-medium');
+                    icon.className = 'bi bi-eye small';
+                }
+            }
+
+            function togglePasswordVisibility(inputId, btn) {
+                const input = document.getElementById(inputId);
+                const icon = btn.querySelector('i');
+                if (!input || !icon) return;
+                if (input.type === 'password') {
+                    input.type = 'text';
+                    icon.className = 'bi bi-eye-slash';
+                } else {
+                    input.type = 'password';
+                    icon.className = 'bi bi-eye';
+                }
+            }
+
+            function openEditUserInfoModal(key) {
+                if (!currentParsedData || !currentParsedData[key]) return;
+                const u = currentParsedData[key];
+
+                document.getElementById('userInfoOriginalKey').value = key;
+                document.getElementById('userStoreKey').value = key;
+                document.getElementById('userStoreUserId').value = u.userId || '';
+                document.getElementById('userStorePassword').value = u.userPassword || '';
+
+                document.getElementById('userInfoModalTitle').innerHTML = '<i class="bi bi-person-gear me-2 text-primary"></i>Edit Store User: ' + escapeHtml(key);
+                new bootstrap.Modal(document.getElementById('userInfoModal')).show();
+            }
+
+            function saveUserInfoModalRecord() {
+                const key = document.getElementById('userStoreKey').value.trim();
+                const origKey = document.getElementById('userInfoOriginalKey').value.trim();
+                const userId = document.getElementById('userStoreUserId').value.trim();
+                const userPassword = document.getElementById('userStorePassword').value;
+
+                if (!key) {
+                    alert('Store / Region Name is required');
+                    return;
+                }
+                if (!userId) {
+                    alert('User ID is required');
+                    return;
+                }
+
+                if (!currentParsedData || typeof currentParsedData !== 'object' || Array.isArray(currentParsedData)) {
+                    currentParsedData = {};
+                }
+
+                if (origKey && origKey !== key) {
+                    delete currentParsedData[origKey];
+                }
+
+                currentParsedData[key] = {
+                    userId: userId,
+                    userPassword: userPassword
+                };
+
+                bootstrap.Modal.getInstance(document.getElementById('userInfoModal')).hide();
+                renderVisualMode(currentFilename, currentParsedData);
+                syncParsedToRaw();
+                saveActiveDataset();
+            }
+
+            function deleteUserInfoRecord(key) {
+                if (!confirm("Are you sure you want to delete store user credentials for '" + key + "'?")) return;
+                delete currentParsedData[key];
+                renderVisualMode(currentFilename, currentParsedData);
+                syncParsedToRaw();
+                saveActiveDataset();
+            }
+
+            // Generic Object Modal Save & Edit
+            function openEditGenericObjectModal(key) {
+                if (!currentParsedData) return;
+                const val = currentParsedData[key];
+
+                document.getElementById('genericObjectOriginalKey').value = key;
+                document.getElementById('genericObjectKey').value = key;
+
+                const typeSelect = document.getElementById('genericObjectTypeSelect');
+                const valInput = document.getElementById('genericObjectValue');
+                const boolInput = document.getElementById('genericObjectBoolValue');
+
+                if (typeof val === 'boolean') {
+                    typeSelect.value = 'boolean';
+                    boolInput.value = val ? 'true' : 'false';
+                } else if (typeof val === 'number') {
+                    typeSelect.value = 'number';
+                    valInput.value = String(val);
+                } else if (typeof val === 'object' && val !== null) {
+                    typeSelect.value = 'json';
+                    valInput.value = JSON.stringify(val, null, 2);
+                } else {
+                    typeSelect.value = 'string';
+                    valInput.value = (val !== undefined && val !== null) ? String(val) : '';
+                }
+
+                onGenericObjectTypeChange();
+
+                document.getElementById('genericObjectModalTitle').innerHTML = '<i class="bi bi-pencil-square me-2 text-primary"></i>Edit Field: ' + escapeHtml(key);
+                new bootstrap.Modal(document.getElementById('genericObjectModal')).show();
+            }
+
+            function openAddGenericObjectModal() {
+                document.getElementById('genericObjectOriginalKey').value = '';
+                document.getElementById('genericObjectKey').value = '';
+                document.getElementById('genericObjectTypeSelect').value = 'string';
+                document.getElementById('genericObjectValue').value = '';
+                document.getElementById('genericObjectBoolValue').value = 'true';
+                onGenericObjectTypeChange();
+
+                document.getElementById('genericObjectModalTitle').innerHTML = '<i class="bi bi-plus-square me-2 text-primary"></i>Add New Key-Value Field';
+                new bootstrap.Modal(document.getElementById('genericObjectModal')).show();
+            }
+
+            function onGenericObjectTypeChange() {
+                const type = document.getElementById('genericObjectTypeSelect').value;
+                const strGroup = document.getElementById('genericObjectStringGroup');
+                const boolGroup = document.getElementById('genericObjectBooleanGroup');
+                const valInput = document.getElementById('genericObjectValue');
+
+                if (type === 'boolean') {
+                    strGroup.classList.add('d-none');
+                    boolGroup.classList.remove('d-none');
+                } else {
+                    strGroup.classList.remove('d-none');
+                    boolGroup.classList.add('d-none');
+                    if (type === 'json') {
+                        valInput.placeholder = 'e.g. {\n  "subKey": "value"\n} or ["item1", "item2"]';
+                    } else if (type === 'number') {
+                        valInput.placeholder = 'e.g. 123.45';
+                    } else {
+                        valInput.placeholder = 'Enter text value';
+                    }
+                }
+            }
+
+            function saveGenericObjectModalRecord() {
+                const key = document.getElementById('genericObjectKey').value.trim();
+                const origKey = document.getElementById('genericObjectOriginalKey').value.trim();
+                const type = document.getElementById('genericObjectTypeSelect').value;
+
+                if (!key) {
+                    alert('Key / Field name is required');
+                    return;
+                }
+
+                let parsedVal;
+                if (type === 'boolean') {
+                    parsedVal = document.getElementById('genericObjectBoolValue').value === 'true';
+                } else if (type === 'number') {
+                    const num = Number(document.getElementById('genericObjectValue').value);
+                    if (isNaN(num)) {
+                        alert('Please enter a valid number');
+                        return;
+                    }
+                    parsedVal = num;
+                } else if (type === 'json') {
+                    try {
+                        parsedVal = JSON.parse(document.getElementById('genericObjectValue').value);
+                    } catch (e) {
+                        alert('Invalid JSON: ' + e.message);
+                        return;
+                    }
+                } else {
+                    parsedVal = document.getElementById('genericObjectValue').value;
+                }
+
+                if (!currentParsedData || typeof currentParsedData !== 'object' || Array.isArray(currentParsedData)) {
+                    currentParsedData = {};
+                }
+
+                if (origKey && origKey !== key) {
+                    delete currentParsedData[origKey];
+                }
+
+                currentParsedData[key] = parsedVal;
+
+                bootstrap.Modal.getInstance(document.getElementById('genericObjectModal')).hide();
+                renderVisualMode(currentFilename, currentParsedData);
+                syncParsedToRaw();
+                saveActiveDataset();
+            }
+
+            function deleteGenericObjectKey(key) {
+                if (!confirm("Delete key '" + key + "'?")) return;
+                delete currentParsedData[key];
+                renderVisualMode(currentFilename, currentParsedData);
+                syncParsedToRaw();
+                saveActiveDataset();
+            }
+
+            // Generic Array Modal Save & Edit
+            function openEditGenericArrayModal(index) {
+                if (!Array.isArray(currentParsedData) || !currentParsedData[index]) return;
+                const item = currentParsedData[index];
+                document.getElementById('genericArrayRecordIndex').value = index;
+
+                renderGenericArrayModalFields(item);
+                document.getElementById('genericArrayModalTitle').innerHTML = '<i class="bi bi-pencil-square me-2 text-primary"></i>Edit Record #' + (index + 1);
+                new bootstrap.Modal(document.getElementById('genericArrayModal')).show();
+            }
+
+            function openAddGenericArrayModal() {
+                if (!Array.isArray(currentParsedData)) currentParsedData = [];
+                document.getElementById('genericArrayRecordIndex').value = '-1';
+                
+                let templateItem = '';
+                if (currentParsedData.length > 0) {
+                    const sample = currentParsedData[0];
+                    if (typeof sample === 'object' && sample !== null && !Array.isArray(sample)) {
+                        templateItem = {};
+                        Object.keys(sample).forEach(function(k) { templateItem[k] = ''; });
+                    }
+                }
+
+                renderGenericArrayModalFields(templateItem);
+                document.getElementById('genericArrayModalTitle').innerHTML = '<i class="bi bi-plus-square me-2 text-primary"></i>Add New Record';
+                new bootstrap.Modal(document.getElementById('genericArrayModal')).show();
+            }
+
+            function renderGenericArrayModalFields(item) {
+                const container = document.getElementById('genericArrayDynamicFields');
+                if (!container) return;
+
+                if (typeof item === 'object' && item !== null && !Array.isArray(item)) {
+                    const keys = Object.keys(item);
+                    if (keys.length === 0) {
+                        container.innerHTML = 
+                            '<div class="mb-3">' +
+                                '<label class="form-label small fw-bold">JSON Object</label>' +
+                                '<textarea class="form-control font-monospace form-control-sm" id="genericArrayJsonText" rows="6">' + escapeHtml(JSON.stringify(item, null, 2)) + '</textarea>' +
+                            '</div>';
+                        return;
+                    }
+
+                    let html = '<div class="row g-2">';
+                    keys.forEach(function(k) {
+                        const val = item[k];
+                        const isComplex = typeof val === 'object' && val !== null;
+                        const strVal = isComplex ? JSON.stringify(val) : (val !== undefined && val !== null ? String(val) : '');
+
+                        html += 
+                            '<div class="col-md-6 mb-2">' +
+                                '<label class="form-label small fw-bold font-monospace">' + escapeHtml(k) + '</label>' +
+                                '<input type="text" class="form-control form-control-sm generic-array-prop" data-key="' + escapeHtml(k) + '" data-complex="' + (isComplex ? '1' : '0') + '" value="' + escapeHtml(strVal) + '">' +
+                            '</div>';
+                    });
+                    html += '</div>';
+                    container.innerHTML = html;
+                } else {
+                    const valStr = (typeof item === 'object' && item !== null) ? JSON.stringify(item, null, 2) : String(item !== undefined ? item : '');
+                    container.innerHTML = 
+                        '<div class="mb-3">' +
+                            '<label class="form-label small fw-bold">Value / JSON</label>' +
+                            '<textarea class="form-control font-monospace form-control-sm" id="genericArraySingleValue" rows="4">' + escapeHtml(valStr) + '</textarea>' +
+                        '</div>';
+                }
+            }
+
+            function saveGenericArrayModalRecord() {
+                const index = parseInt(document.getElementById('genericArrayRecordIndex').value);
+                if (!Array.isArray(currentParsedData)) currentParsedData = [];
+
+                const dynamicInputs = document.querySelectorAll('.generic-array-prop');
+                let record;
+
+                if (dynamicInputs.length > 0) {
+                    record = {};
+                    dynamicInputs.forEach(function(input) {
+                        const key = input.getAttribute('data-key');
+                        const isComplex = input.getAttribute('data-complex') === '1';
+                        let val = input.value;
+                        if (isComplex) {
+                            try {
+                                val = JSON.parse(val);
+                            } catch (e) {}
+                        }
+                        record[key] = val;
+                    });
+                } else {
+                    const jsonText = document.getElementById('genericArrayJsonText');
+                    const singleVal = document.getElementById('genericArraySingleValue');
+                    if (jsonText) {
+                        try {
+                            record = JSON.parse(jsonText.value);
+                        } catch (e) {
+                            alert('Invalid JSON: ' + e.message);
+                            return;
+                        }
+                    } else if (singleVal) {
+                        const raw = singleVal.value.trim();
+                        try {
+                            record = JSON.parse(raw);
+                        } catch (e) {
+                            record = raw;
+                        }
+                    }
+                }
+
+                if (index >= 0 && index < currentParsedData.length) {
+                    currentParsedData[index] = record;
+                } else {
+                    currentParsedData.push(record);
+                }
+
+                bootstrap.Modal.getInstance(document.getElementById('genericArrayModal')).hide();
+                renderVisualMode(currentFilename, currentParsedData);
+                syncParsedToRaw();
+                saveActiveDataset();
+            }
+
+            function deleteGenericArrayItem(index) {
+                if (!confirm('Remove this row?')) return;
+                currentParsedData.splice(index, 1);
+                renderVisualMode(currentFilename, currentParsedData);
+                syncParsedToRaw();
+                saveActiveDataset();
+            }
+
+            // ==================== RAW JSON & SAVE ====================
+
+            function syncParsedToRaw() {
+                const rawTextarea = document.getElementById('rawJsonTextarea');
+                if (rawTextarea && currentParsedData) {
+                    rawTextarea.value = JSON.stringify(currentParsedData, null, 2);
+                    updateRawStats();
+                }
+            }
+
+            function onRawJsonChanged() {
+                isDirty = true;
+                updateRawStats();
+            }
+
+            function updateRawStats() {
+                const rawTextarea = document.getElementById('rawJsonTextarea');
+                const badge = document.getElementById('rawJsonStatusBadge');
+                const stats = document.getElementById('rawJsonStatsText');
+                if (!rawTextarea) return;
+
+                const lines = rawTextarea.value.split('\n').length;
+                if (stats) stats.innerText = lines + ' lines • ' + (new Blob([rawTextarea.value]).size / 1024).toFixed(1) + ' KB';
+
+                try {
+                    JSON.parse(rawTextarea.value);
+                    if (badge) {
+                        badge.className = 'badge bg-success font-monospace';
+                        badge.innerText = 'Valid JSON';
+                    }
+                } catch (e) {
+                    if (badge) {
+                        badge.className = 'badge bg-danger font-monospace';
+                        badge.innerText = 'Invalid JSON';
+                    }
+                }
+            }
+
+            function formatRawJson() {
+                const rawTextarea = document.getElementById('rawJsonTextarea');
+                if (!rawTextarea) return;
+                try {
+                    const parsed = JSON.parse(rawTextarea.value);
+                    rawTextarea.value = JSON.stringify(parsed, null, 2);
+                    updateRawStats();
+                    showStatusAlert('JSON formatted cleanly.');
+                } catch (e) {
+                    showStatusAlert('Cannot format invalid JSON: ' + e.message, true);
+                }
+            }
+
+            function validateRawJson() {
+                const rawTextarea = document.getElementById('rawJsonTextarea');
+                if (!rawTextarea) return;
+                try {
+                    JSON.parse(rawTextarea.value);
+                    showStatusAlert('JSON Syntax is perfectly valid.');
+                } catch (e) {
+                    showStatusAlert('JSON Syntax Error: ' + e.message, true);
+                }
+            }
+
+            function saveActiveDataset() {
+                const saveBtn = document.getElementById('btnGlobalSave');
+                let contentToSave = '';
+
+                if (currentViewMode === 'raw') {
+                    contentToSave = document.getElementById('rawJsonTextarea').value;
+                    try {
+                        currentParsedData = JSON.parse(contentToSave);
+                    } catch (e) {
+                        showStatusAlert('Cannot save invalid JSON: ' + e.message, true);
+                        return;
+                    }
+                } else {
+                    if (!currentParsedData) {
+                        showStatusAlert('No data to save', true);
+                        return;
+                    }
+                    contentToSave = JSON.stringify(currentParsedData, null, 2);
+                }
+
+                if (saveBtn) {
+                    saveBtn.disabled = true;
+                    saveBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Saving...';
+                }
+
+                fetch('/api/test-data/file/' + encodeURIComponent(currentFilename), {
+                    method: 'POST',
+                    headers: getCsrfHeaders(),
+                    body: JSON.stringify({ content: contentToSave })
+                })
+                .then(function(res) {
+                    if (!res.ok) {
+                        return res.json().then(function(data) { throw new Error(data.error || 'Failed to save'); });
+                    }
+                    return res.json();
+                })
+                .then(function(data) {
+                    isDirty = false;
+                    showStatusAlert("Dataset '" + currentFilename + "' saved successfully! Changes are live.");
+                    loadFilesList();
+                })
+                .catch(function(err) {
+                    showStatusAlert('Error saving dataset: ' + err.message, true);
+                })
+                .finally(function() {
+                    if (saveBtn) {
+                        saveBtn.disabled = false;
+                        saveBtn.innerHTML = '<i class="bi bi-check2-circle"></i> Save Changes';
+                    }
+                });
+            }
+
+            function downloadActiveFile() {
+                if (!currentFilename) return;
+                window.location.href = '/api/test-data/download/' + encodeURIComponent(currentFilename);
+            }
+
+            function deleteActiveFile() {
+                if (!currentFilename) return;
+                if (!confirm("Are you sure you want to permanently delete '" + currentFilename + "'?")) return;
+
+                fetch('/api/test-data/file/' + encodeURIComponent(currentFilename), {
+                    method: 'DELETE',
+                    headers: getCsrfHeaders()
+                })
+                .then(function(res) {
+                    if (!res.ok) throw new Error('Failed to delete file');
+                    return res.json();
+                })
+                .then(function() {
+                    showStatusAlert("File '" + currentFilename + "' deleted.");
+                    loadFilesList(function() {
+                        if (allFilesCache.length > 0) {
+                            selectDataset(allFilesCache[0].filename, false);
+                        }
+                    });
+                })
+                .catch(function(err) {
+                    showStatusAlert('Error deleting file: ' + err.message, true);
+                });
+            }
+
+            // ==================== NEW FILE & UPLOAD MODALS ====================
+
+            function openNewFileModal() {
+                document.getElementById('newFilenameInput').value = '';
+                new bootstrap.Modal(document.getElementById('newFileModal')).show();
+            }
+
+            function submitCreateNewFile() {
+                let name = document.getElementById('newFilenameInput').value.trim();
+                const template = document.getElementById('newFileTemplateSelect').value;
+
+                if (!name) {
+                    alert('Please enter a filename.');
+                    return;
+                }
+                if (!name.endsWith('.json')) {
+                    name = name + '.json';
+                }
+
+                let initial = '{\n\n}';
+                if (template === 'empty_array') {
+                    initial = '[\n\n]';
+                } else if (template === 'user_template') {
+                    initial = JSON.stringify({
+                        "India": {
+                            "userId": "india.user@example.com",
+                            "userPassword": "Password123"
+                        },
+                        "NYC": {
+                            "userId": "nyc.user@example.com",
+                            "userPassword": "Password123"
+                        }
+                    }, null, 2);
+                } else if (template === 'customer_template') {
+                    initial = JSON.stringify({
+                        customers: [{
+                            type: "CustomCustomer",
+                            email: "user@example.com",
+                            firstName: "John",
+                            lastName: "Doe",
+                            billingName: "John Doe",
+                            billingAddress: "123 Main St",
+                            city: "City",
+                            state: "State",
+                            country: "Country",
+                            billingPincode: "123456",
+                            billingPhone: "9999999999"
+                        }]
+                    }, null, 2);
+                } else if (template === 'item_template') {
+                    initial = JSON.stringify({
+                        ItemData: [{
+                            sku: "SKU-001",
+                            priceIn: 1000.0,
+                            priceUs: 15.0,
+                            priceRow: 20.0,
+                            category: "General",
+                            subCategory: "Standard",
+                            deliveryAwaited: false
+                        }]
+                    }, null, 2);
+                }
+
+                fetch('/api/test-data/create', {
+                    method: 'POST',
+                    headers: getCsrfHeaders(),
+                    body: JSON.stringify({ filename: name, content: initial })
+                })
+                .then(function(res) {
+                    if (!res.ok) {
+                        return res.json().then(function(data) { throw new Error(data.error || 'Failed to create file'); });
+                    }
+                    return res.json();
+                })
+                .then(function(data) {
+                    bootstrap.Modal.getInstance(document.getElementById('newFileModal')).hide();
+                    showStatusAlert("Dataset '" + name + "' created successfully!");
+                    loadFilesList(function() {
+                        selectDataset(name, false);
+                    });
+                })
+                .catch(function(err) {
+                    alert('Error creating file: ' + err.message);
+                });
+            }
+
+            function openUploadModal() {
+                document.getElementById('uploadFileInput').value = '';
+                document.getElementById('uploadCustomFilename').value = '';
+                new bootstrap.Modal(document.getElementById('uploadModal')).show();
+            }
+
+            function submitUploadFile() {
+                const fileInput = document.getElementById('uploadFileInput');
+                const customName = document.getElementById('uploadCustomFilename').value.trim();
+
+                if (!fileInput.files || fileInput.files.length === 0) {
+                    alert('Please select a JSON file to upload.');
+                    return;
+                }
+
+                const file = fileInput.files[0];
+                const formData = new FormData();
+                formData.append('file', file);
+                if (customName) {
+                    formData.append('filename', customName);
+                }
+
+                const csrfToken = document.querySelector("meta[name='_csrf']")?.getAttribute("content");
+                const csrfHeader = document.querySelector("meta[name='_csrf_header']")?.getAttribute("content");
+                const headers = {};
+                if (csrfToken && csrfHeader) {
+                    headers[csrfHeader] = csrfToken;
+                }
+
+                fetch('/api/test-data/upload', {
+                    method: 'POST',
+                    headers: headers,
+                    body: formData
+                })
+                .then(function(res) {
+                    if (!res.ok) {
+                        return res.json().then(function(data) { throw new Error(data.error || 'Failed to upload'); });
+                    }
+                    return res.json();
+                })
+                .then(function(data) {
+                    bootstrap.Modal.getInstance(document.getElementById('uploadModal')).hide();
+                    showStatusAlert("Dataset '" + data.filename + "' uploaded and saved!");
+                    loadFilesList(function() {
+                        selectDataset(data.filename, false);
+                    });
+                })
+                .catch(function(err) {
+                    alert('Error uploading file: ' + err.message);
+                });
+            }
+
+            // Utilities
+            function escapeHtml(str) {
+                if (str === null || str === undefined) return '';
+                return String(str)
+                    .replace(/&/g, '&amp;')
+                    .replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;')
+                    .replace(/"/g, '&quot;')
+                    .replace(/'/g, '&#039;');
+            }
+
+            function escapeJsString(str) {
+                if (!str) return '';
+                return String(str).replace(/'/g, "\\'").replace(/"/g, '\\"');
+            }
+        </script>
+    </th:block>
+</body>
+</html>
