@@ -56,7 +56,7 @@ Feature: Order Creation check
   @IndianStoreOrder @orderCreation
   Scenario Outline: Order creation check for Indian store user
     Given User is on the login page
-    When User enters valid "ppusdefcol" and "1qaz2wsx"
+    When User enters valid credentials for "India"
     Then User should be redirected to the homepage
     And Logged in user opens order creation
     When User fills customer using "<CustomerType>" with "<AddressType>" address and clicks next
@@ -93,7 +93,7 @@ Feature: Order Creation check
   @NYCStoreOrder @orderCreation
     Scenario Outline: Order creation check for NYC store user
       Given User is on the login page
-      When User enters valid "sachin.mahara@purplestylelabs.com" and "zaq1xsw2"
+      When User enters valid credentials for "NYC"
       Then User should be redirected to the homepage
       And Logged in user opens order creation
       Then User should be on customer details page
@@ -129,11 +129,10 @@ Feature: Order Creation check
       | Dummy-NYC    | New-International | GPay          | PPUS NYC  |
       | Dummy-NYC    | Store-NYC         | GPay          | PPUS NYC  |
 
-
   @LondonStoreOrder @orderCreation
   Scenario Outline: Order creation check for London store user
     Given User is on the login page
-      When User enters valid "ppuslondonauto" and "1qaz2wsx"
+      When User enters valid credentials for "London"
       Then User should be redirected to the homepage
       And Logged in user opens order creation
       Then User should be on customer details page
@@ -169,12 +168,10 @@ Feature: Order Creation check
       | Dummy-London  | New-International | GPay          | PPUS London |
       | Dummy-London  | Store-London      | GPay          | PPUS London |
 
-
-
   @OnlineOrder @orderCreation
   Scenario Outline: Order creation check for Online Order user
     Given User is on the login page
-    When User enters valid "gaurav.dubey@purplestylelabs.com" and "1qaz1qaz"
+    When User enters valid credentials for "Online"
     Then User should be redirected to the homepage
     And Logged in user opens order creation
     When User select client location "<ClientLocation>"

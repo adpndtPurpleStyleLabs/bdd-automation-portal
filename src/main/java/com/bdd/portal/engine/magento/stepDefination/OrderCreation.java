@@ -55,7 +55,6 @@ public class OrderCreation {
                 case "ExistingCustomer", "NonExistingCustomer":
                     customerDetailPage.fillCustomerEmail(customer.getEmail());
                     customerDetailPage.dummyClick();
-
                     break;
 
                 case "DummyCustomer":
@@ -125,13 +124,13 @@ public class OrderCreation {
         orderContext.setExpectedSubTotal(expectedSubTotal);
     }
 
-    @When("User fill item details using testData for Online User")
-    public void userFillItemDetailsUsingTestDataForOnlineUser() throws Exception{
-
-        List<ItemData> items = TestDataReader.getAllItem();
-        orderContext.setItems(items);
-
-    }
+//    @When("User fill item details using testData for Online User")
+//    public void userFillItemDetailsUsingTestDataForOnlineUser() throws Exception{
+//
+//        List<ItemData> items = TestDataReader.getAllItem();
+//        orderContext.setItems(items);
+//
+//    }
 
     @Then("Product must be added to cart")
     public void productMustBeAddedToCart() {
